@@ -1,7 +1,7 @@
 FROM byprice/base-python:latest
 
 # Copy repo
-COPY ./ /byprice-geoprice/
+COPY ./ /byprice-geoproce/
 RUN mkdir /byprice-geoprice/logs
 
 # Change workdir
