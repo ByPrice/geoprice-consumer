@@ -5,7 +5,7 @@ import re
 __version__ = '0.1'
 
 APP_MODE = os.getenv('APP_MODE','SERVICE')
-APP_NAME='geolocation-'+APP_MODE.lower()
+APP_NAME='geoprice-'+APP_MODE.lower()
 APP_PORT = os.getenv('APP_PORT', 8000)
 APP_SECRET = os.getenv('APP_SECRET', '#geolocation')
 
