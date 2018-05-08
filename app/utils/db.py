@@ -12,7 +12,8 @@ logger = applogger.get_logger()
 # Create the database and schema
 def initdb():
     ''' Initialize the db '''
-    logger.info("Initializing keyspace. Host: "+str(CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+CASSANDRA_KEYSPACE)
+    logger.info("Initializing keyspace. Host: " + \
+        str(CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+CASSANDRA_KEYSPACE)
     cluster_init = Cluster(CASSANDRA_CONTACT_POINTS)
     session_init = cluster_init.connect()
     # Only drop keyspace if its in testing environmet

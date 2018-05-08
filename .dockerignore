@@ -1,0 +1,16 @@
+env/
+.vscode/
+.envvars
+*/*.pyc
+__pycache__
+*.pid
+*.log
+*.rdb
+*.md
+app/__pycache__
+app/models/__pycache__
+app/controllers/__pycache__
+app/tests/__pycache__
+.git
+.gitignore
+bin/*.local
