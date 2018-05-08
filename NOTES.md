@@ -1,5 +1,26 @@
 # Cassandra Cluster 
 
+# Separación de archivos
+
+Jorge
+- scripts/stats
+- controllers/stats
+- models/stats
+- controllers/product
+- models/product 
+- models/item
+- controllers/alarm
+- models/alarm
+
+Rodrigo
+- models/price 
+- scripts/dumps
+- run.sh 
+- models/task
+- models/historia
+- models/mapa
+
+
 # To Do
 
 - Use redis for tasks to containarize the app

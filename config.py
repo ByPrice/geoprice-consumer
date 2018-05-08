@@ -2,6 +2,8 @@
 import os
 import re
 
+__version__ = '0.1'
+
 APP_MODE = os.getenv('APP_MODE','SERVICE')
 APP_NAME='geolocation-'+APP_MODE.lower()
 APP_PORT = os.getenv('APP_PORT', 8000)
@@ -10,6 +12,19 @@ APP_SECRET = os.getenv('APP_SECRET', '#geolocation')
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 BASEDIR = BASE_DIR
 PATH = os.path.dirname(os.path.realpath(__file__)) + "/"
+
+# Celery
+CELERY_BROKER = os.getenv('CELERY_BROKER', 'redis')
+CELERY_HOST = os.getenv("CELERY_HOST", "localhost")
+CELERY_PORT = int(os.getenv("CELERY_PORT", 6379))
+CELERY_USER =  os.getenv('CELERY_USER', '')
+CELERY_PASSWORD = os.getenv('CELERY_PASSWORD','')
+
+TASK_BACKEND = os.getenv('TASK_BACKEND',None)
+REDIS_HOST = os.getenv('REDIS_HOST', None)
+REDIS_PORT = os.getenv('REDIS_PORT', None)
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+
 
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')

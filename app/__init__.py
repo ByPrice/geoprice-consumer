@@ -11,6 +11,7 @@ import datetime
 import app.utils.applogger as applogger
 import app.utils.errors as errors
 import app.utils.db as db
+from redis import Redis
 
 # Flask app declaration
 app = Flask(__name__)
@@ -30,6 +31,28 @@ def get_db():
     """
     if not hasattr(g, '_db'):
         g._db = db.getdb()
+
+# Cassandra connection
+def get_redis():
+    """ Method to connect to redis
+    """
+    if not hasattr(g, '_redis'):
+        g._redis = Redis(
+            host=config.REDIS_HOST,
+            port=config.REDIS_PORT,
+            password=config.REDIS_PASSWORD
+        )
+
+@app.before_request
+def before_request():
+    """ Before request method
+    """
+    # Connect to database
+    get_db()
+    # Connect to redis
+    if config.TASK_BACKEND=='redis':
+        get_redis()
+    
 
 @app.cli.command('initdb')
 def initdb_cmd():
@@ -53,7 +76,7 @@ def main():
     """ Service information endpoint
     """
     return jsonify({
-        'service' : 'ByPrice Price Geo v{}'.format(config.__version__),
+        'service' : 'ByPrice Price Geoprice v{}'.format(config.__version__),
         'author' : 'ByPrice Dev Team',
         'date' : datetime.datetime.utcnow()
     })
