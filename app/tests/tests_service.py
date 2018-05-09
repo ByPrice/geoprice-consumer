@@ -87,7 +87,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     @unittest.skip('Not yet tested')
     def test_01_by_store_with_prod(self):
         """ Test By Store endpoint with Product UUID
-        """ 
+        """
         print("Test By Store endpoint with Product UUID")
         _r = self.app.get("/product/bystore?puuid={}")\
             .format('')
