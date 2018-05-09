@@ -6,7 +6,7 @@ import datetime
 
 mod = Blueprint('product',__name__)
 
-@mod.route('/')
+@mod.route('/one')
 def get_one():
     """
         Testing connection method
