@@ -74,6 +74,17 @@ def consumer_cmd():
     start()
     logger.info("Initialized database")
 
+@app.cli.command('task')
+@click.option('--name', default=None, help="Provide the task name with the option --name=<task_name>")
+def dump_cmd(name):
+    """ Execute task by it's name
+    """
+    if not name:
+        logger.error("You must define the name of the task to be executed")
+        return False
+    from app.scripts import start_task
+    start_task(name)
+
 # Functional Endpoints
 @app.route('/')
 def main():
