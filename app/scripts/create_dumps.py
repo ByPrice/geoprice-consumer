@@ -8,20 +8,19 @@ import datetime
 import pandas as pd
 from pandas import DataFrame, Series
 from collections import OrderedDict
+import boto3
+from io import StringIO
 
 dd=lambda:defaultdict(dd)
 logger = applogger.get_logger()
 
 
-""" 
-    Get catalogue of retailer and prices of today
-"""
-
 DATA_DIR = BASE_DIR+"/data/"
-SOURCES = 'ims'
 ROWS_SAVE = 5000
 now = datetime.datetime.utcnow()
 then = now - datetime.timedelta(hours=32)
+SOURCES = [] if not config.TASK_ARG_CREATE_DUMPS else config.TASK_ARG_CREATE_DUMPS.split(",")
+BUCKET='geoprice'
 
 template = {
     "gtin" : [],
@@ -139,37 +138,58 @@ def save_df(result):
     dframe.to_csv(DATA_DIR+"tmp_stats_aggregate.csv", encoding="utf-8")
 
 
-def build_dump(data_providers):
+def df_to_s3(df, source):
+    """ Save dataframe directly to s3
+    """
+    filename = now.strftime("%Y")+"/"+now.strftime("%Y%m")+"/"+now.strftime("%Y%m%d")+"/"+source
+    bucket = BUCKET
+    try:
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer)
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY
+        )
+        s3.put_object(Bucket=bucket,Key=filename, Body=csv_buffer.getvalue())
+        return True
+
+    except Exception as e:
+        logger.error("Could not save file to s3!")
+        logger.error(e)
+        return False
+
+
+
+def start(source):
     """ Build the dataframe
         - Get retailers
         - Get general catalogue
         - Get catalogue of all retailers
         - Get prices for every item
     """
-    logger.info("Starting dump script, saving file at: "+DATA_DIR)
+    logger.info("Starting dump script, saving file to: "+BUCKET)
     logger.info("Getting retailers")
     retailers = get_retailers()
     logger.info(len(retailers))
-    logger.info("Getting total items")
     
-    total_items = get_total_items(data_provider)
-    logger.info(len(total_items))
+    # Loop the sources of data we want as base for the table
+    for src in SOURCES:
 
-    # Build stats
-    print("Building stats")
-    stats = get_stats(total_items, retailers)
+        logger.info("Getting total items for {}".format(src))
+        total_items = get_total_items(src)
+        logger.info(len(total_items))
 
-    # Build dataframe
-    dframe = DataFrame(stats)
-    dframe.to_csv(DATA_DIR+"stats_aggregate.csv", encoding="utf-8")
+        # Build stats
+        logger.info("Building stats")
+        stats = get_stats(total_items, retailers)
 
+        # Build dataframe and save to s3
+        dframe = DataFrame(stats)
+        df_to_s3(dframe, src)
 
-def start():
-    build_dump()
-
-
-        
-
+        dframe.to_csv(DATA_DIR+"stats_aggregate.csv", encoding="utf-8")
+          
 
 if __name__=='__main__':
     query_regions()
