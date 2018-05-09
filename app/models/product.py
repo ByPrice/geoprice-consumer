@@ -1,17 +1,17 @@
 import datetime
-from flask import g
-from app import errors, logger
-import pandas as pd
-import numpy as np
 import uuid
-from config import *
-import requests
 import operator
 from io import StringIO
-from pprint import pprint
 import math
 import json
 from collections import OrderedDict
+from flask import g
+import pandas as pd
+import numpy as np
+import requests
+from app import errors, logger
+from config import *
+from app.models.item import Item
 
 geo_stores_url = 'http://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
 geo_rets_url = 'http://'+SRV_GEOLOCATION+'/retailer/all'
@@ -59,19 +59,28 @@ class Product(object):
                 Amount of days to query backwards
         """
         logger.info("Executing by store query...")
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        if i_uuid:
+            prod_info = Item.get_by_item(i_uuid)
+            prod_uuids = [p['product_uuid'] for p in prod_info]
+        else: 
+            prod_uuids = [str(p_uuid)]
+        logger.info(prod_uuids)
         return []
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
                 SELECT item_uuid, product_uuid, store_uuid, price, price_original,
                 promo, retailer, discount, zip, lat, lng, url, time
-                FROM price_item WHERE item_uuid = {}
-                AND time > '{}'
-                """.format(i_uuid,
-                            (datetime.date.today()
-                            + datetime.timedelta(days=-1*period)))
+                FROM price_item WHERE product_uuid = %(product_uuid)s
+                AND date = %(date)s
+                """
+        #.format(i_uuid,
+        #                    (datetime.date.today()
+        #                    + datetime.timedelta(days=-1*period)))
         logger.debug(cass_query)
         try:
-            q = g._db.execute(cass_query, timeout=10)  # changed from original
+            q = g._db.query(cass_query, timeout=10)  # changed from original
             if not q:
                 return []
         except Exception as e:
