@@ -106,7 +106,7 @@ CREATE TABLE price_by_source (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((store_uuid, date), time, product_uuid)
+    PRIMARY KEY     ((source, date), time, product_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
 /* command end */
 
