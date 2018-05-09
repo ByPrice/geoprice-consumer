@@ -17,8 +17,7 @@ geo_stores_url = 'http://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
 geo_rets_url = 'http://'+SRV_GEOLOCATION+'/retailer/all'
 
 class Product(object):
-    """
-        Class perform Query methods on Cassandra items
+    """ Class perform Query methods on Cassandra items
     """
 
     @staticmethod
@@ -27,12 +26,12 @@ class Product(object):
             Static Method to verify correct connection with Prices Cassandra Keyspace
         """
         try:
-            q = g._db.execute("SELECT * FROM price_date LIMIT 1")
+            q = g._db.query("SELECT product_uuid FROM price LIMIT 1")
         except:
             logger.error("Cassandra Connection error")
             return False
         for price in q:
-            logger.info('Item UUID: ' + str(price.item_uuid))
+            logger.info('Product UUID: ' + str(price.product_uuid))
         return {'msg':'Cassandra One Working!'}
 
     @staticmethod

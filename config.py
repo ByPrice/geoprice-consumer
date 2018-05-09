@@ -5,7 +5,7 @@ import re
 __version__ = '0.1'
 
 APP_MODE = os.getenv('APP_MODE','SERVICE')
-APP_NAME='geolocation-'+APP_MODE.lower()
+APP_NAME='geoprice-'+APP_MODE.lower()
 APP_PORT = os.getenv('APP_PORT', 8000)
 APP_SECRET = os.getenv('APP_SECRET', '#geolocation')
 
@@ -58,8 +58,10 @@ QUEUE_CACHE = "cache_dev" if ENV.upper() == 'DEV' else "cache"
 
 # Cassandra seeds
 contact_points = []
-for contact_points in CASSANDRA_CONTACT_POINTS.split(","):
-    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',seed) and ENV.upper() != 'DEV' and ENV.upper() != 'LOCAL':
+for seed in CASSANDRA_CONTACT_POINTS.split(","):
+    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',seed) \
+        and ENV.upper() != 'DEV' \
+        and ENV.upper() != 'LOCAL':
         contact_points.append("dev."+seed)
     else:
         contact_points.append(seed)

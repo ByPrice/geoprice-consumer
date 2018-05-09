@@ -1,9 +1,11 @@
 #-*-coding: utf-8-*-
 import sys
-from app.models.simple_cassandra import SimpleCassandra
+from cassandra.cluster import Cluster
+from cassandra import AlreadyExists
+from app.utils.simple_cassandra import SimpleCassandra
+import app.utils.applogger as applogger
+from app.utils.errors import AppError
 import config
-import app.applogger as applogger
-from app.errors import AppError
 
 cluster = None
 session = None
@@ -12,28 +14,38 @@ logger = applogger.get_logger()
 # Create the database and schema
 def initdb():
     ''' Initialize the db '''
-    logger.info("Initializing keyspace. Host: "+str(CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+CASSANDRA_KEYSPACE)
-    cluster_init = Cluster(CASSANDRA_CONTACT_POINTS)
+    logger.info("Initializing keyspace. Host: " + \
+        str(config.CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+\
+        config.CASSANDRA_KEYSPACE)
+    cluster_init = Cluster(config.CASSANDRA_CONTACT_POINTS)
     session_init = cluster_init.connect()
     # Only drop keyspace if its in testing environmet
     if config.TESTING:
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
 
     if config.ENV.upper() == 'DEV' or config.ENV.upper() == 'LOCAL':
-        session_init.execute("""
-            CREATE KEYSPACE %s 
-            WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} 
-            AND durable_writes = true
-        """ % config.CASSANDRA_KEYSPACE )
+        try:
+            session_init.execute("""
+                CREATE KEYSPACE %s 
+                WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} 
+                AND durable_writes = true
+            """ % config.CASSANDRA_KEYSPACE )
+        except AlreadyExists:
+            logger.info("Keyspace {} already exists".format(config.CASSANDRA_KEYSPACE))
+            return True
     else:
-        session_init.execute("""
-            CREATE KEYSPACE %s 
-            WITH replication = {'class': 'NetworkTopologyStrategy', 'Core': '1', 'Analytics': '1'}  
-            AND durable_writes = true
-        """ % config.CASSANDRA_KEYSPACE ) 
-
+        try:
+            session_init.execute("""
+                CREATE KEYSPACE %s 
+                WITH replication = {'class': 'NetworkTopologyStrategy', 'Core': '1', 'Analytics': '1'}  
+                AND durable_writes = true
+            """ % config.CASSANDRA_KEYSPACE ) 
+        except AlreadyExists:
+            logger.info("Keyspace {} already exists".format(config.CASSANDRA_KEYSPACE))
+            return True
+    # Set Keyspace
     session_init.set_keyspace(config.CASSANDRA_KEYSPACE)
-    with open( BASE_DIR + '/schema.cql','r') as f:
+    with open( config.BASE_DIR + '/schema.cql','r') as f:
         #cont = f.read()
         commands = []
         cmd_str = ""
@@ -51,7 +63,6 @@ def initdb():
                 continue
             if cmd==1:
                 cmd_str+=line
-
         for c in commands:
             logger.info(c)
             session_init.execute(c)
