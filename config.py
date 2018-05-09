@@ -72,6 +72,9 @@ SRV_PROTOCOL = os.getenv('SRV_PROTOCOL', 'http')
 SRV_CATALOGUE = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '')  + os.getenv('SRV_CATALOGUE', 'catalogue')
 SRV_GEOLOCATION = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '') + os.getenv('SRV_GEOLOCATION', 'geolocation')
 
+# Tasks arguments 
+TASK_ARG_CREATE_DUMPS='byprice,ims,walmart'
+
 
 
 
