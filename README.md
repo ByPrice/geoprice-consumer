@@ -1,6 +1,6 @@
 # Byprice GeoPrice Service
 
-Web App for Geographic Price Consultation in Cassandra using  direct and async queries.
+Web App for Geographic Price Consultation in Cassandra using  direct and async queries, and Consumer App to write into Cassandra retrieved info.
 
 ## Pre-requirements
 
@@ -75,10 +75,6 @@ python wsgi.py
 
 [See details](../CONTRACTS.md)
 
-- Submit Task to retrieve prices aggregated by Store (Map/Table)
-- Submit Task to retrieve prices aggregated by Day (History)
-- Task Status endpoint
-- Task Results endpoint
 
 ## Errors
 
