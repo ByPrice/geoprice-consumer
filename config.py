@@ -73,9 +73,11 @@ SRV_CATALOGUE = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '')  + os.ge
 SRV_GEOLOCATION = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '') + os.getenv('SRV_GEOLOCATION', 'geolocation')
 
 # Tasks arguments 
-TASK_ARG_CREATE_DUMPS='byprice,ims,walmart'
+TASK_ARG_CREATE_DUMPS = os.getenv('TASK_ARG_CREATE_DUMPS', 'byprice,ims,walmart') 
 
-
+# AWS keys to access S3
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '') 
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY','')
 
 
 
