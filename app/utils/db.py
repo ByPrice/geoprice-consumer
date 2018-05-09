@@ -1,6 +1,7 @@
 #-*-coding: utf-8-*-
 import sys
 from cassandra.cluster import Cluster
+from cassandra import AlreadyExists
 from app.utils.simple_cassandra import SimpleCassandra
 import app.utils.applogger as applogger
 from app.utils.errors import AppError
@@ -23,18 +24,26 @@ def initdb():
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
 
     if config.ENV.upper() == 'DEV' or config.ENV.upper() == 'LOCAL':
-        session_init.execute("""
-            CREATE KEYSPACE %s 
-            WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} 
-            AND durable_writes = true
-        """ % config.CASSANDRA_KEYSPACE )
+        try:
+            session_init.execute("""
+                CREATE KEYSPACE %s 
+                WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} 
+                AND durable_writes = true
+            """ % config.CASSANDRA_KEYSPACE )
+        except AlreadyExists:
+            logger.info("Keyspace {} already exists".format(config.CASSANDRA_KEYSPACE))
+            return True
     else:
-        session_init.execute("""
-            CREATE KEYSPACE %s 
-            WITH replication = {'class': 'NetworkTopologyStrategy', 'Core': '1', 'Analytics': '1'}  
-            AND durable_writes = true
-        """ % config.CASSANDRA_KEYSPACE ) 
-
+        try:
+            session_init.execute("""
+                CREATE KEYSPACE %s 
+                WITH replication = {'class': 'NetworkTopologyStrategy', 'Core': '1', 'Analytics': '1'}  
+                AND durable_writes = true
+            """ % config.CASSANDRA_KEYSPACE ) 
+        except AlreadyExists:
+            logger.info("Keyspace {} already exists".format(config.CASSANDRA_KEYSPACE))
+            return True
+    # Set Keyspace
     session_init.set_keyspace(config.CASSANDRA_KEYSPACE)
     with open( config.BASE_DIR + '/schema.cql','r') as f:
         #cont = f.read()
@@ -54,7 +63,6 @@ def initdb():
                 continue
             if cmd==1:
                 cmd_str+=line
-
         for c in commands:
             logger.info(c)
             session_init.execute(c)
