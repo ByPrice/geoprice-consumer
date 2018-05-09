@@ -21,7 +21,13 @@ CREATE TABLE price (
     url             text,
     currency        text,
     PRIMARY KEY     (product_uuid, time)    
-) WITH CLUSTERING ORDER BY (time DESC);
+) WITH CLUSTERING ORDER BY (time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -36,7 +42,10 @@ CREATE TABLE price_by_product_date (
     promo           text,
     currency        text,
     PRIMARY KEY     ((product_uuid, date), time)    
-) WITH CLUSTERING ORDER BY (time DESC);
+) WITH CLUSTERING ORDER BY (time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
 /* command end */
 
 /* command start */
@@ -52,7 +61,13 @@ CREATE TABLE price_by_date (
     url             text,
     currency        text,
     PRIMARY KEY     (date, time, product_uuid)   
-) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
+) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -69,7 +84,13 @@ CREATE TABLE price_by_product_store (
     url             text,
     currency        text,
     PRIMARY KEY     ((product_uuid, store_uuid), time)
-) WITH CLUSTERING ORDER BY (time DESC);
+) WITH CLUSTERING ORDER BY (time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LevelCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -88,7 +109,13 @@ CREATE TABLE price_by_geohash (
     url             text,
     currency        text,
     PRIMARY KEY     ((product_uuid, geohash), time)   
-) WITH CLUSTERING ORDER BY (time DESC);
+) WITH CLUSTERING ORDER BY (time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -107,7 +134,13 @@ CREATE TABLE price_by_source (
     url             text,
     currency        text,
     PRIMARY KEY     ((source, date), time, product_uuid)
-) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
+) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -125,13 +158,20 @@ CREATE TABLE price_by_store (
     url             text,
     currency        text,
     PRIMARY KEY     ((store_uuid, date), time, product_uuid)
-) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
+) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
 /* Promo by product */
 CREATE TABLE promo (
     product_uuid    uuid,
+    date            int,
     time            timestamp,
     store_uuid      uuid,
     lat             float,
@@ -141,14 +181,21 @@ CREATE TABLE promo (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     (product_uuid, time, store_uuid)
-) WITH CLUSTERING ORDER BY (time DESC, store_uuid ASC);
+    PRIMARY KEY     ((product_uuid, date), store_uuid, time)
+) WITH CLUSTERING ORDER BY (store_uuid ASC, time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
 /* Promos */
 CREATE TABLE promo_by_store (
     product_uuid    uuid,
+    date            int,
     time            timestamp,
     store_uuid      uuid,
     lat             float,
@@ -158,8 +205,14 @@ CREATE TABLE promo_by_store (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     (store_uuid, time, product_uuid)
-) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
+    PRIMARY KEY     ((store_uuid, date), product_uuid, time)
+) WITH CLUSTERING ORDER BY (product_uuid ASC, time DESC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
+                     'compaction_window_unit': 'DAYS', 
+                     'compaction_window_size': 1};
+/*
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
+*/
 /* command end */
 
 /* command start */
@@ -169,7 +222,8 @@ CREATE TABLE price_raw (
     product_uuid    uuid,
     raw             text,
     PRIMARY KEY     (date, product_uuid)    
-) WITH CLUSTERING ORDER BY (product_uuid ASC);
+) WITH CLUSTERING ORDER BY (product_uuid ASC)
+AND COMPACTION = {'class': 'LeveledCompactionStrategy'};
 /* command end */
 
 /* command start */
@@ -183,6 +237,7 @@ CREATE TABLE stats_by_product (
     min_price       float,
     mode_price      float,
     std_price       float,
-    PRIMARY KEY     (product_uuid, date)
-) WITH CLUSTERING ORDER BY (date DESC);
+    PRIMARY KEY     ((product_uuid, date), avg_price)
+) WITH CLUSTERING ORDER BY (avg_price DESC)
+AND COMPACTION = {'class': 'LeveledCompactionStrategy'};
 /* command end */
