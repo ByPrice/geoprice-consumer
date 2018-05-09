@@ -51,7 +51,7 @@ CREATE TABLE price_by_date (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     (date, time, poduct_uuid)   
+    PRIMARY KEY     (date, time, product_uuid)   
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC);
 /* command end */
 
@@ -68,7 +68,7 @@ CREATE TABLE price_by_product_store (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((product_uuid, geohash), time)
+    PRIMARY KEY     ((product_uuid, store_uuid), time)
 ) WITH CLUSTERING ORDER BY (time DESC);
 /* command end */
 
@@ -87,7 +87,7 @@ CREATE TABLE price_by_geohash (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((product_uuid, geohash) time)   
+    PRIMARY KEY     ((product_uuid, geohash), time)   
 ) WITH CLUSTERING ORDER BY (time DESC);
 /* command end */
 
@@ -165,7 +165,7 @@ CREATE TABLE promo_by_store (
 /* command start */
 /* Raw prices */
 CREATE TABLE price_raw (
-    date            intm
+    date            int,
     product_uuid    uuid,
     raw             text,
     PRIMARY KEY     (date, product_uuid)    
@@ -182,7 +182,7 @@ CREATE TABLE stats_by_product (
     max_price       float,
     min_price       float,
     mode_price      float,
-    std_price       float
+    std_price       float,
     PRIMARY KEY     (product_uuid, date)
 ) WITH CLUSTERING ORDER BY (date DESC);
 /* command end */

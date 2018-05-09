@@ -20,10 +20,10 @@ applogger.create_logger()
 logger = applogger.get_logger()
 
 # Flask blueprint registration
-app.register_blueprint(mapa.mod, url_prefix='/mapa')
-app.register_blueprint(historia.mod, url_prefix='/historia')
-app.register_blueprint(dump.mod, url_prefix='/dump')
-app.register_blueprint(check.mod, url_prefix='/check')
+#app.register_blueprint(mapa.mod, url_prefix='/mapa')
+#app.register_blueprint(historia.mod, url_prefix='/historia')
+#app.register_blueprint(dump.mod, url_prefix='/dump')
+#app.register_blueprint(check.mod, url_prefix='/check')
 
 # Cassandra connection
 def get_db():

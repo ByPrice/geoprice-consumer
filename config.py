@@ -57,8 +57,10 @@ QUEUE_CACHE = "cache_dev" if ENV.upper() == 'DEV' else "cache"
 
 # Cassandra seeds
 contact_points = []
-for contact_points in CASSANDRA_CONTACT_POINTS.split(","):
-    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',seed) and ENV.upper() != 'DEV' and ENV.upper() != 'LOCAL':
+for seed in CASSANDRA_CONTACT_POINTS.split(","):
+    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',seed) \
+        and ENV.upper() != 'DEV' \
+        and ENV.upper() != 'LOCAL':
         contact_points.append("dev."+seed)
     else:
         contact_points.append(seed)

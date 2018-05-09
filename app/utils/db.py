@@ -1,9 +1,10 @@
 #-*-coding: utf-8-*-
 import sys
-from app.models.simple_cassandra import SimpleCassandra
+from cassandra.cluster import Cluster
+from app.utils.simple_cassandra import SimpleCassandra
+import app.utils.applogger as applogger
+from app.utils.errors import AppError
 import config
-import app.applogger as applogger
-from app.errors import AppError
 
 cluster = None
 session = None
@@ -13,8 +14,9 @@ logger = applogger.get_logger()
 def initdb():
     ''' Initialize the db '''
     logger.info("Initializing keyspace. Host: " + \
-        str(CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+CASSANDRA_KEYSPACE)
-    cluster_init = Cluster(CASSANDRA_CONTACT_POINTS)
+        str(config.CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+\
+        config.CASSANDRA_KEYSPACE)
+    cluster_init = Cluster(config.CASSANDRA_CONTACT_POINTS)
     session_init = cluster_init.connect()
     # Only drop keyspace if its in testing environmet
     if config.TESTING:
@@ -34,7 +36,7 @@ def initdb():
         """ % config.CASSANDRA_KEYSPACE ) 
 
     session_init.set_keyspace(config.CASSANDRA_KEYSPACE)
-    with open( BASE_DIR + '/schema.cql','r') as f:
+    with open( config.BASE_DIR + '/schema.cql','r') as f:
         #cont = f.read()
         commands = []
         cmd_str = ""
