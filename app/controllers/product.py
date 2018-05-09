@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
-from app.product.models import Product
+from app.models.product import Product
 from app import errors, logger
 import datetime
 
 mod = Blueprint('product',__name__)
 
-@mod.route('/')
+@mod.route('/one')
 def get_one():
     """
         Testing connection method

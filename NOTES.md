@@ -7,7 +7,7 @@ Jorge
 - controllers/stats
 - models/stats
 - controllers/product
-- models/product 
+- models/product
 - models/item
 - controllers/alarm
 - models/alarm
