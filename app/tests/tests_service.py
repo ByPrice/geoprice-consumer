@@ -8,6 +8,8 @@ import io
 import pandas as pd
 
 
+_testing_item = '5630f780-1952-465b-b38c-9f02f2b0e24d'
+
 class GeoPriceServiceTestCase(unittest.TestCase):
     """ Test Case for GeoPrice Service
     """
@@ -30,7 +32,8 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 app.dropdb()
 
     def setUp(self):
-        """ Generating Flask App context for testing
+        """ Generating Flask App Client 
+            context for testing
         """
         print("\n***************************\n")
         self.app = app.app.test_client()
@@ -51,24 +54,45 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    @unittest.skip('Already tested')
-    def test_01_add_item(self):
-        """ Add New Item
+    """
+    NEEDED TESTS FOR PRODUCT
+    - /bystore/history
+    - /ticket
+    - /catalogue
+    - /count_by_store
+    - /count_by_store_hours
+    - /byfile
+    - /retailer
+    - /compare/details
+    - /compare/history
+    - /stats
+    - /count_by_store_engine
+    """
+    
+    #@unittest.skip('Already tested')
+    def test_01_by_store_with_item(self):
+        """ Test By Store endpoint with Item UUID
         """ 
-        global new_item_test
-        print("Add New Item")
-        _r =  self.app.post('/item/add',
-                data=json.dumps(new_item_test),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
+        print("Test By Store endpoint with Item UUID")
+        _r = self.app.get("/product/bystore?uuid={}"\
+            .format(_testing_item))
+        print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
         except:
             pass
         self.assertEqual(_r.status_code, 200)
-        new_item_test['item_uuid'] = _jr['item_uuid']
-    
+
+    @unittest.skip('Not yet tested')
+    def test_01_by_store_with_prod(self):
+        """ Test By Store endpoint with Product UUID
+        """ 
+        print("Test By Store endpoint with Product UUID")
+        _r = self.app.get("/product/bystore?puuid={}")\
+            .format('')
+
+'''
     @unittest.skip('Already tested')
     def test_02_modify_item(self):
         """ Modify existing Item
@@ -321,7 +345,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_r.status_code, 200)
-
+'''
 
 if __name__ == '__main__':
     unittest.main()

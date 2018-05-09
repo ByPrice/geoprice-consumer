@@ -35,24 +35,40 @@ class Product(object):
         return {'msg':'Cassandra One Working!'}
 
     @staticmethod
-    def get_by_store(i_uuid, lat, lng, radius=10.0, period=2):
+    def get_by_store(i_uuid, p_uuid, lat, lng, radius=10.0, period=2):
+        """ If `item_uuid` is passed, fetches assigned `product_uuid`s
+            then queries over `price_by_product_date` with `product_uuid`
+            and date. Then filters not valid stores after the location 
+            sent and the minimum valid distance to take prices from. 
+            Finally appends stores info from Geolocation Service and
+            sorts response by price and distance.
+
+            Params:
+            -----
+            i_uuid :  str
+                Item UUID
+            p_uuid :  str
+                Product UUID
+            lat : float
+                Latitude
+            lng : float
+                Longitude
+            radius  : float, default=10.0 
+                Radius in kilometers
+            period : int
+                Amount of days to query backwards
         """
-            Method queries over price_item with item_uuid and date. 
-            It filters not valid stores after the location sent and the minimum valid distance
-            to take prices from. 
-            Finally queries to the Geolocation Service to retrieve all needed info from the 
-            stores that got prices from.
-        """
-        logger.debug("Executing Query...")
+        logger.info("Executing by store query...")
+        return []
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-                    SELECT item_uuid, store_uuid, price, price_original,
-                    promo, retailer, discount, zip, lat, lng, url, time
-                    FROM price_item WHERE item_uuid = {}
-                    AND time > '{}'
-                    """.format(i_uuid,
-                               (datetime.date.today()
-                                + datetime.timedelta(days=-1*period)))
+                SELECT item_uuid, product_uuid, store_uuid, price, price_original,
+                promo, retailer, discount, zip, lat, lng, url, time
+                FROM price_item WHERE item_uuid = {}
+                AND time > '{}'
+                """.format(i_uuid,
+                            (datetime.date.today()
+                            + datetime.timedelta(days=-1*period)))
         logger.debug(cass_query)
         try:
             q = g._db.execute(cass_query, timeout=10)  # changed from original

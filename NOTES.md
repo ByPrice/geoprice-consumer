@@ -13,7 +13,7 @@ Jorge
 - models/alarm
 
 Rodrigo
-- models/price 
+- models/price
 - scripts/dumps
 - run.sh 
 - models/task
