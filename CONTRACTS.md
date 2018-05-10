@@ -54,8 +54,61 @@ Fetch recent product prices by each store filtering by item_uuid or product_uuid
 ]
 ```
 
-```json
-[
+### Product prices By Store History
 
-]
+Fetch recent product prices by each store filtering by item_uuid or product_uuid, latitude, longitude, radius and number of prior days (history).
+
+**Method**:  GET
+
+**Endpoint**: `/product/bystore/history?uuid=<item_uuid | required>&puuid=<product_uuid | conditonally_required>&lat=<latitude | optional>&lng=<longitude | optional>&r=<radius | optional>&days=<days | optional>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| uuid  | Item UUID | required |
+| puuid  | Product UUID | required if `uuid` not set |
+| days | Prior Days | optional, default=7.0 |
+
+**Response:**
+
+```json
+{
+  "history": {
+    "Máximo": [
+      {
+        "date": "2018-05-03 23:02:04.878000",
+        "price": 65.0
+      },
+      {
+        "date": "2018-05-04 23:02:47.097000",
+        "price": 65.0
+      },
+      //...
+    ],
+    "Mínimo": [
+      {
+        "date": "2018-05-03 23:02:04.878000",
+        "price": 62.0
+      },
+      {
+        "date": "2018-05-04 23:02:47.097000",
+        "price": 62.0
+      },
+      // ...
+    ],
+    "Promedio": [
+      {
+        "date": "2018-05-03 23:02:04.878000",
+        "price": 64.38408084791534
+      },
+      {
+        "date": "2018-05-04 23:02:47.097000",
+        "price": 64.19711049397786
+      },
+      // ...
+    ]
+  },
+  "history_byretailer": {}
+}
 ```

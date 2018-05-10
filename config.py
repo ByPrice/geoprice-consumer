@@ -7,7 +7,8 @@ __version__ = '0.1'
 APP_MODE = os.getenv('APP_MODE','SERVICE')
 APP_NAME='geoprice-'+APP_MODE.lower()
 APP_PORT = os.getenv('APP_PORT', 8000)
-APP_SECRET = os.getenv('APP_SECRET', '#geolocation')
+APP_SECRET = os.getenv('APP_SECRET', '#geoprice')
+ENV = os.getenv('ENV','DEV')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 BASEDIR = BASE_DIR
@@ -33,7 +34,6 @@ CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','prices')
 CASSANDRA_PORT = os.getenv('CASSANDRA_PORT','9042')
 
 # Env-dependent variables
-ENV = os.getenv('ENV','DEV')
 CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
 
 # App Name
