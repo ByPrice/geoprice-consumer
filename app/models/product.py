@@ -1,20 +1,20 @@
 import datetime
-from flask import g
-from app import errors, logger
-import pandas as pd
-import numpy as np
 import uuid
-from config import *
-import requests
 import operator
+from uuid import UUID
+import itertools
 from io import StringIO
-from pprint import pprint
 import math
 import json
 from collections import OrderedDict
-
-geo_stores_url = 'http://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
-geo_rets_url = 'http://'+SRV_GEOLOCATION+'/retailer/all'
+from flask import g
+import pandas as pd
+import numpy as np
+import requests
+from app import errors, logger
+from config import *
+from app.models.item import Item
+from app.utils.helpers import tupleize_date
 
 class Product(object):
     """ Class perform Query methods on Cassandra items
@@ -35,51 +35,74 @@ class Product(object):
         return {'msg':'Cassandra One Working!'}
 
     @staticmethod
-    def get_by_store(i_uuid, lat, lng, radius=10.0, period=2):
+    def get_by_store(i_uuid, p_uuid, lat, lng, radius=10.0, period=2):
+        """ If `item_uuid` is passed, fetches assigned `product_uuid`s
+            then queries over `price_by_product_date` with `product_uuid`
+            and date. Then filters not valid stores after the location 
+            sent and the minimum valid distance to take prices from. 
+            Finally appends stores info from Geolocation Service and
+            sorts response by price and distance.
+
+            Params:
+            -----
+            i_uuid :  str
+                Item UUID
+            p_uuid :  str
+                Product UUID
+            lat : float
+                Latitude
+            lng : float
+                Longitude
+            radius  : float, default=10.0 
+                Radius in kilometers
+            period : int
+                Amount of days to query backwards
         """
-            Method queries over price_item with item_uuid and date. 
-            It filters not valid stores after the location sent and the minimum valid distance
-            to take prices from. 
-            Finally queries to the Geolocation Service to retrieve all needed info from the 
-            stores that got prices from.
-        """
-        logger.debug("Executing Query...")
+        logger.info("Executing by store query...")
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        if i_uuid:
+            prod_info = Item.get_by_item(i_uuid)
+            prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        else: 
+            prod_uuids = [str(p_uuid)]
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-                    SELECT item_uuid, store_uuid, price, price_original,
-                    promo, retailer, discount, zip, lat, lng, url, time
-                    FROM price_item WHERE item_uuid = {}
-                    AND time > '{}'
-                    """.format(i_uuid,
-                               (datetime.date.today()
-                                + datetime.timedelta(days=-1*period)))
-        logger.debug(cass_query)
-        try:
-            q = g._db.execute(cass_query, timeout=10)  # changed from original
-            if not q:
-                return []
-        except Exception as e:
-            logger.error("Cassandra Connection error: " + str(e))
-            return False
-        # Load Response into a DF and filter query
-        filt_df = pd.DataFrame(list(q))
-        # Get all stores from geolocation and save into DF
-        rets = [_x for _x, _row in filt_df.groupby('retailer')]
-        stores = []
-        for key in rets:
+                SELECT product_uuid, store_uuid, price, price_original,
+                promo, url, time
+                FROM price_by_product_date WHERE product_uuid = %s
+                AND date = %s
+                """
+        qs = []
+        # Iterate for each product date combination
+        for _p, _d in itertools.product(prod_uuids, _days):
             try:
-                xr = requests.get(geo_stores_url % key).json()
-                for i, x in enumerate(xr):
-                    xr[i].update({'retailer': key})
-                stores = stores + xr
+                q = g._db.query(cass_query, 
+                    (UUID(_p), _d),
+                    timeout=10)
+                if not q:
+                    continue
+                qs += list(q)
             except Exception as e:
-                logger.error(e)
-                logger.warning('Issues retrieving %s stores' % str(key))
+                logger.error("Cassandra Connection error: " + str(e))
                 continue
-        stores_df = pd.DataFrame(stores)
-        logger.debug('Got prices, now filtering..')
-        # Here added Centralized stores separately
-        #filt_df = Product.add_centralized_stores(filt_df, stores_df)
+        logger.info("Fetched {} prices".format(len(qs)))
+        logger.debug(qs[:1] if len(qs) > 1 else [])
+        return []
+        # Load Response into a DF
+        filt_df = pd.DataFrame(qs)
+        filt_df['item_uuid'] = str(i_uuid) if i_uuid else ''
+        filt_df['store_uuid'] = filt_df.store_uuid.astype(str)
+        filt_df['product_uuid'] = filt_df.product_uuid.astype(str)
+        logger.info('Got prices, now fetching stores...')
+        # Get all stores from geolocation and save into DF
+        stores_df = get_all_stores()
+        # Merge stores with prices to get (lat and lng)
+        filt_df = pd.merge(filt_df,
+            stores_df[['store_uuid', 'lat', 'lng', 'source']],
+            on='store_uuid', how='left')
         try:
             # Filter by coordinates and radius size
             filt_df['distance'] = np\
@@ -94,52 +117,52 @@ class Product(object):
             filt_df = filt_df[filt_df['distance'] <= radius]
             # Drop store duplicates
             filt_df.sort_values(['time'],
-                                ascending=[0],
-                                inplace=True)
+                ascending=[0], inplace=True)
             filt_df.drop_duplicates(subset='store_uuid',
-                                    keep='first',
-                                    inplace=True)
-            logger.debug('Filtered response..')
-            #logger.debug(filt_df)
+                keep='first', inplace=True)
+            logger.info('Filtered response, got {} products'.format(len(filt_df)))            
         except Exception as e:
             logger.error(e)
             logger.warning('Could not Generate filters from from geolocation')
+        # Compute discount
+        filt_df['price_original'] = filt_df['price_original']\
+            .apply(lambda x : x if (x and float(x) != 0.0) else np.nan)
+        filt_df['price_original'] = filt_df.price_original\
+            .combine_first(filt_df.price)
+        filt_df['discount'] = 100.0 * \
+            (filt_df.price_original - filt_df.price) / filt_df.price_original
+        # Format date
+        filt_df['date'] = filt_df['time'].astype(str)
         # Format response
-        prods = []
-        for i, irow in filt_df.iterrows():
+        df_cols = ['item_uuid', 'product_uuid', 'price',
+            'url', 'price_original', 'discount', 'time',
+            'source', 'date', 'distance', 'promo']
+        prods = filt_df[df_cols]\
+            .rename(columns={'price_original': 'previous_price'})\
+            .sort_values(by=['price', 'distance'])\
+            to_dict(orient='records')
+        for i, irow in enumerate(prods):
             try:
                 tmp_store = stores_df\
-                            .loc[stores_df['uuid'] == str(irow.store_uuid)]\
+                            .loc[stores_df['store_uuid'] == irow['store_uuid']]\
                             .to_dict(orient="records")[0]
                 d_time, d_name, d_address = Product.contact_store_info(tmp_store)
                 # If centralized, generate record for each store
-                prods.append({
-                        'item_uuid' : irow.item_uuid,
-                        'store': {
-                                    'store_uuid' : irow.store_uuid,
-                                    'name': d_name,
-                                    'delivery_time': d_time,
-                                    'delivery_cost': float(tmp_store["delivery_cost"]) \
-                                        if tmp_store['delivery_cost'] is not None else None,
-                                    'delivery_radius': float(tmp_store["delivery_radius"]),
-                                    'address': d_address,
-                                    'latitude' : irow.lat,
-                                    'longitude' : irow.lng,
-                                    'postal_code' : str(irow.zip).zfill(5)
-                        },
-                        'price' : irow.price,
-                        'url' : irow.url,
-                        'previous_price' : irow.price_original,
-                        'discount' : irow.discount,
-                        'promo': irow.promo,
-                        'retailer' : irow.retailer,
-                        'distance' : irow.distance,
-                        'date' : str(irow.time)
-                })
+                prods[i]['store'] = {
+                    'store_uuid' : irow['store_uuid']
+                    'name': d_name,
+                    'delivery_time': d_time,
+                    'delivery_cost': float(tmp_store["delivery_cost"]) \
+                        if tmp_store['delivery_cost'] is not None else None,
+                    'delivery_radius': float(tmp_store["delivery_radius"]),
+                    'address': d_address,
+                    'latitude' : irow['lat'],
+                    'longitude' : irow['lng'],
+                    'postal_code' : str(irow['zip']).zfill(5)
+                }
             except Exception as e:
                 logger.error(e)
                 logger.warning('Issues formatting!')
-        prods.sort(key=operator.itemgetter('price'))
         return prods
 
     @staticmethod
