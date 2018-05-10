@@ -39,6 +39,7 @@ CREATE TABLE price_by_product_date (
     store_uuid      uuid,
     price           float,
     price_original  float,
+    url             text,
     promo           text,
     currency        text,
     PRIMARY KEY     ((product_uuid, date), time)    

@@ -1,7 +1,7 @@
 import sys
 from cassandra.cluster import Cluster
 from cassandra import ConsistencyLevel
-from cassandra.query import SimpleStatement, PreparedStatement
+from cassandra.query import SimpleStatement, PreparedStatement, bind_params
 from cassandra.concurrent import execute_concurrent_with_args
 import logging
 

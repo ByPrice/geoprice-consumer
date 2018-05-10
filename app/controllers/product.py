@@ -19,29 +19,33 @@ def get_one():
 
 @mod.route('/bystore', methods=['GET'])
 def get_today_prices_bystore():
-    """
-        Get prices from an specific item by day, and closest stores
+    """ Get prices from an specific 
+        item by day, and closest stores
     """
     logger.debug('Getting prices from uuid...')
+    item_uuid, product_uuid = None, None
+    # Validate UUIDs
     if 'uuid' in request.args:
-        item_uuid = request.args.get('uuid') 
+        item_uuid = request.args.get('uuid')
+        logger.debug("Item UUID: "+ str(item_uuid))
+    elif 'puuid' in request.args:
+        product_uuid = request.args.get('puuid')
+        logger.debug("Product UUID: "+ str(product_uuid))
     else:
-        raise errors.ApiError("invalid_request", "UUID parameter missing")
-
+        raise errors.ApiError(80002, "Requst UUID parameters missing")
     # Get default Location in case of not sending the correct one
     lat = float(request.args.get('lat')) if 'lat' in request.args else 19.431380
     lng = float(request.args.get('lng')) if 'lng' in request.args else -99.133486
     radius = float(request.args.get('r')) if 'r' in request.args else 10.0
-
-    logger.debug("Item UUID: "+ str(item_uuid))
-    prod = Product.get_by_store(item_uuid, lat, lng, radius)
+    # Retrieve prices
+    prod = Product.get_by_store(item_uuid,
+        product_uuid, lat, lng, radius)
     if not prod:
-        #raise errors.ApiError("invalid_request", "Wrong UUID parameter")
-        logger.warning("Wrong UUID parameter")
+        logger.warning("No prices in queried product!")
         return jsonify([])
+    logger.info('Found {} prices'.format(len(prod)))
     logger.debug("Response prices:")
-    #logger.debug(prod)
-    logger.info(len(prod))
+    logger.debug(prod[:1] if len(prod) > 1 else [])
     return jsonify(prod)
 
 
@@ -353,3 +357,51 @@ def compare_store_item():
                               "No products with that Retailer and item combination.")
     return jsonify(prod)
 
+@mod.route('/stats', methods=['GET'])
+def get_stats_by_item():
+    """
+        Get Today's max, min & avg price from an specific item_uuid
+
+        @Params:
+         - item_uuid : (str) Item UUID
+
+        @Returns:
+         - (flask.Response)  # if export: Mimetype else: JSON
+    """
+    logger.info("Fetching product stats by item")
+    # Verify Request Params
+    params = request.args
+    if 'item_uuid' not in params:
+        raise errors.ApiError("invalid_request", "Retailer key missing")
+
+    item_uuid = params.get('item_uuid')
+    # Call function to fetch prices
+    prod = Product.get_stats_by_item(item_uuid)
+    return jsonify(prod)
+
+
+@mod.route('/count_by_store_engine', methods=['GET'])
+def get_count_by_store_engine():
+    """
+        Get Count from store
+
+        @Params:
+         - "retailer" : retailer_key
+         - "store_uuid" : store_uuid
+         - "date" : date
+
+        @Returns:
+         - (flask.Response)  # if export: Mimetype else: JSON
+    """
+    logger.info("Fetching counts by store")
+    # Verify Request Params
+    params = request.args
+    if 'retailer' not in params or 'store_uuid' not in params or 'date' not in params:
+        raise errors.ApiError("invalid_request", "Retailer key missing")
+
+    retailer = params.get('retailer')
+    store_uuid = params.get('store_uuid')
+    date = params.get('date')
+    # Call function to fetch prices
+    prod = Product.count_by_store_engine(retailer, store_uuid, date)
+    return jsonify(prod)
