@@ -322,43 +322,75 @@ class Product(object):
             .format(len(items)))
         return items
 
-
     @staticmethod
-    def get_store_catalogue(retailer, store_id):
+    def get_store_catalogue(source, store_id):
+        """ Query all items from certain store
+            on the past 2 days leaving most recent.
+            
+            Params:
+            -----
+            source : str
+                Source key
+            store_id : str
+                Store UUID
+
+            Returns:
+            -----
+            prods : list
+                List of product prices
         """
-            Method to query to retrieve all items from certain store of the last 36 hours
-        """
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), 2)
         cass_query = """
-                    SELECT item_uuid, price, 
-                    price_original, discount, time,
-                    retailer, store_uuid
-                    FROM price_store 
-                    WHERE retailer = '%s' 
-                    AND store_uuid=%s
-                    AND time > '%s'
-                    """%(retailer,
-                        store_id,
-                        str(datetime.date.today() + datetime.timedelta(hours=-36)))
-        logger.debug(cass_query)
-        try: 
-            q = g._db.execute(cass_query, timeout=120)
-        except Exception as e:
-            logger.error("Cassandra Connection error: "+str(e))
-            return False
+            SELECT product_uuid, price, 
+            price_original, time,
+            store_uuid
+            FROM price_by_store 
+            WHERE store_uuid = %s
+            AND date = %s
+            """
+        qs = []
+        # Iterate for each store-date combination
+        for _s, _d in itertools.product([store_id], _days):
+            try: 
+                q = g._db.query(cass_query,
+                    (UUID(_s), _d),
+                    timeout=120)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: "+str(e))
+        if len(qs) == 0:
+            return []
+        # Create DF and format datatypes
+        df = pd.DataFrame(qs)
+        df['product_uuid'] = df['product_uuid'].astype(str)
+        df['store_uuid'] = df['store_uuid'].astype(str)
+        df['source'] = source
+        _ius = pd.DataFrame(
+            Item.get_by_products(df['product_uuid'].tolist())
+        )
+        _ius['product_uuid'] = _ius['product_uuid'].astype(str)
+        # Add Item UUIDs
+        df = pd.merge(df, _ius[['item_uuid', 'product_uuid']],
+            on='product_uuid', how='left')
+        df.fillna('', inplace=True)
+        # Fetch discount
+        df['price_original'] = df['price_original']\
+            .apply(lambda x : x if (x and float(x) != 0.0) else np.nan)
+        df['price_original'] = df.price_original\
+            .combine_first(df.price)
+        df['discount'] = 100.0 * \
+            (df.price_original - df.price) / df.price_original
+        # Format date
+        df['date'] = df['time'].astype(str)
         # Format response
-        prods = []
-        for it in q:
-            prods.append({
-                            'item_iuuid' : it.item_uuid,
-                            'price' : it.price,
-                            'price_original' : it.price_original,
-                            'discount': it.discount,
-                            'date' : it.time,
-                            'retailer' : it.retailer,
-                            'store_uuid' : it.store_uuid
-                        })
-        logger.debug(prods)
-        return prods
+        _fields = ['item_uuid', 'price',
+            'price_original', 'discount',
+            'date', 'source', 'store_uuid'
+        ]
+        return df[_fields].to_dict(orient='records')
 
     @staticmethod
     def get_count_by_store_24hours(retailer, store_id, last_hours=24):
@@ -642,7 +674,7 @@ class Product(object):
                     _stj[_i].update({'retailer': _r})
             except Exception as e:
                 logger.error(e)
-                raise errors.ApiError("stores_issue",
+                raise errors.AppError("stores_issue",
                             "Could not fetch Stores!")
             _st_list += _stj
         geo_df = pd.DataFrame(_st_list)
@@ -655,7 +687,7 @@ class Product(object):
                 fixed['item_uuid'],
                 _time)
         if not fix_price:
-            raise errors.ApiError("no_price", "No available prices for that combination.")
+            raise errors.AppError("no_price", "No available prices for that combination.")
         # Fetch Added Prices DF
         added_prices = []
         for _a in added:
@@ -810,7 +842,7 @@ class Product(object):
                     date_groups[0][0].date().__str__(),
                     date_groups[-1][-1].date().__str__())
         if not fix_store:
-            raise errors.ApiError("no_price", "No available prices for that combination.")
+            raise errors.AppError("no_price", "No available prices for that combination.")
         fix_st_df = pd.DataFrame(fix_store)
         fix_st_df['name'] = fixed['name']
         fix_st_df['time_js'] = fix_st_df['time'].apply(date_js())
@@ -880,7 +912,7 @@ def obtain_distances(fixed, added, rets):
                     _stj[_i].update({'retailer': _r})
             except Exception as e:
                 logger.error(e)
-                raise errors.ApiError("stores_issue",
+                raise errors.AppError("stores_issue",
                             "Could not fetch Stores!")
             _st_list += _stj
     _geo_df = pd.DataFrame(_st_list)

@@ -9,6 +9,8 @@ import pandas as pd
 
 
 _testing_item = '5630f780-1952-465b-b38c-9f02f2b0e24d'
+_test_ret = 'walmart'
+_test_store =  '5630f780-1952-465b-b38c-9f02f2b0e24d'#= '16faeaf4-7ace-11e7-9b9f-0242ac110003'
 
 class GeoPriceServiceTestCase(unittest.TestCase):
     """ Test Case for GeoPrice Service
@@ -43,7 +45,6 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     """
     NEEDED TESTS FOR PRODUCT
-    - /ticket
     - /catalogue
     - /count_by_store
     - /count_by_store_hours
@@ -55,7 +56,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     - /count_by_store_engine
     """
 
-    #@unittest.skip('Already tested')
+    @unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
         """ Testing GeoPrice DB connection
         """ 
@@ -68,7 +69,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Already tested')
+    @unittest.skip('Already tested')
     def test_01_by_store_with_item(self):
         """ Test By Store endpoint with Item UUID
         """ 
@@ -90,8 +91,8 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print("Test By Store endpoint with Product UUID")
         pass
 
-    #@unittest.skip('Already tested')
-    def test_04_by_store_history_with_item(self):
+    @unittest.skip('Already tested')
+    def test_03_by_store_history_with_item(self):
         """ Test By Store History endpoint with Item UUID
         """ 
         print("Test By Store History endpoint with Item UUID")
@@ -106,14 +107,14 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         self.assertEqual(_r.status_code, 200)
     
     @unittest.skip('Not yet tested')
-    def test_02_by_store_history_with_prod(self):
+    def test_04_by_store_history_with_prod(self):
         """ Test By Store History endpoint with Product UUID
         """
         print("Test By Store History endpoint with Product UUID")
         pass
 
-    #@unittest.skip('To test')
-    def test_04_ticket_with_item(self):
+    @unittest.skip('Tested already')
+    def test_05_ticket_with_item(self):
         """ Test Ticket endpoint with Item UUIDs
         """ 
         print("Test Ticket endpoint with Item UUIDs")
@@ -123,6 +124,28 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 ),
             headers={'content-type': 'application/json'}
             )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Not yet tested')
+    def test_06_ticket_with_prod(self):
+        """ Test Ticket endpoint with Product UUIDs
+        """ 
+        print("Test Ticket endpoint with Product UUIDs")
+        pass
+    
+    #@unittest.skip('Tested already')
+    def test_07_store_catalogue(self):
+        """ Test store prices catalogue endpoint
+        """ 
+        print("Test store prices catalogue endpoint")
+        _r = self.app.get("/product/catalogue?r={}&sid={}"\
+            .format(_test_ret, _test_store))
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
