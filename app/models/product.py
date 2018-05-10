@@ -237,7 +237,9 @@ class Product(object):
         _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-            SELECT price FROM price_item WHERE item_uuid = %s
+            SELECT price 
+            FROM price_by_product_date
+            WHERE product_uuid = %s
             AND date = %s
             """
         qs = []
@@ -278,16 +280,46 @@ class Product(object):
         return {'history': stats_hist, 'history_byretailer': {}}
 
     @staticmethod
-    def generate_ticket(i_uuids, lat, lng, radius, max_rets, exclude):
-        """
-            Method that calls over the get_by_store function to retrieve valid data
-            then it goes over an optimization process to order the best possible combination
-            of the requested item array.
+    def generate_ticket(i_uuids, p_uuids, lat, lng, radius):
+        """ Calls over `get_by_store` function to 
+            retrieve valid data of several products
+            in a loop.
+
+            Params:
+            -----
+            i_uuids : list
+                Item UUIDs
+            p_uuids :  list
+                Product UUIDs
+            lat : float
+                Latitude
+            lng : float
+                Longitude
+            radius  : float, default=10.0 
+                Radius in kilometers
+
+            Returns:
+            -----
+            items : list
+                List of  lists of product prices 
         """
         items = []
-        for i_uuid in i_uuids:
-            items.append(Product.get_by_store(i_uuid, lat, lng, radius))
-        logger.debug(items)
+        # If Item UUIDs where sent
+        if i_uuids:
+            for i_uuid in i_uuids:
+                items.append(
+                    Product.get_by_store(i_uuid, None,
+                        lat, lng, radius)
+                )
+        elif p_uuids:
+            # If Product UUIDs where sent
+            for p_uuid in p_uuids:
+                items.append(
+                    Product.get_by_store(None, p_uuid,
+                        lat, lng, radius)
+                )
+        logger.info("Fetched {} product prices groups"\
+            .format(len(items)))
         return items
 
 
