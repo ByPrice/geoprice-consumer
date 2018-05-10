@@ -32,7 +32,7 @@ def get_today_prices_bystore():
         product_uuid = request.args.get('puuid')
         logger.debug("Product UUID: "+ str(product_uuid))
     else:
-        raise errors.ApiError(80002, "Requst UUID parameters missing")
+        raise errors.ApiError(80002, "Request UUID parameters missing")
     # Get default Location in case of not sending the correct one
     lat = float(request.args.get('lat')) if 'lat' in request.args else 19.431380
     lng = float(request.args.get('lng')) if 'lng' in request.args else -99.133486
@@ -42,7 +42,7 @@ def get_today_prices_bystore():
         product_uuid, lat, lng, radius)
     if not prod:
         logger.warning("No prices in queried product!")
-        return jsonify([])
+        return jsonify({'ok':'ok'})
     logger.info('Found {} prices'.format(len(prod)))
     logger.debug("Response prices:")
     logger.debug(prod[:1] if len(prod) > 1 else [])
@@ -51,26 +51,29 @@ def get_today_prices_bystore():
 
 @mod.route('/bystore/history', methods=['GET'])
 def get_history_prices_bystore():
+    """ Get prices from an specific item 
+        for the past period of time, 
+        and closest stores.
     """
-        Get prices from an specific item for the past period of time, and closest stores
-    """
+    item_uuid, product_uuid = None, None
+    # Validate UUIDs
     if 'uuid' in request.args:
-        item_uuid = request.args.get('uuid') 
+        item_uuid = request.args.get('uuid')
+        logger.debug("Item UUID: "+ str(item_uuid))
+    elif 'puuid' in request.args:
+        product_uuid = request.args.get('puuid')
+        logger.debug("Product UUID: "+ str(product_uuid))
     else:
-        raise errors.ApiError("invalid_request", "UUID parameter missing")
-
-    # Get default Location in case of not sending the correct one
-    lat = float(request.args.get('lat')) if 'lat' in request.args else 19.431380
-    lng = float(request.args.get('lng')) if 'lng' in request.args else -99.133486
-    radius = float(request.args.get('r')) if 'r' in request.args else 10.0
+        raise errors.ApiError(80002, "Request UUID parameters missing")
+    # Get default prior amount of days
     period = float(request.args.get('days')) if 'days' in request.args else 7.0
-
-    logger.debug("Item UUID: "+ str(item_uuid))
-    prod = Product.get_history_by_store(item_uuid, lat, lng, radius, period)
+    # Call to fetch prices
+    prod = Product.get_history_by_store(item_uuid, product_uuid, period)
     if not prod:
-        raise errors.ApiError("invalid_request", "Wrong UUID parameter")
+        logger.warning("No prices in queried product!")
+        return jsonify({})
+    logger.info('Found {} metrics'.format(len(prod['history'])))
     return jsonify(prod)
-
 
 @mod.route('/ticket', methods=['POST'])
 def get_ticket_bystore():

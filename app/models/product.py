@@ -57,6 +57,11 @@ class Product(object):
                 Radius in kilometers
             period : int
                 Amount of days to query backwards
+
+            Returns:
+            -----
+            prods : list
+                List of product prices 
         """
         logger.info("Executing by store query...")
         # If item_uuid is passed, call to retrieve
@@ -66,17 +71,18 @@ class Product(object):
             prod_uuids = [str(p['product_uuid']) for p in prod_info]
         else: 
             prod_uuids = [str(p_uuid)]
+        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
         # Generate days
         _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-                SELECT product_uuid, store_uuid, price, price_original,
-                promo, url, time
-                FROM price_by_product_date WHERE product_uuid = %s
-                AND date = %s
-                """
+            SELECT product_uuid, store_uuid, price, price_original,
+            promo, url, time
+            FROM price_by_product_date WHERE product_uuid = %s
+            AND date = %s
+            """
         qs = []
-        # Iterate for each product date combination
+        # Iterate for each product-date combination
         for _p, _d in itertools.product(prod_uuids, _days):
             try:
                 q = g._db.query(cass_query, 
@@ -90,7 +96,9 @@ class Product(object):
                 continue
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
-        return []
+        # Empty validation
+        if len(qs) == 0:
+            return []
         # Load Response into a DF
         filt_df = pd.DataFrame(qs)
         filt_df['item_uuid'] = str(i_uuid) if i_uuid else ''
@@ -124,6 +132,7 @@ class Product(object):
         except Exception as e:
             logger.error(e)
             logger.warning('Could not Generate filters from from geolocation')
+            return []
         # Compute discount
         filt_df['price_original'] = filt_df['price_original']\
             .apply(lambda x : x if (x and float(x) != 0.0) else np.nan)
@@ -140,7 +149,7 @@ class Product(object):
         prods = filt_df[df_cols]\
             .rename(columns={'price_original': 'previous_price'})\
             .sort_values(by=['price', 'distance'])\
-            to_dict(orient='records')
+            .to_dict(orient='records')
         for i, irow in enumerate(prods):
             try:
                 tmp_store = stores_df\
@@ -149,7 +158,7 @@ class Product(object):
                 d_time, d_name, d_address = Product.contact_store_info(tmp_store)
                 # If centralized, generate record for each store
                 prods[i]['store'] = {
-                    'store_uuid' : irow['store_uuid']
+                    'store_uuid' : irow['store_uuid'],
                     'name': d_name,
                     'delivery_time': d_time,
                     'delivery_cost': float(tmp_store["delivery_cost"]) \
@@ -183,36 +192,6 @@ class Product(object):
         except:
             pass
         return d_time, d_name, d_address
-
-    @staticmethod
-    def add_centralized_stores(c_df, stores_df):
-        """ Method to obtain all additional records for the other stores of the centralized ret  """
-        # Get and check which are centralized retailers
-        all_df = pd.DataFrame(c_df)
-        return all_df
-        try:
-            all_rets = requests.get(geo_rets_url).json()
-        except Exception as e:
-            logger.warning('Could not fetch retailers!')
-            all_rets = []
-        central_ret = []
-        for art in all_rets:
-            if art['price_type'] == 'CENTRALIZED':
-                central_ret.append(art['key'])
-        print('Initial stores length: %d'%len(all_df))
-        for i in range(len(all_df)):
-            if all_df.iloc[i].retailer in central_ret:
-                for s in Product.stores_by_ret(all_df.iloc[i].retailer, stores_df):
-                    ndez = len(all_df)
-                    all_df.loc[ndez] = all_df.iloc[i]
-                    all_df.set_value(ndez, 'store_uuid', s['store_uuid'])
-                    all_df.set_value(ndez, 'lat', s['lat'])
-                    all_df.set_value(ndez, 'lng', s['lng'])
-                    all_df.set_value(ndez, 'zip', s['postal_code'])
-                    #print('N row')
-                    #print(all_df.iloc[ndez])
-        print('Final stores length: %d'%len(all_df))
-        return all_df
         
     @staticmethod
     def stores_by_ret(ret, stores):
@@ -226,84 +205,76 @@ class Product(object):
         return rs
 
     @staticmethod
-    def get_history_by_store(i_uuid, lat, lng, radius=10.0, period=1):
+    def get_history_by_store(i_uuid, p_uuid, period=1):
+        """ If `item_uuid` is passed, fetches assigned `product_uuid`s
+            then queries over `price_by_product_date` with `product_uuid`
+            and date. Then filters not valid stores after the location
+            sent and the minimum valid distance to take prices from.
+
+            Params:
+            -----
+            i_uuid :  str
+                Item UUID
+            p_uuid :  str
+                Product UUID
+            period : int
+                Amount of days to query backwards
+
+            Returns:
+            -----
+            metrics : dict
+                JSON with Max, Min and Avg metrics
         """
-            Method queries over price_item with item_uuid and date. 
-            It filters not valid stores after the location sent and the minimum valid distance
-            to take prices from. 
-            Finally queries to the Geolocation Service to retrieve all needed info from the 
-            stores that got prices from.
-        """
-        logger.debug("Executed Query")
+        logger.debug("Executing by store history query...")
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        if i_uuid:
+            prod_info = Item.get_by_item(i_uuid)
+            prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        else: 
+            prod_uuids = [str(p_uuid)]
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-                    SELECT * FROM price_item WHERE item_uuid = {}
-                    AND time > '{}'
-                    """.format(i_uuid, 
-                                (datetime.date.today()+ datetime.timedelta(days=-1*period)))
-        logger.debug(cass_query)
-        try: 
-            q = g._db.execute(cass_query)
-            if not q:
-                return []
-        except Exception as e:
-            logger.error("Cassandra Connection error: "+ str(e))
-            return False
-        # Load Response into a DF and filter query
-        bystore_df = pd.DataFrame(list(q))
-        # Filter by coordinates and radius size
-        filt_df = bystore_df[np\
-                        .arccos(np.sin(np.deg2rad(bystore_df.lat))
-                                * np.sin(np.deg2rad(lat))
-                                + np.cos(np.deg2rad(bystore_df.lat))
-                                * np.cos(np.deg2rad(lat))
-                                * np.cos(np.deg2rad(lng)
-                                        - (np.deg2rad(bystore_df.lng))
-                                        )
-                                )* 6371 <= radius]
-        # Get all stores from geolocation and save into DF
-        rets = [_x for _x, _row in filt_df.groupby('retailer')]
-        stores = []
-        for key in rets:
-            stores = stores + requests.get(geo_stores_url%key).json()
-        stores_df = pd.DataFrame(stores)
+            SELECT price FROM price_item WHERE item_uuid = %s
+            AND date = %s
+            """
+        qs = []
+        # Iterate for each product-date combination
+        for _p, _d in itertools.product(prod_uuids, _days):
+            try:
+                q = g._db.query(cass_query, 
+                    (UUID(_p), _d),
+                    timeout=10)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        # Empty verification
+        if len(qs) == 0:
+            return {'history': {}, 'history_byretailer': {}}
+        # Load Response into a DF
+        bystore_df = pd.DataFrame(qs)
+        bystore_df['date'] = bystore_df['time']\
+            .apply(lambda x: x.date().isoformat())
+        # Perform aggs
+        _aggs = bystore_df.groupby('date').price\
+            .agg(['min', 'max', 'mean'])
         # Format response
-        stats_hist =  {'Máximo':[], 'Mínimo':[], 'Promedio':[]}
-        print(filt_df.groupby(by=['date'])['store_uuid'].count())
-        for prx in list(filt_df.groupby(by=['date'])):
-            tday, prx_list = str(list(prx[1].time)[0]), list(prx[1].price)
-            stats_hist['Máximo'].append({'date': tday, 'price': max(prx_list)})
-            stats_hist['Mínimo'].append({'date': tday, 'price': min(prx_list)})
-            stats_hist['Promedio'].append({'date': tday, 'price': (sum(prx_list)/len(prx_list))})
-        """
-        day_hist, ret_hist =  {}, {}
-        for i in range(len(filt_df)):
-            tmp_store = stores_df.loc[stores_df['uuid'] == str(filt_df.iloc[i].store_uuid)]
-            # Append date segmented history
-            dh = str(filt_df.iloc[i].time) 
-            rh =  str(filt_df.iloc[i].retailer) + ' ' + str(list(tmp_store.name)[0].strip())
-            pr = filt_df.iloc[i].price
-            if dh not in day_hist.keys():
-                day_hist.update({dh:{'stores':[]}})
-            day_hist[dh]['stores'].append({
-                    'name': rh,
-                    'price' : pr,
-                    'store_id' : filt_df.iloc[i].store_uuid
-                    })
-            # Append Retailer segmented history
-            if rh not in ret_hist.keys():
-                ret_hist.update({rh : [] })
-            ret_hist[rh].append({
-                    'date' :dh,
-                    'price' : pr
-                    })
-        day_format = []
-        for d in day_hist.keys():
-            day_format.append({
-                'date':d,
-                'stores': day_hist[d]['stores']
-                })
-        """
+        stats_hist =  {
+            'Máximo': aggs['max'].reset_index()\
+                .rename(columns={'max': 'price'})\
+                .to_dict(orient='records'),
+            'Mínimo': aggs['min'].reset_index()\
+                .rename(columns={'min': 'price'})\
+                .to_dict(orient='records'),
+            'Promedio': aggs['mean'].reset_index()\
+                .rename(columns={'max': 'price'})\
+                .to_dict(orient='records')
+        }
         return {'history': stats_hist, 'history_byretailer': {}}
 
     @staticmethod
