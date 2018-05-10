@@ -112,3 +112,76 @@ Fetch recent product prices by each store filtering by item_uuid or product_uuid
   "history_byretailer": {}
 }
 ```
+
+
+### Product prices for ticket
+
+Fetch recent group of product prices by each store filtering by item_uuid or product_uuid, latitude, longitude and radius.
+
+**Method**:  POST
+
+**Endpoint**: `/product/ticket`
+
+**Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| uuids | List of Item UUIDs | required |
+| puuids  | List of Product UUIDs | required if `uuids` not set |
+| lat  | Latitude | optional, default=19.431380 |
+| lng  | Longitude | optional, default=-99.133486 |
+| r  | Radius | optional, default=10.0 |
+
+**Request Example:**
+
+```json
+{
+  "uuids": [
+    "cfa07938-fb70-4a86-b099-0a0f650837fa",
+    "cfa07938-fb70-4a86-b099-0a0f650837fa",
+    //...
+  ],
+  "puuids": [
+    "cfa07938-fb70-4a86-b099-0a0f650837fa",
+    "cfa07938-fb70-4a86-b099-0a0f650837fa",
+    //...
+  ],
+  "lat": 19.431380, // optional
+  "lng": -99.133486, // optional
+  "r": 10.0 // optional
+}
+```
+
+**Response:**
+
+```json
+[
+  [
+    {
+      "date": "2018-05-09 02:19:27.486000",
+      "discount": 0.0,
+      "distance": 2.4926858680654145,
+      "item_uuid": "cfa07938-fb70-4a86-b099-0a0f650837fa",
+      "product_uuid": "af38sd38-ff70-4a86-b099-0sf846s8478c",
+      "previous_price": 97.0,
+      "price": 97.0,
+      "promo": "",
+      "retailer": "chedraui",
+      "store": {
+        "address": "Anfora 71, Madero, 15360 Ciudad de M\u00e9xico, CDMX, Mexico",
+        "delivery_cost": 21.0,
+        "delivery_radius": 5.0,
+        "delivery_time": "",
+        "latitude": 19.435400009155273,
+        "longitude": -99.11009979248047,
+        "name": "CHEDRAUI M\u00c9XICO ANFORA",
+        "postal_code": "00000",
+        "store_uuid": "efb8efc2-7b09-11e7-855a-0242ac110005"
+          }
+      },
+      // ...
+  ],
+  // ...
+]
+
+```

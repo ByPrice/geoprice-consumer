@@ -77,23 +77,29 @@ def get_history_prices_bystore():
 
 @mod.route('/ticket', methods=['POST'])
 def get_ticket_bystore():
-    """
-        Get prices from an especific ticket from N number of items by day and closest stores
+    """ Get prices from an especific ticket 
+        from N number of items by day and closest stores
     """
     logger.info("Fetching Ticket values")
+    item_uuids, product_uuids = [], []
     params = request.get_json()
-    if 'uuids' not in params.keys():
-        raise errors.ApiError("invalid_request", "UUIDs parameters missing")
+    if 'uuids' in params:
+        item_uuids = params['uuids']
+        logger.debug("Item UUIDs: {}".format(item_uuids))
+    elif 'puuids' in params:
+        product_uuids = params['puuids']
+        logger.debug("Item UUIDs: {}".format(product_uuids))
+    else:
+        raise errors.ApiError(80002, "Request UUIDs parameters missing")
+    # Retrieve optional params
     lat = float(params['lat']) if 'lat' in params.keys() else 19.431380
     lng = float(params['lng']) if 'lng' in params.keys() else -99.133486
     radius = float(params['r']) if 'r' in params.keys() else 10.0
-    max_rets = int(params['max']) if 'max' in params.keys() else len(params['uuids'])
-    exclude = params['exclude'] if 'exclude' in params.keys() else []
     # Call function to obtain ticket from all medicines
-    logger.debug(params['uuids'])
-    ticket = Product.generate_ticket(params['uuids'], lat, lng, radius, max_rets, exclude)
+    ticket = Product.generate_ticket(item_uuids,
+        product_uuids, lat, lng, radius)
     if not ticket:
-        raise errors.ApiError("invalid_request", "Could not optimize those Items")
+        raise errors.ApiError(80005, "Could not generate results for those Items")
     return jsonify(ticket)
 
 @mod.route('/catalogue', methods=['GET'])

@@ -88,16 +88,41 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """ Test By Store endpoint with Product UUID
         """
         print("Test By Store endpoint with Product UUID")
-        _r = self.app.get("/product/bystore?puuid={}")\
-            .format('')
+        pass
 
-    #@unittest.skip('To test')
+    #@unittest.skip('Already tested')
     def test_04_by_store_history_with_item(self):
         """ Test By Store History endpoint with Item UUID
         """ 
         print("Test By Store History endpoint with Item UUID")
         _r = self.app.get("/product/bystore/history?uuid={}"\
             .format(_testing_item))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Not yet tested')
+    def test_02_by_store_history_with_prod(self):
+        """ Test By Store History endpoint with Product UUID
+        """
+        print("Test By Store History endpoint with Product UUID")
+        pass
+
+    #@unittest.skip('To test')
+    def test_04_ticket_with_item(self):
+        """ Test Ticket endpoint with Item UUIDs
+        """ 
+        print("Test Ticket endpoint with Item UUIDs")
+        _r = self.app.post("/product/ticket",
+            data=json.dumps(
+                {'uuids':[_testing_item]}
+                ),
+            headers={'content-type': 'application/json'}
+            )
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
