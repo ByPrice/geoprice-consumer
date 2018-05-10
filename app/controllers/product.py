@@ -42,7 +42,7 @@ def get_today_prices_bystore():
         product_uuid, lat, lng, radius)
     if not prod:
         logger.warning("No prices in queried product!")
-        return jsonify({'ok':'ok'})
+        return jsonify([])
     logger.info('Found {} prices'.format(len(prod)))
     logger.debug("Response prices:")
     logger.debug(prod[:1] if len(prod) > 1 else [])
@@ -66,7 +66,7 @@ def get_history_prices_bystore():
     else:
         raise errors.ApiError(80002, "Request UUID parameters missing")
     # Get default prior amount of days
-    period = float(request.args.get('days')) if 'days' in request.args else 7.0
+    period = int(request.args.get('days')) if 'days' in request.args else 7
     # Call to fetch prices
     prod = Product.get_history_by_store(item_uuid, product_uuid, period)
     if not prod:
