@@ -26,7 +26,6 @@ REDIS_PORT = os.getenv('REDIS_PORT', None)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 REDIS_DB = 0 if ENV != 'DEV' else 1
 
-
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')
 CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','prices')
