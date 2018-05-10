@@ -68,7 +68,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    @unittest.skip('Already tested')
+    #@unittest.skip('Already tested')
     def test_01_by_store_with_item(self):
         """ Test By Store endpoint with Item UUID
         """ 
@@ -91,7 +91,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         _r = self.app.get("/product/bystore?puuid={}")\
             .format('')
 
-    @unittest.skip('To test')
+    #@unittest.skip('To test')
     def test_04_by_store_history_with_item(self):
         """ Test By Store History endpoint with Item UUID
         """ 
