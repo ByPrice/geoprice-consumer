@@ -323,7 +323,7 @@ class Product(object):
         return items
 
     @staticmethod
-    def get_store_catalogue(source, store_id):
+    def get_store_catalogue(source, store_id, export=False):
         """ Query all items from certain store
             on the past 2 days leaving most recent.
             
@@ -333,16 +333,18 @@ class Product(object):
                 Source key
             store_id : str
                 Store UUID
+            export : bool, optional, default=False
+                Object returning Flag
 
             Returns:
             -----
-            prods : list
-                List of product prices
+            prods : list -> export=False, pd.DataFrame -> export=True
+                Product prices object
         """
         # Generate days
         _days = tupleize_date(datetime.date.today(), 2)
         cass_query = """
-            SELECT product_uuid, price, 
+            SELECT product_uuid, price, promo,
             price_original, time,
             store_uuid
             FROM price_by_store 
@@ -362,6 +364,8 @@ class Product(object):
             except Exception as e:
                 logger.error("Cassandra Connection error: "+str(e))
         if len(qs) == 0:
+            if export:
+                return pd.DataFrame()
             return []
         # Create DF and format datatypes
         df = pd.DataFrame(qs)
@@ -369,11 +373,15 @@ class Product(object):
         df['store_uuid'] = df['store_uuid'].astype(str)
         df['source'] = source
         _ius = pd.DataFrame(
-            Item.get_by_products(df['product_uuid'].tolist())
+            Item.get_by_products(
+                df['product_uuid'].tolist(),
+                ['name', 'item_uuid', 'gtin']
+            )
         )
         _ius['product_uuid'] = _ius['product_uuid'].astype(str)
         # Add Item UUIDs
-        df = pd.merge(df, _ius[['item_uuid', 'product_uuid']],
+        df = pd.merge(df,
+            _ius[['item_uuid', 'product_uuid','name', 'gtin']],
             on='product_uuid', how='left')
         df.fillna('', inplace=True)
         # Fetch discount
@@ -386,10 +394,13 @@ class Product(object):
         # Format date
         df['date'] = df['time'].astype(str)
         # Format response
-        _fields = ['item_uuid', 'price',
+        _fields = ['item_uuid', 'price', 'promo',
             'price_original', 'discount',
             'date', 'source', 'store_uuid'
         ]
+        if export:
+            # If Needs to retrieve table file
+            return df
         return df[_fields].to_dict(orient='records')
 
     @staticmethod
@@ -500,53 +511,26 @@ class Product(object):
         return res
     
     @staticmethod
-    def get_st_catag_file(store_uuid, store_name,retailer):
+    def get_st_catalog_file(store_uuid, store_name, retailer):
+        """ Obtain all prices from certain store
+            from the past 48hrs (2 days)
         """
-            Method to obtain all Prices from certain store from the past 48hrs
-        """
-        logger.debug('Fetching: {}'.format(store_name))
-        cass_query = """
-                    SELECT item_uuid, retailer, price, promo FROM price_store 
-                    WHERE retailer = '{}' 
-                    AND store_uuid={}
-                    AND time > '{}'
-                    """.format(retailer,
-                        store_uuid,
-                        (datetime.datetime.utcnow()-datetime.timedelta(days=2)).isoformat()[:-4])
-        logger.debug(cass_query)
-        # Query all price catalog by store
-        try:
-            c_resp = list(g._db.execute(cass_query, timeout=120))
-            logger.info('C* Prices fetched!')
-            if not c_resp:
-                raise Exception('Empty store')
-        except Exception as e:
-            logger.error(e)
-            return False
-        # Generate DF from prices
-        df = pd.DataFrame(c_resp)
-        df['item_uuid'] = df['item_uuid'].apply(lambda x: str(x))
-        logger.info('DF created')
-        # Query items names from endpoint
-        try:
-            names = requests.get('http://gate.byprice.com/item/item/retailer?retailer={}'.format(retailer)).json()
-            if not names:
-                raise Exception('Empty Retailer')
-            nm_df = pd.DataFrame(names)
-            nm_df['item_uuid'] = nm_df['item_uuid'].apply(lambda x: str(x))
-            logger.info('Names DF done! , Items:{}'.format(len(nm_df)))
-        except Exception as e:
-            logger.error(e)
-            return False
-        # Merge names with prices
-        fdf = pd.merge(df,nm_df,on='item_uuid',how='left')
-        # Add and drop necessary columns
-        fdf['store'] = store_name
-        fdf['name'] = fdf['name'].apply(lambda x: str(x).upper())
-        fdf['retailer'] = fdf['retailer'].apply(lambda x: str(x).upper())
-        fdf.drop('item_uuid', axis=1, inplace=True)
-        # Set indexes
-        fdf.set_index(['retailer','gtin','name'],inplace=True)
+        logger.debug('Fetching: {} {} products...'\
+            .format(retailer, store_name))
+        # Fetch catalogue info
+        df = Product.get_store_catalogue(retailer,
+            store_uuid, export=True)
+        # DataFrame evaluation
+        if df.empty:
+            return None
+        # Set Store name
+        df['store'] = store_name
+        # Select columns and Set indexes
+        _fields = ['source', 'gtin', 'name',
+            'price', 'promo', 'store']
+        fdf = df[_fields]\
+            .copy()\
+            .set_index(['source','gtin','name'])
         logger.info('Finished formatting DF')
         # Generate Bytes Buffer
         _buffer = StringIO()

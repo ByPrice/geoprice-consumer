@@ -332,3 +332,27 @@ Count recent product prices of a given store filtering by store_uuid and last ho
   "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003"
 }
 ```
+
+### Product prices of a store (CSV)
+
+Recent product prices of a given store filtering by store_uuid and for the past 48hrs, return as multipart CSV format.
+
+**Method**:  GET
+
+**Endpoint**: `/product/byfile?ret=<source | required>&sid=<store_uuid | required>&stn=<store_name | required>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| ret | Source/retailer key | required |
+| sid  | Store UUID | required |
+| stn  | Store Name | required |
+
+**Response:**
+
+```csv
+source,gtin,name,price,promo,store
+WALMART,07622210254511,POLVO PARA PREPARAR BEBIDA TANG SABOR FRESA 15 G ,3.299999952316284,,Universidad
+WALMART,00780280071944,POLVO PARA PREPARAR BEBIDA ZUKO SABOR GUAYABA 15 G ,3.200000047683716,,Universidad
+```

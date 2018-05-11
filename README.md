@@ -89,6 +89,7 @@ Error codes with respective description.
 - 80006 : "Task Method not available"
 - 80007 : "Invalid query parameter, try again!"
 - 80008 : "File does not exist"
+- 80009 : "No prices available in {table}"
 
 ## License
 
