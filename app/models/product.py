@@ -977,3 +977,64 @@ class Product(object):
         # Construct response
         return _resp
 
+    @staticmethod
+    def get_stats(item_uuid, prod_uuid):
+        """ Get max, min, avg price from 
+            item_uuid or product_uuid
+
+            Params:
+            -----
+            item_uuid : str
+                Item UUID
+            prod_uuid : str
+                Product UUID
+
+            Returns:
+            -----
+            _stats : dict
+                JSON response
+        """
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        if item_uuid:
+            prod_info = Item.get_by_item(item_uuid)
+            prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        else: 
+            prod_uuids = [str(prod_uuid)]
+        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), 2)
+        cass_query = """
+            SELECT MAX(price) as max,
+                MIN(price) as min,
+                AVG(price) as avg
+            FROM price_by_product_date
+            WHERE product_uuid=%s
+            AND date=%s
+            """
+        qs = []
+        # Iterate for each product-date combination
+        for _p, _d in itertools.product(prod_uuids, _days):
+            try:
+                q = g._db.query(cass_query, 
+                    (UUID(_p), _d),
+                    timeout=10)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        if len(qs) == 0:
+            return {}
+        # Fetch agg values:        
+        df = pd.DataFrame(qs)
+        df.fillna(0.0, inplace=True)
+        _stats = {
+            'avg_price' : round(df['avg'].mean(), 2),
+            'max_price' : round(df['max'].max(), 2),
+            'min_price' : round(df['min'].min(), 2)
+        }
+        if _stats['avg_price'] == 0:
+            return {}
+        return _stats
