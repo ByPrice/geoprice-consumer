@@ -426,35 +426,57 @@ class Product(object):
 
     @staticmethod
     def get_count_by_store(retailer, store_id, date_start, date_end):
+        """ Query to retrieve quantity of items
+            from certain store of time selected period
+
+            Params:
+            -----
+            retailer : str
+                Source key
+            store_id :  str
+                Store UUID
+            date_start : str
+                Starting date (YYYY-MM-DD)
+            date_end : str
+                Ending date (YYYY-MM-DD)
+            
+            Returns:
+            -----
+            res : dict
+                Results dict
         """
-            Method to query to retrieve quantity of items from certain store of the last hours defined
-        """
+        # Generate days
+        _d1 = datetime.datetime.strptime(date_start, '%Y-%m-%d')
+        _d2 = datetime.datetime.strptime(date_end, '%Y-%m-%d')
+        _days = tupleize_date(_d1.date(), (_d2-_d1).days)
         cass_query = """
-                    SELECT item_uuid FROM price_store 
-                    WHERE retailer = '%s' 
-                    AND store_uuid=%s
-                    AND time >= '%s'
-                    AND time <  '%s'
-                    """%(retailer,
-                        store_id,
-                        date_start,
-                        str(datetime.datetime.strptime(date_end[2:], '%y-%m-%d').date()+ datetime.timedelta(days=+1)))
-        logger.debug(cass_query)
-        try: 
-            q = g._db.execute(cass_query, timeout=120)
-        except Exception as e:
-            logger.error("Cassandra Connection error: "+str(e))
-            return False
+            SELECT COUNT(1)
+            FROM price_by_store
+            WHERE store_uuid = %s
+            AND date = %s
+            """
+        _count = 0
+        # Iterate for each store-date combination
+        for _s, _d in itertools.product([store_id], _days):
+            try: 
+                q = g._db.query(cass_query,
+                    (UUID(_s), _d),
+                    timeout=120)
+                if not q:
+                    continue                
+                _count += list(q)[0].count
+            except Exception as e:
+                logger.error("Cassandra Connection error: "+str(e))
         # Format response
-        prods = {
-                    'retailer' 		: retailer,
-                    'store_uuid'	: store_id,
-                    'count'			: len(list(q)),
-                    'date_start'	: date_start,
-                    'date_end'		: date_end
-                }
-        logger.debug(prods)
-        return prods
+        res = {
+            'source': retailer,
+            'store_uuid': store_id,
+            'count': _count,
+            'date_start': date_start,
+            'date_end': date_end
+        }
+        logger.debug(res)
+        return res
     
     @staticmethod
     def get_st_catag_file(store_uuid, store_name,retailer):

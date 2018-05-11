@@ -275,3 +275,32 @@ Fetch recent product prices of a given store filtering by store_uuid.
   // ...
 ]
 ```
+
+### Count product prices of a store
+
+Count recent product prices of a given store filtering by store_uuid and time interval.
+
+**Method**:  GET
+
+**Endpoint**: `/product/count_by_store?r=<source | required>&sid=<store_uuid | required>&date_start=<start_date | required>&date_end=<end_date | required>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| r | Source/retailer key | required |
+| sid  | Store UUID | required |
+| date_start  | Starting date (YYYY-MM-DD) | required |
+| date_end  | Ending date (YYYY-MM-DD) | required |
+
+**Response:**
+
+```json
+{
+  "count": 21744,
+  "date_end": "2018-05-11",
+  "date_start": "2018-05-10",
+  "source": "walmart",
+  "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003"
+}
+```
