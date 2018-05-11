@@ -356,3 +356,50 @@ source,gtin,name,price,promo,store
 WALMART,07622210254511,POLVO PARA PREPARAR BEBIDA TANG SABOR FRESA 15 G ,3.299999952316284,,Universidad
 WALMART,00780280071944,POLVO PARA PREPARAR BEBIDA ZUKO SABOR GUAYABA 15 G ,3.200000047683716,,Universidad
 ```
+
+### Retailer prices of products (CSV)
+
+Recent product prices of a given retailer filtering by retailer, item_uuid/product_uuid for the past 48hrs, returning as multipart CSV format or JSON.
+
+**Method**:  GET
+
+**Endpoint**: `/product/retailer?retailer=<source | required>&item_uuid=<item_uuid | required>&prod_uuid=<product__uuid | conditional_required>&export=<export | optional>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| retailer | Source/retailer key | required |
+| item_uuid  | Item UUID | required |
+| prod_uuid  | Product UUID | required if `item_uuid` not set |
+| export  | Exporting flag | optional, default=False |
+
+**JSON Response:**
+
+```json
+{
+  "avg": 65.0,
+  "max": 65.0,
+  "min": 65.0,
+  "prev_avg": 65.0,
+  "prev_max": 65.0,
+  "prev_min": 65.0,
+  "stores": [
+    {
+      "lat": 25.5075,
+      "lng": -103.397,
+      "name": "LA ROSITA",
+      "price": 65.0
+    },
+    // ...
+  ]
+}
+```
+
+**Multipart CSV Response:**
+
+```csv
+,name,price,lat,lng
+0,LA ROSITA,65.0,25.5075,-103.397
+1,MIRAMONTES,65.0,19.3172,-99.1256
+```

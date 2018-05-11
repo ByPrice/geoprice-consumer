@@ -47,9 +47,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         pass
 
     """
-    NEEDED TESTS FOR PRODUCT    
-    - /byfile
-    - /retailer
+    NEEDED TESTS FOR PRODUCT
     - /compare/details
     - /compare/history
     - /stats
@@ -171,7 +169,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_09_count_by_store_hours(self):
         """ Test Count by Store over last X hours
         """ 
@@ -187,7 +185,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_10_byfile(self):
         """ Test Store by File
         """ 
@@ -203,27 +201,28 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-'''
-    @unittest.skip('Already tested')
-    def test_02_modify_item(self):
-        """ Modify existing Item
+    #@unittest.skip('Tested already')
+    def test_11_retailer_with_item(self):
+        """ Test Retailer prices by Item
         """ 
-        print("Modify existing Item")
-        global new_item_test
-        _tmp_item = new_item_test
-        _tmp_item['name'] = new_item_test['name'].upper()
-        _r =  self.app.post('/item/modify',
-                data=json.dumps(_tmp_item),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
+        print("Test Retailer prices by Item")
+        _r = self.app\
+            .get("/product/retailer?retailer={}&item_uuid={}&export={}"\
+                .format(_test_ret, _testing_item, True))
+        print('Status code', _r.status_code)
         try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
+            print(_r.data)
         except:
             pass
         self.assertEqual(_r.status_code, 200)
- 
-'''
+
+    @unittest.skip('Not yet tested')
+    def test_12_retailer_with_prod(self):
+        """ Test Retailer prices by Product
+        """ 
+        print("Test Retailer prices by Product")
+    
+
 
 if __name__ == '__main__':
     unittest.main()
