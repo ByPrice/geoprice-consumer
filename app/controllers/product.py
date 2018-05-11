@@ -160,14 +160,10 @@ def count_by_store_hours():
 
 @mod.route('/byfile', methods=['GET'])
 def get_today_prices_by_file():
+    """ Get prices CSV by specific store and past 
+        48hrs
     """
-        Get prices CSV by day, and specific store
-        @Params:
-         - sid     :  Store uuid
-         - ret     :  Retailer
-         - stn     :  Store name
-    """
-    logger.debug('Getting prices CSV from uuids...')
+    logger.debug('Getting prices in CSV ...')
     params = request.args.to_dict()
     _needed = set({'ret','sid', 'stn'})
     if not _needed.issubset(params.keys()):
@@ -191,43 +187,39 @@ def get_today_prices_by_file():
 
 @mod.route('/retailer', methods=['GET'])
 def get_prices_by_ret():
+    """ Get Today's prices from an 
+        specific retailer and products
     """
-        Get Today's prices from an specific retailer and product
-        
-        @Params:
-         - retailer : (str) Retailer Key
-         - item_uuid : (str) Item UUID
-         - export : (bool, optional) Exporting flag
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
-    """
-    logger.info("Fetching product' prices by Ret ")
+    logger.info("Fetching product' prices by Retailer ")
     # Verify Request Params
-    params = request.args
+    item_uuid, prod_uuid = None, None
+    params = request.args.to_dict()
     if 'retailer' not in params:
-        raise errors.AppError("invalid_request", "Retailer key missing")
-    retailer = params.get('retailer')
+        raise errors.AppError(80002, "Retailer parameter missing")
     if 'item_uuid' not in params:
-        raise errors.AppError("invalid_request", "Item UUID missing")
-    item_uuid = params.get('item_uuid')
-    if 'export' in params:
-        export = params.get('export')
+        if 'prod_uuid' not in params:
+            raise errors.AppError(80002, "Item/Product UUID parameter missing")
+        prod_uuid = params['prod_uuid']
     else:
-        export = False
+        item_uuid = params['item_uuid']    
+    export = params['export'] if 'export' in params else False
+    logger.debug(params)
     # Call function to fetch prices
-    prod = Product.get_prices_by_retailer(retailer, item_uuid, export)
+    prod = Product\
+        .get_prices_by_retailer(params['retailer'],
+            item_uuid, prod_uuid, export)
     if not prod:
-        logger.error("No prices available for this combination.")
-        raise errors.AppError("no_prods",
-                              "No products with that Retailer and item combination.")
+        raise errors.AppError(80009,
+            "No prices in selected Retailer-Product pair")
     if export:
+        _fname = item_uuid if item_uuid else prod_uuid
         # Return a Mimetype Response
         return Response(
             prod,
             mimetype="text/csv",
             headers={"Content-disposition":
-                 "attachment; filename={}_{}.csv".format(retailer.upper(), item_uuid)})
+                 "attachment; filename={}_{}.csv"\
+                    .format(retailer.upper(), _fname)})
     else:
         # Return a JSONified Response
         return jsonify(prod)

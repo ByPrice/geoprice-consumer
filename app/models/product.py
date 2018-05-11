@@ -14,7 +14,7 @@ import requests
 from app import errors, logger
 from config import *
 from app.models.item import Item
-from app.utils.helpers import tupleize_date
+from app.utils.helpers import *
 
 class Product(object):
     """ Class perform Query methods on Cassandra items
@@ -514,6 +514,19 @@ class Product(object):
     def get_st_catalog_file(store_uuid, store_name, retailer):
         """ Obtain all prices from certain store
             from the past 48hrs (2 days)
+
+            Params:
+            -----
+            store_uuid : str
+                Store UUID
+            store_name : str
+                Store Name
+            retailer :  str
+                Source Key
+            
+            Returns:
+            _buffer : io.StringIO
+                CSV file buffer
         """
         logger.debug('Fetching: {} {} products...'\
             .format(retailer, store_name))
@@ -539,77 +552,103 @@ class Product(object):
         return _buffer
     
     @staticmethod
-    def get_prices_by_retailer(retailer, item_uuid, export=False):
-        """ Method that queries a product and returns its prices
+    def get_prices_by_retailer(retailer, item_uuid, prod_uuid, export=False):
+        """ Queries a product and returns its prices
             from each store of the requested retailer
+            and general stats
 
-            @Params:
-            - retailer : (str) Retailer Key
-            - item_uuid : (str) Item UUID
-            - export : (bool, optional) Exporting flag
+            Params:
+            -----
+            retailer : str
+                Source Key
+            item_uuid : str
+                Item UUID
+            prod_uuid : str
+                Item UUID
+            export : bool, optional, default=False
+                Exporting flag
 
-            @Returns:
-            - (StringIO) File buffer 
-            or
-            - (dict) Structured response
+            Returns:
+            -----
+            _buffer : io.StringIO
+                File buffer 
+            `or`
+
+            stores : dict
+                Store prices info
         """
-        logger.debug('Fetching: {} from {}'.format(item_uuid, retailer))
-        now = datetime.date.today()
+        logger.debug('Fetching from {} ...'\
+            .format(retailer))
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        if item_uuid:
+            prod_info = Item.get_by_item(item_uuid)
+            prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        else: 
+            prod_uuids = [str(prod_uuid)]
+        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), 2)
         # Fetch Stores by retailer
-        try:
-            stores_j = requests\
-                .get("http://"+SRV_GEOLOCATION+"/store/retailer?key="+retailer)\
-                .json()
-            logger.info("Fetched stores!")
-        except Exception as e:
-            logger.error(e)
+        stores_j = fetch_store(retailer)
+        store_ids = [s['uuid'] for s in stores_j]
+        if not stores_j:
             return None
         logger.debug("Found {} stores".format(len(stores_j)))
         # Execute Cassandra Query
         cass_query = """
-                    SELECT item_uuid, store_uuid,
-                    price, retailer, time
-                    FROM price_item 
-                    WHERE item_uuid = {}
-                    AND time > '{}'
-                    """.format(item_uuid,
-                        (now-datetime.timedelta(days=1)).__str__())
-        logger.debug(cass_query)
-        # Query item prices by retailer
-        try:
-            c_resp = list(g._db.execute(cass_query, timeout=120))
-            logger.info('C* Prices fetched!')
-            if not c_resp:
-                raise Exception('No prices!!')
-        except Exception as e:
-            logger.error(e)
+            SELECT product_uuid, store_uuid,
+            price, time
+            FROM price_by_product_date 
+            WHERE product_uuid = %s
+            AND date = %s
+            """
+        qs = []
+        # Iterate for each product-date combination
+        for _p, _d in itertools.product(prod_uuids, _days):
+            try:
+                q = g._db.query(cass_query, 
+                    (UUID(_p), _d),
+                    timeout=10)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        logger.info("Fetched {} prices".format(len(qs)))
+        logger.debug(qs[:1] if len(qs) > 1 else [])
+        # Empty validation
+        if len(qs) == 0:
             return None
-        logger.debug("Found {} prices".format(len(c_resp)))
-        # Generate DFs and filter
-        cass_df = pd.DataFrame(c_resp)
+        # Generate DFs, add columns and filter
+        cass_df = pd.DataFrame(qs)
+        cass_df['store_uuid'] = cass_df['store_uuid'].astype(str)
+        cass_df = cass_df[cass_df['store_uuid'].isin(store_ids)]
+        cass_df['item_uuid'] = item_uuid
         # Compute previous Stats
-        prev_df = cass_df[cass_df['retailer'] == retailer]\
-                    .sort_values(by=['time'], ascending=True)\
-                    .drop_duplicates(subset=['item_uuid','store_uuid'],
-                                    keep='first')
+        prev_df = cass_df\
+            .sort_values(by=['time'], ascending=True)\
+            .drop_duplicates(subset=['product_uuid','store_uuid'],
+                            keep='first')
         # Filter prices by retailer and drop duplicates
-        filt_df = cass_df[cass_df['retailer'] == retailer]\
-                    .sort_values(by=['time'], ascending=False)\
-                    .drop_duplicates(subset=['item_uuid','store_uuid'],
-                                    keep='first')
-        if len(filt_df) == 0:
-            logger.error('Empty Retailer')
+        curr_df = cass_df\
+            .sort_values(by=['time'], ascending=False)\
+            .drop_duplicates(subset=['product_uuid','store_uuid'],
+                            keep='first')
+        if curr_df.empty:
+            logger.error('No Recent prices')
             return None
         # Geolocation DF
         geo_df = pd.DataFrame(stores_j)
         geo_df.rename(columns={'uuid': 'store_uuid'}, inplace=True)
-        # Conversion and merging
-        filt_df['store_uuid'] = filt_df['store_uuid'].apply(lambda x : str(x))
-        geo_df['store_uuid'] = geo_df['store_uuid'].apply(lambda x : str(x))
-        resp_df = pd.merge(filt_df[['store_uuid','price']],
+        geo_df['store_uuid'] = geo_df['store_uuid'].astype(str)
+        # Conversion and merging        
+        resp_df = pd.merge(curr_df[['store_uuid','price']],
                     geo_df[['name','store_uuid','lat','lng']],
                     how='left', on='store_uuid')
-        resp_df['price'] = resp_df['price'].apply(lambda x: round(x, 2))
+        resp_df['price'] = resp_df['price']\
+            .apply(lambda x: round(x, 2))
         _stores = resp_df[['name','price', 'lat', 'lng']]\
                     .to_dict(orient="records")
         logger.info('Computed results!')
@@ -626,7 +665,8 @@ class Product(object):
                 }
         # Generate Bytes Buffer
         _buffer = StringIO()
-        iocsv = resp_df[['name','price', 'lat', 'lng']].to_csv(_buffer)
+        iocsv = resp_df[['name','price', 'lat', 'lng']]\
+            .to_csv(_buffer)
         _buffer.seek(0)
         return _buffer
 
