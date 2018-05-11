@@ -720,8 +720,7 @@ class Product(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         return qs
-        
-    
+            
     @staticmethod
     def get_pairs_ret_item(fixed, added, date):
         """ Compare segments of pairs (retailer-item)
@@ -894,39 +893,46 @@ class Product(object):
 
     @staticmethod
     def get_pairs_store_item(fixed, added, params):
-        """ Method to compare segments of pairs (retailer-item)
+        """ Compare segments of pairs (store-item)
 
-            @Params:
-            - fixed : (dict) First Pair of Store-Item
-            - added : (list) Pairs of Store-Item's
-            - params : (dict) Dates and Interval type
+            Params:
+            -----
+            fixed : dict
+                First Pair of Store-Item
+            added : list
+                Pairs of Store-Item's
+            params : dict
+                Dates and Interval type
 
-            @Returns:
-            - (dict) JSON response of comparison
+            Returns:
+            -----
+            _resp : dict
+                JSON response of comparison
         """
         # Vars
         _resp = {}
         # Obtain distances
         _rets = [fixed['retailer']] + [x['retailer'] for x in added]
         dist_dict = obtain_distances(fixed['store_uuid'],
-                                    [x['store_uuid'] for x in added],
-                                    _rets)
+                    [x['store_uuid'] for x in added],
+                    _rets)
         # Obtain date groups
         date_groups = grouping_periods(params)
         # Fetch fixed prices
-        fix_store = Product.fetch_detail_price(fixed['retailer'],
+        fix_store = Product\
+            .fetch_detail_price(
                     [fixed['store_uuid']],
                     fixed['item_uuid'],
-                    date_groups[0][0].date().__str__(),
-                    date_groups[-1][-1].date().__str__())
+                    date_groups[0][0],
+                    date_groups[-1][-1])
         if not fix_store:
-            raise errors.AppError("no_price", "No available prices for that combination.")
+            raise errors.AppError(80009, "No available prices for that combination.")
         fix_st_df = pd.DataFrame(fix_store)
         fix_st_df['name'] = fixed['name']
         fix_st_df['time_js'] = fix_st_df['time'].apply(date_js())
         ##### 
         # TODO:
-        # Add agroupation by Interval
+        # Add agroupation by Interval for graph
         #####
         # Added Fixed Response
         _resp['fixed'] = {
@@ -942,11 +948,11 @@ class Product(object):
         # Fetch added prices
         _resp['segments'] =[]
         for _a in added:
-            _tmp_st =  Product.fetch_detail_price(_a['retailer'],
+            _tmp_st =  Product.fetch_detail_price(
                     [_a['store_uuid']],
                     _a['item_uuid'],
-                    date_groups[0][0].date().__str__(),
-                    date_groups[-1][-1].date().__str__())
+                    date_groups[0][0],
+                    date_groups[-1][-1])
             if not _tmp_st:
                 logger.warning("{} store with no Prices".format(_a['store_uuid']))
                 continue
@@ -971,113 +977,3 @@ class Product(object):
         # Construct response
         return _resp
 
-
-def obtain_distances(fixed, added, rets):
-    """ Method to obtain distances from all stores
-
-        @Params:
-        - fixed : (str) Store UUID from Fixed 
-        - added : (list) Store UUIDs from Added
-        - rets : (str) Retailers 
-    """
-    _st_list = []
-    for _r in rets:
-            try:
-                _stj = requests\
-                        .get("http://"+SRV_GEOLOCATION+"/store/retailer?key="+_r)\
-                        .json()
-                for _i, _s in enumerate(_stj):
-                    _stj[_i].update({'retailer': _r})
-            except Exception as e:
-                logger.error(e)
-                raise errors.AppError("stores_issue",
-                            "Could not fetch Stores!")
-            _st_list += _stj
-    _geo_df = pd.DataFrame(_st_list)
-    _geo_df['store_uuid'] = _geo_df['uuid'].apply(lambda x: str(x))
-    _f =  _geo_df[_geo_df['store_uuid'] == fixed]
-    f_lat, f_lng = _f['lat'].values[0], _f['lng'].values[0]
-    _geo_df['fdist'] =  np\
-                .arccos(np.sin(np.deg2rad(_geo_df.lat))
-                    * np.sin(np.deg2rad(f_lat))
-                    + np.cos(np.deg2rad(_geo_df.lat))
-                    * np.cos(np.deg2rad(f_lat))
-                    * np.cos(np.deg2rad(f_lng)
-                                - (np.deg2rad(_geo_df.lng))
-                                )
-                    ) * 6371
-    _added_d = {}
-    for _a in added:
-        _found = _geo_df[_geo_df['store_uuid'] == _a]
-        if _found.empty:
-            logger.warning('Store not found: ' + _a)
-            continue
-        _added_d.update({
-            _a: round(_found['fdist'].tolist()[0], 2)
-        })
-    #logger.debug(_added_d)
-    logger.info('Got distances')
-    return _added_d
-
-
-def date_js():
-    """ Lambda method to convert datetime object into 
-        JS timestamp.
-
-        @Returns
-         (lambda) Converter function to JS timestamp
-    """
-    return lambda djs: int((djs - 
-                        datetime.datetime(1970, 1, 1,0,0))\
-                        /datetime.timedelta(seconds=1)*1000)
-
-
-def grouping_periods(params):
-    """ Method the receives a dict params with the following keys:
-         
-        @Params:
-        { 
-            date_ini: (str) ISO format Date,
-            date_fin: (str) ISO format Date,
-            interval: (str) day | week | month
-        }
-
-        @Returns:
-        (list) -  a group of valid date ranges upon this values.
-    """
-    groups = []
-    di = datetime.datetime(*tuple(int(d) for d in params['date_ini'].split('-')))
-    df = datetime.datetime(*tuple(int(d) for d in params['date_fin'].split('-')))
-    # Day intervals
-    if params['interval'] == 'day':
-        groups.append([di])
-        while True:
-            di += datetime.timedelta(days=1)
-            groups.append([di])
-            if di >= df:
-                break
-    # Week intervals
-    elif params['interval'] == 'week':
-        groups.append([di,di+datetime.timedelta(days=7-di.isoweekday())])
-        di += datetime.timedelta(days=7-di.weekday())
-        while True:
-            if di >= df:
-                break
-            dv = di + datetime.timedelta(days=6)
-            groups.append([di,dv])
-            di = dv + datetime.timedelta(days=1)
-    # Monthly intervals
-    else:
-        lmd = calendar.monthrange(di.year,di.month)[1]
-        groups.append([di,di+datetime.timedelta(days=lmd-di.day)])
-        di += datetime.timedelta(days=lmd-di.day)
-        while True:
-            if di >= df:
-                break
-            _di_month = di.month + 1 if di.month != 12 else 1
-            _di_year = di.year + 1 if di.month == 12 else di.year
-            lmd = calendar.monthrange(_di_year,_di_month)[1]
-            dv = di + datetime.timedelta(days=lmd)
-            groups.append([di+ datetime.timedelta(days=1),dv])
-            di = dv
-    return groups

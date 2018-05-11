@@ -410,7 +410,7 @@ Compare prices from a fixed pair retailer-item with additional pairs of other re
 
 **Method**:  POST
 
-**Endpoint**: `/product/retailer?retailer=<source | required>&item_uuid=<item_uuid | required>&prod_uuid=<product__uuid | conditional_required>&export=<export | optional>`
+**Endpoint**: `/product/compare/details`
 
 **Request Params:**
 
@@ -482,6 +482,52 @@ Compare prices from a fixed pair retailer-item with additional pairs of other re
         ]
     },
     // ...
+  ]
+}
+```
+
+### Compare prices history over Store-item pairs
+
+Compare prices from a fixed pair store-item with additional pairs of other retailer-items over time
+
+**Method**:  POST
+
+**Endpoint**: `/product/compare/history`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| fixed_segment | Principal Segment | required |
+| added_segments  | Segments to compare | required |
+| date  | Date | optional, default=`today` |
+
+**Example Request:**
+
+```json
+{
+  "date_ini": "2017-12-01",
+  "date_fin": "2017-12-07",
+  "interval": "day",
+  "fixed_segment" : {
+      "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+      "retailer": "chedraui",
+      "store_uuid": "e02a5370-7b09-11e7-855a-0242ac110005",
+      "name": "CHEDRAUI SELECTO UNIVERSIDAD"
+      },
+  "added_segments": [
+      {
+          "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+          "retailer": "walmart",
+          "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003",
+          "name": "Walmart Universidad"
+      },
+      {
+          "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+          "retailer": "soriana",
+          "store_uuid": "8c399b5e-7b04-11e7-855a-0242ac110005",
+          "name": "Soriana Plaza delta-Soriana Hiper"
+      }
   ]
 }
 ```

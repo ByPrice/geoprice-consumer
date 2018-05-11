@@ -222,7 +222,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print("Test Retailer prices by Product")
     
     @unittest.skip('Tested already')
-    def test_13_retailer_with_item(self):
+    def test_13_compare_retailer_item(self):
         """ -Test Compare retailer-price pairs
         """ 
         print("Test Compare retailer-price pairs")
@@ -243,6 +243,48 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                     {
                         "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
                         "retailer": "soriana"
+                    }
+                ]
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_13_compare_store_item(self):
+        """ Test Compare retailer-price pairs
+        """ 
+        print("Test Compare retailer-price pairs")
+        _r = self.app.post(
+            "/product/compare/history",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "date_ini": "2017-12-01",
+                "date_fin": "2017-12-07",
+                "interval": "day",
+                "fixed_segment" : {
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "chedraui",
+                    "store_uuid": "e02a5370-7b09-11e7-855a-0242ac110005",
+                    "name": "CHEDRAUI SELECTO UNIVERSIDAD"
+                },
+                "added_segments": [
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart",
+                        "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003",
+                        "name": "Walmart Universidad"
+                    },
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart",
+                        "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003",
+                        "name": "Walmart Universidad"
                     }
                 ]
             })

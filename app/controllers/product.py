@@ -261,69 +261,37 @@ def compare_retailer_item():
 
 @mod.route('/compare/history', methods=['POST'])
 def compare_store_item():
-    """
-        Compare prices from a fixed pair store-item
+    """ Compare prices from a fixed pair store-item
         in time with additional pairs
-        
-        @Request:
-        {
-            "date_ini": "2017-12-01",
-            "date_fin": "2017-12-07",
-            "interval": "day",
-            "fixed_segment" : {
-                "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                "retailer": "chedraui",
-                'store_uuid': 'e02a5370-7b09-11e7-855a-0242ac110005',
-                'name': 'CHEDRAUI SELECTO UNIVERSIDAD'
-                },
-            "added_segments": [
-                { 
-                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                    "retailer": "walmart",
-                    'store_uuid': '16faeaf4-7ace-11e7-9b9f-0242ac110003', \
-                    'name': 'Walmart Universidad'
-                },
-                {
-                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                    "retailer": "soriana",
-                    'store_uuid': '8c399b5e-7b04-11e7-855a-0242ac110005', \
-                    'name': 'Soriana Plaza delta-Soriana Hiper'
-                }
-            ]
-        }
-
-        @Returns:
-         - (flask.Response) JSONified response
     """
-    logger.info("Comparing pairs Ret-Item")
+    logger.info("Comparing pairs Store-Item")
     # Verify Params
     params = request.get_json()    
     # Existance verif
     if 'fixed_segment' not in params:
-        raise errors.AppError("invalid_request", "Fixed Segment missing")
+        raise errors.AppError(80002, "Fixed Segment missing")
     if 'added_segments' not in params:
-        raise errors.AppError("invalid_request", "Added Segments missing")
+        raise errors.AppError(80002, "Added Segments missing")
     # Datatype verif
     if not isinstance(params['fixed_segment'], dict):
-        raise errors.AppError("invalid_request", "Wrong Format: Fixed Segment")
+        raise errors.AppError(80010, "Wrong Format: Fixed Segment")
     if not isinstance(params['added_segments'], list):
-        raise errors.AppError("invalid_request", "Wrong Format: Added Segments")
+        raise errors.AppError(80010, "Wrong Format: Added Segments")
     # Dates verif
     if ('date_ini' not in params) or ('date_fin' not in params):
-        raise errors.AppError("invalid_request", "Missing Format: Dates")
+        raise errors.AppError(80002, "Missing Dates params")
     if 'interval' in params:
         if params['interval'] not in ['day','week','month']:
-            raise errors.AppError("invalid_request", "Wrong interval type")
+            raise errors.AppError(80010, "Wrong Format: interval type")
     else:
         params['interval'] = 'day'
     # Call function to fetch prices
-    prod = Product.get_pairs_store_item(params['fixed_segment'],
-                            params['added_segments'],
-                            params)
+    prod = Product\
+        .get_pairs_store_item(params['fixed_segment'],
+            params['added_segments'], params)
     if not prod:
-        logger.error("Not able to fetch prices.")
-        raise errors.AppError("no_prods",
-                              "No products with that Retailer and item combination.")
+        raise errors.AppError(80009,
+            "No products with that Store and item combination.")
     return jsonify(prod)
 
 @mod.route('/stats', methods=['GET'])
