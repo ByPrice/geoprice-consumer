@@ -227,59 +227,36 @@ def get_prices_by_ret():
 
 @mod.route('/compare/details', methods=['POST'])
 def compare_retailer_item():
-    """
-        Compare prices from a fixed pair retailer-item
+    """ Compare prices from a fixed pair retailer-item
         with additional pairs
-        
-        @Request:
-        {
-            "date": "2017-11-01",
-            "fixed_segment" : {
-                "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                "retailer": "chedraui"
-                },
-            "added_segments": [
-                { 
-                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                    "retailer": "walmart"
-                },
-                {
-                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
-                    "retailer": "soriana"
-                }
-            ]
-        }
-
-        @Returns:
-         - (flask.Response) JSONified response
     """
-    logger.info("Comparing pairs Ret-Item")
+    logger.info("Comparing pairs Retailer-Item")
     # Verify Params
     params = request.get_json()
     if 'fixed_segment' not in params:
-        raise errors.AppError("invalid_request", "Fixed Segment missing")
+        raise errors.AppError(80002, "Fixed Segment missing")
     if 'added_segments' not in params:
-        raise errors.AppError("invalid_request", "Added Segments missing")
+        raise errors.AppError(80002, "Added Segments missing")
     if not isinstance(params['fixed_segment'], dict):
-        raise errors.AppError("invalid_request", "Wrong Format: Fixed Segment")
+        raise errors.AppError(80010, "Wrong Format: Fixed Segment")
     if not isinstance(params['added_segments'], list):
-        raise errors.AppError("invalid_request", "Wrong Format: Added Segments")
+        raise errors.AppError(80010, "Wrong Format: Added Segments")
     if 'date' in params:
         try:
             _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
         except Exception as e:
             logger.error(e)
-            raise errors.AppError("invalid_request", "Wrong Format: Date")
+            raise errors.AppError(80010, "Wrong Format: Date")
     else:
         _date = datetime.datetime.utcnow()
     # Call function to fetch prices
-    prod = Product.get_pairs_ret_item(params['fixed_segment'],
-                            params['added_segments'],
-                            _date)
+    prod = Product\
+        .get_pairs_ret_item(params['fixed_segment'],
+            params['added_segments'], _date)
     if not prod:
-        logger.error("Not able to fetch prices.")
-        raise errors.AppError("no_prods",
-                              "No products with that Retailer and item combination.")
+        logger.warning("Not able to fetch prices.")
+        raise errors.AppError(80009,
+            "No prices with that Retailer and item combination.")
     return jsonify(prod)
 
 @mod.route('/compare/history', methods=['POST'])

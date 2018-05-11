@@ -47,8 +47,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         pass
 
     """
-    NEEDED TESTS FOR PRODUCT
-    - /compare/details
+    NEEDED TESTS FOR PROD
     - /compare/history
     - /stats
     - /count_by_store_engine
@@ -201,7 +200,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_11_retailer_with_item(self):
         """ Test Retailer prices by Item
         """ 
@@ -222,7 +221,39 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """ 
         print("Test Retailer prices by Product")
     
-
+    @unittest.skip('Tested already')
+    def test_13_retailer_with_item(self):
+        """ -Test Compare retailer-price pairs
+        """ 
+        print("Test Compare retailer-price pairs")
+        _r = self.app.post(
+            "/product/compare/details",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "date": "2018-05-10",
+                "fixed_segment" : {
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "chedraui"
+                    },
+                "added_segments": [
+                    { 
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart"
+                    },
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "soriana"
+                    }
+                ]
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

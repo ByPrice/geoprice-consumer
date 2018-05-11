@@ -90,6 +90,7 @@ Error codes with respective description.
 - 80007 : "Invalid query parameter, try again!"
 - 80008 : "File does not exist"
 - 80009 : "No prices available in {table}"
+- 80010 : "Wrong params format"
 
 ## License
 
