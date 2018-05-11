@@ -48,9 +48,8 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     """
     NEEDED TESTS FOR PROD
-    - /compare/history
     - /stats
-    - /count_by_store_engine
+    - /count_by_retailer_engine
     """
 
     @unittest.skip('Already tested')
@@ -255,7 +254,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_13_compare_store_item(self):
         """ Test Compare retailer-price pairs
         """ 
@@ -289,6 +288,22 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 ]
             })
         )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_14_stats(self):
+        """ Test Stats per product
+        """ 
+        print("Test Stats per product")
+        _r = self.app.get(
+            "/product/stats?item_uuid={}"\
+                .format(_testing_item))
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))

@@ -224,7 +224,6 @@ def get_prices_by_ret():
         # Return a JSONified Response
         return jsonify(prod)
 
-
 @mod.route('/compare/details', methods=['POST'])
 def compare_retailer_item():
     """ Compare prices from a fixed pair retailer-item
@@ -296,36 +295,34 @@ def compare_store_item():
 
 @mod.route('/stats', methods=['GET'])
 def get_stats_by_item():
-    """
-        Get Today's max, min & avg price from an specific item_uuid
-
-        @Params:
-         - item_uuid : (str) Item UUID
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
+    """ Today's max, min & avg price 
+        from an specific item_uuid  or product_uuid
     """
     logger.info("Fetching product stats by item")
-    # Verify Request Params
-    params = request.args
-    if 'item_uuid' not in params:
-        raise errors.AppError("invalid_request", "Retailer key missing")
-
-    item_uuid = params.get('item_uuid')
+    # Validate UUIDs
+    item_uuid, product_uuid = None, None
+    if 'item_uuid' in request.args:
+        item_uuid = request.args.get('item_uuid')
+        logger.debug("Item UUID: "+ str(item_uuid))
+    elif 'prod_uuid' in request.args:
+        product_uuid = request.args.get('prod_uuid')
+        logger.debug("Product UUID: "+ str(product_uuid))
+    else:
+        raise errors.AppError(80002,
+            "Request UUID parameters missing")
     # Call function to fetch prices
-    prod = Product.get_stats_by_item(item_uuid)
+    prod = Product.get_stats(item_uuid, product_uuid)
     return jsonify(prod)
 
-
-@mod.route('/count_by_store_engine', methods=['GET'])
-def get_count_by_store_engine():
+@mod.route('/count_by_retailer_engine', methods=['GET'])
+def get_count_by_retailer_engine():
     """
         Get Count from store
 
         @Params:
          - "retailer" : retailer_key
-         - "store_uuid" : store_uuid
          - "date" : date
+         - "env" : env
 
         @Returns:
          - (flask.Response)  # if export: Mimetype else: JSON
@@ -333,12 +330,15 @@ def get_count_by_store_engine():
     logger.info("Fetching counts by store")
     # Verify Request Params
     params = request.args
-    if 'retailer' not in params or 'store_uuid' not in params or 'date' not in params:
-        raise errors.AppError("invalid_request", "Retailer key missing")
+    if 'retailer' not in params :
+        raise errors.ApiError("invalid_request", "retailer key missing")
+    if 'date' not in params:
+        raise errors.ApiError("invalid_request", "date key missing")
 
     retailer = params.get('retailer')
-    store_uuid = params.get('store_uuid')
     date = params.get('date')
+    env = params.get('env')
     # Call function to fetch prices
-    prod = Product.count_by_store_engine(retailer, store_uuid, date)
+    prod = Product.count_by_retailer_engine(retailer, date)
     return jsonify(prod)
+

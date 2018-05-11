@@ -531,3 +531,28 @@ Compare prices from a fixed pair store-item with additional pairs of other retai
   ]
 }
 ```
+
+### Price Stats of an item
+
+Today's max, min & avg price from an specific item_uuid or product_uuid of the day
+
+**Method**:  GET
+
+**Endpoint**: `/product/stats?item_uuid=<item_uuid | required>&prod_uuid=<product_uuid | conditional_required>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| item_uuid  | Item UUID | required |
+| prod_uuid  | Product UUID | required if `item_uuid` not set
+
+**Response:**
+
+```json
+{
+  "avg_price": 64.42,
+  "max_price": 67.0,
+  "min_price": 62.0
+}
+```
