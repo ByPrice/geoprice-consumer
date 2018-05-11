@@ -394,35 +394,56 @@ class Product(object):
 
     @staticmethod
     def get_count_by_store_24hours(retailer, store_id, last_hours=24):
-        """
-            Method to query to retrieve quantity of items from certain store of the last hours defined
-        """
-        cass_query = """
-                    SELECT COUNT(*) FROM price_store 
-                    WHERE retailer = '%s' 
-                    AND store_uuid=%s
-                    AND time > '%s'
-                    """%(retailer,
-                        store_id,
-                        str(datetime.datetime.today() + datetime.timedelta(hours=-24))[:-7])
-        logger.debug(cass_query)
+        """ Query to retrieve quantity of items
+            from certain store of the last hours
+            defined.
 
-        try: 
-            q = g._db.execute(cass_query, timeout=120)
-            # Format response
-            for it in q:
-                prods = {
-                            'retailer' 		: retailer,
-                            'store'			: store_id,
-                            'count'			: str(it.count),
-                            'date_end'		: str(datetime.date.today()),
-                            'date_start'	: str(datetime.date.today() + datetime.timedelta(hours=-24))
-                        }
-                logger.debug(prods)
-            return prods
+            Params:
+            -----
+            retailer : str
+                Source key
+            store_id :  str
+                Store UUID
+            last_hours : int
+                Last hours to look for
             
-        except Exception as e:
-            logger.error("Cassandra Connection error: "+str(e))
+            Returns:
+            -----
+            res : dict
+                Results dict
+        """
+        # Generate days
+        _days = tupleize_date(datetime.date.today(), 2)
+        _delta = datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+        cass_query = """
+            SELECT COUNT(1)
+            FROM price_by_store
+            WHERE store_uuid = %s
+            AND date = %s
+            AND time > %s
+            """
+        _count = 0
+        # Iterate for each store-date combination
+        for _s, _d in itertools.product([store_id], _days):
+            try: 
+                q = g._db.query(cass_query,
+                    (UUID(_s), _d, _delta),
+                    timeout=120)
+                if not q:
+                    continue                
+                _count += list(q)[0].count
+            except Exception as e:
+                logger.error("Cassandra Connection error: "+str(e))
+        # Format response
+        res = {
+            'source': retailer,
+            'store_uuid': store_id,
+            'count': _count,
+            'date_start': _delta.date().isoformat(),
+            'date_end': datetime.date.today().isoformat()
+        }
+        logger.debug(res)
+        return res
 
     @staticmethod
     def get_count_by_store(retailer, store_id, date_start, date_end):

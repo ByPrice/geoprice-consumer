@@ -141,21 +141,20 @@ def count_by_store():
 
 @mod.route('/count_by_store_hours', methods=['GET'])
 def count_by_store_hours():
+    """ Get the prices of all items 
+        of certain store for the past X hours
     """
-        Get the prices of all items of certain store
-        Params:
-            * r - # Retailer Key
-            * sid  -  # Store UUID
-            * last_hours - # Last hours
-    """
-    logger.info("Fetching Prices per Store in all Retailers in last hours")
-    params = request.args
-    if 'sid' not in params or 'r' not in params or 'last_hours' not in params:
-        raise errors.AppError("invalid_request", "Retailer or Store UUID missing")
-    logger.debug(str(params['r']))
-    count = Product.get_count_by_store_24hours(params['r'], params['sid'], params['last_hours'])
+    logger.info("Fetching Prices per Store in last X hours")
+    params = request.args.to_dict()
+    _needed = set({'r','sid', 'last_hours'})
+    if not _needed.issubset(params.keys()):
+        raise errors.AppError(80002, "Hours, Retailer or Store UUID parameters missing")
+    logger.debug(params)
+    count = Product\
+        .get_count_by_store_24hours(params['r'],
+            params['sid'], params['last_hours'])
     if not count:
-        raise errors.AppError("invalid_request", "Store Catalogue not reachable")
+        raise errors.AppError(80005,  "Issues fetching store results")
     return jsonify(count)
 
 

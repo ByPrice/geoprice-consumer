@@ -155,7 +155,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_08_count_by_store(self):
         """ Test Count by Store
         """ 
@@ -171,6 +171,24 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_r.status_code, 200)
+
+    #@unittest.skip('Tested already')
+    def test_09_count_by_store_hours(self):
+        """ Test Count by Store over last X hours
+        """ 
+        print("Test Count by Store over last X hours")
+        _r = self.app\
+            .get("/product/count_by_store_hours?r={}&sid={}&last_hours"\
+            .format(_test_ret, _test_store, 24))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+
 '''
     @unittest.skip('Already tested')
     def test_02_modify_item(self):
