@@ -357,7 +357,7 @@ WALMART,07622210254511,POLVO PARA PREPARAR BEBIDA TANG SABOR FRESA 15 G ,3.29999
 WALMART,00780280071944,POLVO PARA PREPARAR BEBIDA ZUKO SABOR GUAYABA 15 G ,3.200000047683716,,Universidad
 ```
 
-### Retailer prices of products (CSV)
+### Retailer prices of products 
 
 Recent product prices of a given retailer filtering by retailer, item_uuid/product_uuid for the past 48hrs, returning as multipart CSV format or JSON.
 
@@ -402,4 +402,52 @@ Recent product prices of a given retailer filtering by retailer, item_uuid/produ
 ,name,price,lat,lng
 0,LA ROSITA,65.0,25.5075,-103.397
 1,MIRAMONTES,65.0,19.3172,-99.1256
+```
+
+### Compare prices over Retailer-item pairs
+
+Compare prices from a fixed pair retailer-item with additional pairs of other retailer-items
+
+**Method**:  POST
+
+**Endpoint**: `/product/retailer?retailer=<source | required>&item_uuid=<item_uuid | required>&prod_uuid=<product__uuid | conditional_required>&export=<export | optional>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| fixed_segment | Principal Segment | required |
+| added_segments  | Segments to compare | required |
+| date  | Date | optional, default=`today` |
+
+**Example Request:**
+
+```json
+{
+    "date": "2017-11-01",
+    "fixed_segment" : {
+        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+        "retailer": "chedraui"
+        },
+    "added_segments": [
+        { 
+            "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+            "retailer": "walmart"
+        },
+        {
+            "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+            "retailer": "soriana"
+        }
+    ]
+}
+```
+
+**Response:**
+
+```json
+{
+  "date": "2018-05-11",
+  "segments": {},
+  "rows": []
+}
 ```

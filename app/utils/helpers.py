@@ -46,7 +46,7 @@ def fetch_store(rkey):
             List of stores of certain source/retailer
     """
     try:
-        logger.debug('Querying %s%s' %(geo_stores_url,rkey))
+        logger.debug('Querying %s' %(geo_stores_url % rkey))
         xr = requests.get(geo_stores_url % rkey).json()
         for i, x in enumerate(xr):
             xr[i].update({'source': rkey})
@@ -57,15 +57,22 @@ def fetch_store(rkey):
     return None
 
 
-def get_all_stores():
+def get_all_stores(rets=[]):
     """ Fetch all stores from Geolocation service.
+
+        Params:
+        -----
+        rets : list
+            List of retailer dicts
 
         Returns:
         -----
         stores_df : pd.DataFrame
             Stores DF
     """
-    rets = requests.get(geo_rets_url).json()
+    # Verify rets
+    if not rets:
+        rets = requests.get(geo_rets_url).json()
     stores = []
     for r in rets:
         tmp = fetch_store(r['key'])

@@ -76,6 +76,7 @@ OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 CREATE TABLE price_by_product_store (
     product_uuid    uuid,
     store_uuid      uuid,
+    date            time,
     time            timestamp,
     lat             float,
     lng             float,
@@ -84,7 +85,7 @@ CREATE TABLE price_by_product_store (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((product_uuid, store_uuid), time)
+    PRIMARY KEY     ((product_uuid, store_uuid, date), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 

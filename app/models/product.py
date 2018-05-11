@@ -670,130 +670,137 @@ class Product(object):
         _buffer.seek(0)
         return _buffer
 
-    
     @staticmethod
-    def fetch_detail_price(retailer, stores, item, _t, _t1=None):
+    def fetch_detail_price(stores, item, _t0, _t1=None):
         """ Method to query detail prices from C*
 
-            @Params:
-            - retailer : (str) Retailer key
-            - stores : (list) Stores UUIDs
-            - item : (str) Item UUID
-            - _t : (str) Time formatted string
+            Params:
+            -----            
+            stores : list
+                Stores UUIDs
+            item : str
+                Item UUID
+            _t0 : datetime.datetime
+                Start Time formatted string
+            _t1: datetime.datetime
+                End Time formatted string
 
-            @Returns:
-            - (list) : Query response with Store_uuid, retailer and price
+            Returns:
+            -----
+            c_resp :  list
+                Response with store_uuid and price
         """
-        stores_str = str(tuple(stores)).replace("'","")
-        if len(stores) == 1:
-            stores_str = stores_str.replace(',','')        
+        # If item_uuid is passed, call to retrieve
+        # product_uuid's from Catalogue Service
+        prod_info = Item.get_by_item(item)
+        prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        # Generate days
+        _period = (_t1-_t0).days if _t1 else 1
+        _days = tupleize_date(_t0.date(), _period)
         cass_query = """
-                    SELECT item_uuid, retailer,
-                    store_uuid, price, time
-                    FROM price_details 
-                    WHERE item_uuid = {}
-                    AND retailer = '{}'
-                    AND store_uuid IN {}
-                    AND time > '{}'
-                    """.format(item,
-                        retailer,
-                        stores_str,
-                        _t)
-        if _t1:
-            cass_query += " AND time < '{}'".format(_t1)
-        logger.debug(cass_query)
-        # Query item price details
-        try:
-            c_resp = list(g._db.execute(cass_query, timeout=120))
-            logger.info('C* Prices fetched!')
-            logger.debug(len(c_resp))
-            if not c_resp:
-                raise Exception('No prices!!')
-            return c_resp
-        except Exception as e:
-            logger.error(e)
-            return []
+            SELECT product_uuid,
+            store_uuid, price, time
+            FROM price_by_product_store 
+            WHERE product_uuid = %s
+            AND store_uuid = %s
+            AND date = %s
+            """
+        qs = []
+        # Iterate for each product-date combination
+        for _p, _s, _d in itertools.product(prod_uuids, stores, _days):
+            try:
+                q = g._db.query(cass_query, 
+                    (UUID(_p), UUID(_s), _d),
+                    timeout=10)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        return qs
+        
     
     @staticmethod
     def get_pairs_ret_item(fixed, added, date):
-        """ Method to compare segments of pairs (retailer-item)
+        """ Compare segments of pairs (retailer-item)
+            between the fixed against all the added
 
-            @Params:
-            - fixed : (dict) First Pair of Retailer-Item
-            - added : (list) Pairs of Retailer-Item's
-            - date : (datetime.datetime) Date of comparison
+            Params:
+            -----
+            fixed : dict
+                First Pair of Retailer-Item
+            added : list
+                Pairs of Retailer-Item's
+            date : datetime.datetime
+                Date of comparison
 
-            @Returns:
-            - (dict) JSON response of comparison
+            Returns:
+            -----
+            compares : dict
+                JSON response of comparison
         """
-        logger.debug("Setting Comparison...")
         # Fetch Retailers and Time
+        logger.debug("Setting Comparison...")
         _rets = [fixed['retailer']] + [x['retailer'] for x in added]
-        _time = (date - datetime.timedelta(days=1)).date().__str__()
+        _ret_keys = [{'key': r} for r in _rets]
+        _time = date - datetime.timedelta(days=1)
         # Create Geo DF
-        _st_list = []
-        for _r in _rets:
-            try:
-                _stj = requests\
-                        .get("http://"+SRV_GEOLOCATION+"/store/retailer?key="+_r)\
-                        .json()
-                for _i, _s in enumerate(_stj):
-                    _stj[_i].update({'retailer': _r})
-            except Exception as e:
-                logger.error(e)
-                raise errors.AppError("stores_issue",
-                            "Could not fetch Stores!")
-            _st_list += _stj
-        geo_df = pd.DataFrame(_st_list)
-        geo_df['store_uuid'] = geo_df['uuid'].apply(lambda x: str(x))
-        logger.debug('Got Stores!')
+        geo_df = get_all_stores(_ret_keys)
+        logger.info("Fetched {} stores".format(len(geo_df)))
         # Fetch Fixed Prices DF
-        fix_price = Product.fetch_detail_price(fixed['retailer'],
-                geo_df[geo_df['retailer'] == 
-                        fixed['retailer']]['store_uuid'].tolist(),
-                fixed['item_uuid'],
-                _time)
+        fix_price = Product.fetch_detail_price(
+                geo_df[geo_df['source'] == fixed['retailer']]\
+                    ['store_uuid'].tolist(),
+                fixed['item_uuid'], _time)
         if not fix_price:
-            raise errors.AppError("no_price", "No available prices for that combination.")
+            raise errors.AppError(80009, "No available prices for that combination.")
         # Fetch Added Prices DF
         added_prices = []
         for _a in added:
-            added_prices.append(Product\
-                .fetch_detail_price(_a['retailer'],
-                    geo_df[geo_df['retailer'] == 
-                            _a['retailer']]['store_uuid'].tolist(),
-                    _a['item_uuid'],
-                    _time)
+            added_prices\
+                .append(
+                    Product.fetch_detail_price(
+                        geo_df[geo_df['source'] == _a['retailer']]\
+                            ['store_uuid'].tolist(),
+                        _a['item_uuid'], _time)
                 )
         # Build Fix DF, cast and drop dupls
         fix_df = pd.DataFrame(fix_price)
-        fix_df['store_uuid'] = fix_df['store_uuid'].apply(lambda x: str(x))
-        fix_df['item_uuid'] = fix_df['item_uuid'].apply(lambda x: str(x))
+        fix_df['store_uuid'] = fix_df['store_uuid'].astype(str)
+        fix_df['item_uuid'] = fixed['item_uuid']
         fix_df.sort_values(by=["time"], ascending=False, inplace=True)
         fix_df.drop_duplicates(subset=['store_uuid'], inplace=True)
         # Add Geolocated info and rename columns
-        fix_df = pd.merge(fix_df[['item_uuid','store_uuid','price','time']],
-            geo_df[['store_uuid','retailer','lat','lng', 'name']],
+        fix_df = pd.merge(
+            fix_df[['item_uuid', 'product_uuid',
+                    'store_uuid','price','time']],
+            geo_df[['store_uuid','source',
+                    'lat','lng', 'name']],
             how='left', on="store_uuid")
         fix_df.rename(columns={'name':'store'},
-                        inplace=True)
-        logger.debug('Built Fixed DF')
+                    inplace=True)
+        logger.info('Built Fixed DF')
         added_dfs = []
         # Loop over all the added elements
-        for _a in added_prices:
+        for j, _a in enumerate(added_prices):
             if len(_a) == 0:
                 added_dfs.append(pd.DataFrame())
                 continue
             # Build Added DF, cast and drop dupls
             _tmp = pd.DataFrame(_a)
             _tmp['store_uuid'] = _tmp['store_uuid'].apply(lambda x: str(x))
-            _tmp['item_uuid'] = _tmp['item_uuid'].apply(lambda x: str(x))
+            _tmp['item_uuid'] = added['item_uuid']
             _tmp.sort_values(by=["time"], ascending=False, inplace=True)
+            _tmp.drop_duplicates(subset=['store_uuid'], inplace=True)
             # Add Geolocated info and rename columns
-            _tmp = pd.merge(_tmp[['item_uuid','store_uuid','price','time']],
-                geo_df[['store_uuid','retailer','lat','lng', 'name']],
-                how='left',
-                on="store_uuid")
+            _tmp = pd.merge(
+                _tmp[['item_uuid', 'product_uuid',
+                    'store_uuid','price','time']],
+                geo_df[['store_uuid','source',
+                        'lat','lng', 'name']],
+                how='left', on="store_uuid")
             _tmp.rename(columns={'name':'store'},
                         inplace=True)
             # Added to the list
@@ -805,8 +812,9 @@ class Product(object):
             # Iterate over all fixed and retrieve data
             _jth = {
                 'fixed': _jrow[['store',
-                            'retailer',
+                            'source',
                             'item_uuid',
+                            'product_uuid',
                             'price']].to_dict()
             }
             _segs = []
@@ -816,8 +824,9 @@ class Product(object):
                 # Set unfound price like dict
                 _jkth = {
                     "store": None,
-                    "retailer": added[_ith]['retailer'],
+                    "source": added[_ith]['source'],
                     "item_uuid": added[_ith]['item_uuid'],
+                    "product_uuid": added[_ith]['product_uuid'],
                     "price": None,
                     "diff": None,
                     "dist": None
@@ -851,13 +860,14 @@ class Product(object):
             # Add row to Rows
             _rows.append(_jth)            
             logger.debug(_j)
-        logger.info('Created Rows')
+        logger.info('Created Rows!')
         # Generate Fixed Stores
         _valid_sts = []
-        fix_df['name'] = fix_df['store'].apply(lambda x: str(x))
+        fix_df['name'] = fix_df['store'].astype(str)
         _valid_sts.append({
-            'retailer': fix_df.loc[0]['retailer'],
+            'source': fix_df.loc[0]['source'],
             'item_uuid': fix_df.loc[0]['item_uuid'],
+            'product_uuid': fix_df.loc[0]['product_uuid'],
             'stores' : [_r.to_dict() for _l, _r in 
                         fix_df[['store_uuid','name']]\
                         .drop_duplicates(subset=['store_uuid'])\
@@ -868,8 +878,9 @@ class Product(object):
                 continue
             _adf['name'] = _adf['store'].apply(lambda x: str(x))
             _valid_sts.append({
-                'retailer': _adf.loc[0]['retailer'],
+                'source': _adf.loc[0]['source'],
                 'item_uuid': _adf.loc[0]['item_uuid'],
+                'product_uuid': _adf.loc[0]['product_uuid'],
                 'stores' : [_r.to_dict() for _l, _r in 
                             _adf[['store_uuid','name']]\
                             .drop_duplicates(subset=['store_uuid'])\
