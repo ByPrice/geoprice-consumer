@@ -446,8 +446,42 @@ Compare prices from a fixed pair retailer-item with additional pairs of other re
 
 ```json
 {
-  "date": "2018-05-11",
-  "segments": {},
-  "rows": []
+  "date": "Mon, 11 Dec 2017 00:00:00 GMT",
+  "rows": [
+    {
+      "fixed": {
+        "item_uuid": "930d055d-d781-40bd-8f9c-93e9722046bd",
+        "price": 62.0,
+        "retailer": "walmart",
+        "store": "CERRO DE LA SILLA"
+      },
+      "segments": [
+        {
+          "diff": 0.0,
+          "dist": 0.0,
+          "item_uuid": "930d055d-d781-40bd-8f9c-93e9722046bd",
+          "price": 62.0,
+          "retailer": "walmart",
+          "store": "CERRO DE LA SILLA"
+        },
+        // ...
+      ]
+    },
+    // ...
+  ],
+  "segments": [
+    {
+        "item_uuid": "930d055d-d781-40bd-8f9c-93e9722046bd",
+        "retailer": "walmart",
+        "stores": [
+            {
+                "name": "CERRO DE LA SILLA",
+                "store_uuid": "245c5926-7ace-11e7-9b9f-0242ac110003"
+            },
+            // ...
+        ]
+    },
+    // ...
+  ]
 }
 ```
