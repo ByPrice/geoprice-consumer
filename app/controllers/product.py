@@ -118,27 +118,25 @@ def get_all_by_store():
         .get_store_catalogue(params['r'],
                             params['sid'])
     if not catalogue:
-        raise errors.AppError(80002, "Store products not reachable")
+        raise errors.AppError(80005, "Issues fetching store results")
     return jsonify(catalogue)
 
 @mod.route('/count_by_store', methods=['GET'])
 def count_by_store():
+    """ Get the prices count of certain store
     """
-        Get the prices of all items of certain store
-        Params:
-            * r - # Retailer Key
-            * sid  -  # Store UUID
-            * date_start - # Start Date
-            * date_end - # End Date
-    """
-    logger.info("Fetching Prices per Store in all Retailers")
-    params = request.args
-    if 'sid' not in params or 'r' not in params or 'date_start' not in params or 'date_end' not in params:
-        raise errors.AppError("invalid_request", "Retailer or Store UUID missing")
-    logger.debug(str(params['r']))
-    count = Product.get_count_by_store(params['r'], params['sid'], params['date_start'], params['date_end'])
+    logger.info("Fetching Prices per Store")
+    params = request.args.to_dict()
+    _needed = set({'r','sid', 'date_start', 'date_end'})
+    if not _needed.issubset(params.keys()):
+        raise errors.AppError(80002, "Dates, Retailer or Store UUID parameters missing")
+    logger.debug(params)
+    count = Product\
+        .get_count_by_store(params['r'],
+            params['sid'], params['date_start'],
+            params['date_end'])
     if not count:
-        raise errors.AppError("invalid_request", "Store Catalogue not reachable")
+        raise errors.AppError(80005,  "Issues fetching store results")
     return jsonify(count)
 
 @mod.route('/count_by_store_hours', methods=['GET'])

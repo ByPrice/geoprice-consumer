@@ -10,7 +10,10 @@ import pandas as pd
 
 _testing_item = '5630f780-1952-465b-b38c-9f02f2b0e24d'
 _test_ret = 'walmart'
-_test_store =  '5630f780-1952-465b-b38c-9f02f2b0e24d'#= '16faeaf4-7ace-11e7-9b9f-0242ac110003'
+_test_store = '16faeaf4-7ace-11e7-9b9f-0242ac110003'
+_test_start_date = '2018-05-10'
+_test_end_date = '2018-05-11'
+
 
 class GeoPriceServiceTestCase(unittest.TestCase):
     """ Test Case for GeoPrice Service
@@ -44,9 +47,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         pass
 
     """
-    NEEDED TESTS FOR PRODUCT
-    - /catalogue
-    - /count_by_store
+    NEEDED TESTS FOR PRODUCT    
     - /count_by_store_hours
     - /byfile
     - /retailer
@@ -139,7 +140,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print("Test Ticket endpoint with Product UUIDs")
         pass
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_07_store_catalogue(self):
         """ Test store prices catalogue endpoint
         """ 
@@ -154,6 +155,22 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
+    #@unittest.skip('Tested already')
+    def test_08_count_by_store(self):
+        """ Test Count by Store
+        """ 
+        print("Test Count by Store")
+        _r = self.app\
+            .get("/product/count_by_store?r={}&sid={}&date_start={}&date_end={}"\
+            .format(_test_ret, _test_store,
+                _test_start_date, _test_end_date))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 '''
     @unittest.skip('Already tested')
     def test_02_modify_item(self):
