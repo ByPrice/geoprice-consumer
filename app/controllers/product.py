@@ -168,32 +168,25 @@ def get_today_prices_by_file():
          - stn     :  Store name
     """
     logger.debug('Getting prices CSV from uuids...')
-    if 'sid' in request.args:
-        store_uuid = request.args.get('sid') 
-    else:
-        raise errors.AppError("invalid_request", "Store UUID parameter missing")
-    if 'ret' in request.args:
-        retailer = request.args.get('ret') 
-    else:
-        raise errors.AppError("invalid_request", "Retailer key parameter missing")
-    if 'stn' in request.args:
-        store_name = request.args.get('stn') 
-    else:
-        raise errors.AppError("invalid_request", "Store Name parameter missing")
-
-    prod = Product.get_st_catag_file(store_uuid, store_name, retailer)
+    params = request.args.to_dict()
+    _needed = set({'ret','sid', 'stn'})
+    if not _needed.issubset(params.keys()):
+        raise errors.AppError(80002, "Name, Retailer or Store UUID parameters missing")
+    prod = Product\
+        .get_st_catalog_file(params['sid'],
+            params['stn'], params['ret'])
     if not prod:
-        #raise errors.AppError("invalid_request", "Wrong UUID parameter")
         logger.warning("No prices in Selected Store")
-        raise errors.AppError("no_prods", "No products in selected store")
-    logger.debug("Response file")
+        raise errors.AppError(80009, "No prices in selected Store")
+    logger.info("Serving CSV file ...")
     return Response(
-        prod,
-        mimetype="text/csv",
-        headers={"Content-disposition":
-                 "attachment; filename={}_{}.csv".format(retailer.upper(), store_name)})
-
-
+        prod, mimetype="text/csv",
+        headers={
+            "Content-disposition":
+                "attachment; filename={}_{}.csv"\
+                    .format(retailer.upper(),
+                            store_name)}
+        )
 
 
 @mod.route('/retailer', methods=['GET'])

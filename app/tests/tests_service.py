@@ -48,7 +48,6 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     """
     NEEDED TESTS FOR PRODUCT    
-    - /count_by_store_hours
     - /byfile
     - /retailer
     - /compare/details
@@ -178,7 +177,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """ 
         print("Test Count by Store over last X hours")
         _r = self.app\
-            .get("/product/count_by_store_hours?r={}&sid={}&last_hours"\
+            .get("/product/count_by_store_hours?r={}&sid={}&last_hours={}"\
             .format(_test_ret, _test_store, 24))
         print('Status code', _r.status_code)
         try:
@@ -188,6 +187,21 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
+    #@unittest.skip('Tested already')
+    def test_10_byfile(self):
+        """ Test Store by File
+        """ 
+        print("Test Store by File")
+        _r = self.app\
+            .get("/product/byfile?ret={}&sid={}&stn={}"\
+            .format(_test_ret, _test_store,
+                    'Universidad'))
+        print('Status code', _r.status_code)
+        try:
+            print(_r.data)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 
 '''
     @unittest.skip('Already tested')
