@@ -328,7 +328,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         self.assertEqual(_r.status_code, 200)
 
     ##
-    # ----------- STATS TESTS -----------------
+    # ----------- STATS TESTS ------------
     # - stats/current
     # - stats/compare
     # - stats/history
@@ -344,6 +344,32 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_17_stats_current(self):
+        """ Test stats current
+        """ 
+        print("Test stats current")
+        _r = self.app.post("/stats/current",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"san_pablo"},
+                    {"retailer": _test_ret}
+                ],
+                "export": False
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
             print(_jr)
         except:
             pass

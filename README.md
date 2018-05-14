@@ -75,7 +75,6 @@ python wsgi.py
 
 [See details](../CONTRACTS.md)
 
-
 ## Errors
 
 Error codes with respective description.
@@ -91,6 +90,8 @@ Error codes with respective description.
 - 80008 : "File does not exist"
 - 80009 : "No prices available in {table}"
 - 80010 : "Wrong params format"
+- 80011 : "No {results} found!"
+- 89999 : "Internal error."
 
 ## License
 
