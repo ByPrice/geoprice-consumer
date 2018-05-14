@@ -157,7 +157,6 @@ def count_by_store_hours():
         raise errors.AppError(80005,  "Issues fetching store results")
     return jsonify(count)
 
-
 @mod.route('/byfile', methods=['GET'])
 def get_today_prices_by_file():
     """ Get prices CSV by specific store and past 
@@ -183,7 +182,6 @@ def get_today_prices_by_file():
                     .format(retailer.upper(),
                             store_name)}
         )
-
 
 @mod.route('/retailer', methods=['GET'])
 def get_prices_by_ret():

@@ -47,6 +47,10 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
+    ##
+    # ----------- PRODUCT TESTS -----------------
+    ##
+
     @unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
         """ Testing GeoPrice DB connection
@@ -307,7 +311,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_15_count_engine(self):
         """ Test Count by retailer (Engine)
         """ 
@@ -315,6 +319,23 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         _r = self.app.get(
             "/product/count_by_retailer_engine?retailer={}&date={}"\
                 .format(_test_ret, _test_time))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    ##
+    # ----------- STATS TESTS -----------------
+    ##
+    #@unittest.skip('Tested already')
+    def test_16_stats_blueprint(self):
+        """ Test stats blueprint
+        """ 
+        print("Test stats blueprint")
+        _r = self.app.get("/stats/")
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))

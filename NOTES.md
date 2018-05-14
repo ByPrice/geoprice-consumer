@@ -4,11 +4,8 @@
 
 Jorge
 - scripts/stats
-- controllers/stats
-- models/stats
-- controllers/product
-- models/product
-- models/item
+- controllers/stats ..
+- models/stats ...
 - controllers/alarm
 - models/alarm
 
