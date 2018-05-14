@@ -1,9 +1,5 @@
 # GeoPrice API Contracts
 
-
-## Stats
-
-
 ## Product
 
 ### Product prices By Store
@@ -579,4 +575,297 @@ from a certain time to the next hour.
 {
   "count": 64,
 }
+```
+
+
+----
+
+## Stats
+
+### Get current stats by retailer
+
+**Method**: POST
+
+**Endpoint**: `/stats/current`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| filters | List of Filters (category, retailer, item) | required |
+| export  | If True returns CSV else JSON | optional, default=False |
+
+**Request Example:**
+
+```json
+{"filters":
+  [
+    {"category":"2416"},
+    {"retailer":"chedraui"},
+    {"item":"03954837-4258-463f-96c4-fed1968deda1"}
+  ],
+  "export":true
+}
+```
+
+**JSON Response:**
+
+```json
+[
+  {
+      "gtin": "07501072300225",
+      "item_uuid": "03954837-4258-463f-96c4-fed1968deda1",
+      "name": "TING 1 Bote , 150 g",
+      "prices": {
+          "chedraui": {
+              "avg": "-",
+              "max": "-",
+              "min": "-",
+              "mode": "-",
+              "prev_avg": "-",
+              "prev_max": "-",
+              "prev_min": "-",
+              "prev_mode": "-"
+          },
+          "san_pablo": {
+              "avg": 99.5,
+              "max": 99.5,
+              "min": 99.5,
+              "mode": 99.5,
+              "prev_avg": 99.5,
+              "prev_max": 99.5,
+              "prev_min": 99.5,
+              "prev_mode": 99.5
+          },
+          // ...
+      }
+  },
+  //...
+]
+```
+
+**CSV Response:**
+
+```csv
+gtin,Nombre,Chedraui Avg,Chedraui Max,Chedraui Min,Chedraui Mode,Chedraui Prev Avg,Chedraui Prev Max,Chedraui Prev Min,Chedraui Prev Mode,San Pablo Avg,San Pablo Max,San Pablo Min,San Pablo Mode,San Pablo Prev Avg,San Pablo Prev Max,San Pablo Prev Min,San Pablo Prev Mode,Superama Avg,Superama Max,Superama Min,Superama Mode,Superama Prev Avg,Superama Prev Max,Superama Prev Min,Superama Prev Mode,Walmart Avg,Walmart Max,Walmart Min,Walmart Mode,Walmart Prev Avg,Walmart Prev Max,Walmart Prev Min,Walmart Prev Mode
+07501072300225,"TING 1 Bote , 150 g",-,-,-,-,-,-,-,-,99.5,99.5,99.5,99.5,99.5,99.5,99.5,99.5,-,-,-,-,-,-,-,-,92.5,92.5,92.5,92.5,92.5,92.5,92.5,92.5
+07503003134169,LOSIL C CREMA 1 % 20 G x 1,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,54.96739196777344,57.0,52.0,55.0,55.095237731933594,57.0,55.0,55.0
+```
+
+### Get item aggregate prices by filters compared to all others
+
+**Method**: POST
+
+**Endpoint**: `/stats/compare`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| filters | List of Filters (category, retailer, item) | required |
+| client | Source Key to compare with | required |
+| date_start | Starting Date of comparison (YYY-MM-DD) | required |
+| date_end | Ending Date of comparison (YYY-MM-DD) | required |
+| ends | Flag to return only first and last interval | optional, default=false |
+| interval | Time Interval (week, month, day) | required |
+| export  | If True returns CSV else JSON | optional, default=False |
+
+**Request example:**
+
+```json
+{
+  "filters":
+  [
+    {"category":"2388"},
+    {"retailer":"superama"}
+    {"item":"03954837-4258-463f-96c4-fed1968deda1"}
+  ],
+  "client" : "chedraui",
+  "date_start" : "2017-09-01",
+  "date_end" : "2017-09-07",
+  "ends" : false,
+  "interval" : "month",
+  "export":true
+}
+```
+
+**JSON Response:**
+
+```json
+[
+  {
+      "gtin": "07841141002828",
+      "interval_name": "month",
+      "intervals": [
+          {
+              "avg": 304.87179487179486,
+              "client": 0,
+              "date_end": "Sat, 30 Sep 2017 00:00:00 GMT",
+              "date_start": "Fri, 01 Sep 2017 00:00:00 GMT",
+              "difference": -304.87179487179486,
+              "retailers": [
+                  {
+                      "difference": "-",
+                      "price": 329,
+                      "retailer": "F Ahorro"
+                  },
+                  {
+                      "difference": "-",
+                      "price": 340,
+                      "retailer": "La Comer"
+                  },
+                  // ...
+              ]
+          },
+          // ...
+      ],
+      "item_uuid": "02c09f77-4e98-4611-b680-42dd238c05df",
+      "name": "ILTUX 1 Caja,14 Tabletas,20 mg"
+  },
+  // ...
+]
+```
+
+**CSV Response:**
+
+```csv
+gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferencia,F Ahorro,F Ahorro Diferencia,La Comer,La Comer Diferencia,San Pablo,San Pablo Diferencia,Soriana,Soriana Diferencia,Superama,Superama Diferencia,Walmart,Walmart Diferencia
+07841141002828,"ILTUX 1 Caja,14 Tabletas,20 mg",2017-09-01,2017-09-30,0,-,-,329.0,-,340.0,-,264.0,-,-,-,-,-,-,-
+07501326001090,"COZAAR 1 Caja,15 Comprimidos,50 mg",2017-09-01,2017-09-30,0,-,-,490.5,-,-,-,413.0,-,387.0,-,-,-,492.0,-
+```
+
+### Get stats history
+
+**Method**: POST
+
+**Endpoint:**  `/stats/history`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| filters | List of Filters (category, retailer, item) | required |
+| client | Source Key to compare with | required |
+| date_start | Starting Date of comparison (YYY-MM-DD) | required |
+| date_end | Ending Date of comparison (YYY-MM-DD) | required |
+| interval | Time Interval (week, month, day) | required |
+
+**Request Example:**
+
+```json
+{
+  "filters":
+  [
+    {"category":"2243"},
+    {"retailer":"superama"},
+    {"item":"03954837-4258-463f-96c4-fed1968deda1"}
+  ],
+  "client" : "chedraui",
+  "date_start" : "2017-08-01",
+  "date_end" : "2017-09-19",
+  "interval" : "week"
+}
+```
+
+**Response:**
+
+```json
+{
+    "metrics": {
+        "avg": [
+            [
+                1501977600000,
+                489.65133145037856
+            ],
+            // ...
+        ],
+        "max": [
+            [
+                1501977600000,
+                489.65133145037856,
+                489.65133145037856
+            ],
+            // ...
+        ],
+        "min": [
+            [
+                1501977600000,
+                489.65133145037856,
+                489.65133145037856
+            ],
+            // ...
+        ]
+    },
+    "retailers": [
+        {
+            "data": [
+                [
+                    1501977600000,
+                    382.5
+                ],
+                // ...
+            ],
+            "name": "Chedraui"
+        },
+        {
+            "data": [
+                [
+                    1501977600000,
+                    536.2106918238994
+                ],
+                // ...
+            ],
+            "name": "San Pablo"
+        },
+        // ...
+    ],
+    "subtitle": "<b>Periodo</b>: 2017-08-01 - 2017-09-24 <br> <b> Retailers:</b> Superama, Walmart, San Pablo, Chedraui.",
+    "title": "Tendencia de Precios"
+}
+```
+
+### Obtain Categories product count per Retailer
+
+**Method**: POST
+
+**Endpoint**: `/stats/category`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| filters | List of Filters (category, retailer, item) | required |
+
+**Request Example:**
+
+```json
+{
+  "filters": [
+    {"item":"56e67b35-d27e-4cac-9e91-533e0578b59c"},
+    {"retailer":"walmart"},
+    {"retailer":"la_comer"}
+  ]
+}
+```
+
+**Response:**
+
+```json
+[
+  {
+      "name": "comercial_mexicana",
+      "retailer": "Comercial Mexicana",
+      "x": 10,
+      "y": 1425.31,
+      "z": 5
+  },
+  {
+      "name": "f_ahorro",
+      "retailer": "F Ahorro",
+      "x": 20,
+      "y": 665.5,
+      "z": 2
+  },
+  // ...
+]
 ```
