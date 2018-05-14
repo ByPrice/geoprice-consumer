@@ -329,7 +329,12 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     ##
     # ----------- STATS TESTS -----------------
+    # - stats/current
+    # - stats/compare
+    # - stats/history
+    # - stats/category
     ##
+
     #@unittest.skip('Tested already')
     def test_16_stats_blueprint(self):
         """ Test stats blueprint
