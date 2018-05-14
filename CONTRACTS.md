@@ -556,3 +556,27 @@ Today's max, min & avg price from an specific item_uuid or product_uuid of the d
   "min_price": 62.0
 }
 ```
+
+### Count prices of retailer
+
+Count amount of price points from given retailer
+from a certain time to the next hour.
+
+**Method**:  GET
+
+**Endpoint**: `/product/count_by_retailer_engine?retailer=<source | required>&date=<date | required>`
+
+**Query Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| retailer  | Retailer/Source key | required |
+| date  | Time (YYYY:MM:DD HH:mm:SS) | required |
+
+**Response:**
+
+```json
+{
+  "count": 64,
+}
+```
