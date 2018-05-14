@@ -316,29 +316,21 @@ def get_stats_by_item():
 
 @mod.route('/count_by_retailer_engine', methods=['GET'])
 def get_count_by_retailer_engine():
-    """
-        Get Count from store
-
-        @Params:
-         - "retailer" : retailer_key
-         - "date" : date
-         - "env" : env
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
+    """ Get Count by engine
     """
     logger.info("Fetching counts by store")
     # Verify Request Params
-    params = request.args
+    params = request.args.to_dict()
     if 'retailer' not in params :
-        raise errors.ApiError("invalid_request", "retailer key missing")
+        raise errors.ApiError(80002,
+            "Retailer param missing")
     if 'date' not in params:
-        raise errors.ApiError("invalid_request", "date key missing")
-
-    retailer = params.get('retailer')
-    date = params.get('date')
-    env = params.get('env')
+        raise errors.ApiError(80002,
+            "Date param missing")
+    logger.debug(params)
     # Call function to fetch prices
-    prod = Product.count_by_retailer_engine(retailer, date)
+    prod = Product\
+        .count_by_retailer_engine(params['retailer'],
+            params['date'])
     return jsonify(prod)
 

@@ -1038,3 +1038,60 @@ class Product(object):
         if _stats['avg_price'] == 0:
             return {}
         return _stats
+
+    @staticmethod
+    def count_by_retailer_engine(retailer, _date):
+        """ Get max, min, avg price from 
+            item_uuid or product_uuid
+
+            Params:
+            -----
+            retailer : str
+                Source / Retailer key
+            _date : str
+                Date (YYYY-MM-DD HH:mm:SS)
+
+            Returns:
+            -----
+            _count : dict
+                JSON response
+        """
+        # Format time
+        _time = datetime.datetime\
+            .strptime(_date, '%Y-%m-%d %H:%M:%S')
+        _time_plus = _time + datetime.timedelta(hours=1)
+        # Generate days
+        _days = tupleize_date(_time.date(), 2)
+        cass_query = """
+            SELECT COUNT(1) as count
+            FROM price_by_source
+            WHERE source=%s
+            AND date=%s
+            AND time>%s
+            AND time<%s
+            """
+        qs = []
+        # Iterate for each product-date combination
+        for _d in _days:
+            try:
+                q = g._db.query(cass_query, 
+                    (retailer, _d, _time, _time_plus),
+                    timeout=100)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        if len(qs) == 0:
+            return {'count' : 0}
+        # Fetch agg values:        
+        df = pd.DataFrame(qs)
+        df.fillna(0.0, inplace=True)
+        _count = {
+            'count' : int(df['count'].sum()),
+        }
+        logger.info('Found {} points for {} ({} - {})'\
+            .format(_count['count'], retailer,
+                    _time, _time_plus))
+        return _count

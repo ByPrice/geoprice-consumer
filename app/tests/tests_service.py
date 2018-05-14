@@ -13,6 +13,7 @@ _test_ret = 'walmart'
 _test_store = '16faeaf4-7ace-11e7-9b9f-0242ac110003'
 _test_start_date = '2018-05-10'
 _test_end_date = '2018-05-11'
+_test_time = '2018-05-11 10:00:00'
 
 
 class GeoPriceServiceTestCase(unittest.TestCase):
@@ -45,12 +46,6 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    """
-    NEEDED TESTS FOR PROD
-    - /stats
-    - /count_by_retailer_engine
-    """
 
     @unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
@@ -296,7 +291,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_14_stats(self):
         """ Test Stats per product
         """ 
@@ -304,6 +299,22 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         _r = self.app.get(
             "/product/stats?item_uuid={}"\
                 .format(_testing_item))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_15_count_engine(self):
+        """ Test Count by retailer (Engine)
+        """ 
+        print("Test Count by retailer (Engine)")
+        _r = self.app.get(
+            "/product/count_by_retailer_engine?retailer={}&date={}"\
+                .format(_test_ret, _test_time))
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
