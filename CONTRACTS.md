@@ -577,7 +577,6 @@ from a certain time to the next hour.
 }
 ```
 
-
 ----
 
 ## Stats
@@ -602,7 +601,7 @@ from a certain time to the next hour.
   [
     {"category":"2416"},
     {"retailer":"chedraui"},
-    {"item":"03954837-4258-463f-96c4-fed1968deda1"}
+    {"item_uuid":"03954837-4258-463f-96c4-fed1968deda1"}
   ],
   "export":true
 }

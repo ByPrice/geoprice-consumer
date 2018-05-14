@@ -36,10 +36,10 @@ class Item(object):
         _k, items = 100, []
         # Iterate over batches of lenght: _k
         for i in range(0, len(p_uuids), _k):
-            _items = p_uuids[i: i+_k]
+            _pbatch = p_uuids[i: i+_k]
             url = SRV_CATALOGUE + \
                 '/product/by/puuid?keys={item}&ipp={ipp}&cols={cols}'\
-                .format(item=item_uuid,
+                .format(item=','.join(_pbatch),
                         ipp=_k,
                         cols=','.join(cols))
             logger.debug(url)
@@ -75,7 +75,8 @@ class Item(object):
         """
         url = SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
-            .format(item=item_uuid, cols=','.join(cols))
+            .format(item=item_uuid,
+                    cols=','.join(cols))
         logger.debug(url)
         try:
             r = requests.get(url)
