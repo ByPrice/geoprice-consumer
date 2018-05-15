@@ -242,3 +242,35 @@ def get_datetime():
                         int(str(x)[4:6]), 
                         int(str(x)[6:8])
                     ])
+
+def find_date_interval(date_i, d_groups):
+    """
+        Method to find date belonging over time periods
+    
+        Params:
+        -----
+        date_i : datetime
+            Initial date
+        d_groups : list
+            Date groups
+
+        Returns:
+        -----
+        (date_initial, date_final) : tuple
+            Initial and End date of analized period
+    """
+    for dg in d_groups:
+        #print('Data day', date_i.to_datetime())
+        if len(dg) == 1:
+            # Day case
+            #print('Group day',dg[0])
+            if date_i.to_pydatetime().date() == dg[0].date():
+                #print('Same day')
+                return (dg[0],dg[0])
+        else:
+            #print('Group days',dg[0], dg[1])
+            if (date_i.to_pydatetime().date() >= dg[0].date()) \
+                and (date_i.to_pydatetime().date() <= dg[1].date()):
+                #print('Range day')
+                return (dg[0],dg[1])
+    #print('NO DATE FOUND ----------------------')
