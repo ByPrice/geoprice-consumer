@@ -9,6 +9,12 @@ import pandas as pd
 
 
 _testing_item = '5630f780-1952-465b-b38c-9f02f2b0e24d'
+_test_ret = 'walmart'
+_test_store = '16faeaf4-7ace-11e7-9b9f-0242ac110003'
+_test_start_date = '2018-05-10'
+_test_end_date = '2018-05-11'
+_test_time = '2018-05-11 10:00:00'
+
 
 class GeoPriceServiceTestCase(unittest.TestCase):
     """ Test Case for GeoPrice Service
@@ -41,7 +47,11 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
-    #@unittest.skip('Already tested')
+    ##
+    # ----------- PRODUCT TESTS -----------------
+    ##
+
+    @unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
         """ Testing GeoPrice DB connection
         """ 
@@ -54,22 +64,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    """
-    NEEDED TESTS FOR PRODUCT
-    - /bystore/history
-    - /ticket
-    - /catalogue
-    - /count_by_store
-    - /count_by_store_hours
-    - /byfile
-    - /retailer
-    - /compare/details
-    - /compare/history
-    - /stats
-    - /count_by_store_engine
-    """
-    
-    #@unittest.skip('Already tested')
+    @unittest.skip('Already tested')
     def test_01_by_store_with_item(self):
         """ Test By Store endpoint with Item UUID
         """ 
@@ -85,78 +80,20 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         self.assertEqual(_r.status_code, 200)
 
     @unittest.skip('Not yet tested')
-    def test_01_by_store_with_prod(self):
+    def test_02_by_store_with_prod(self):
         """ Test By Store endpoint with Product UUID
         """
         print("Test By Store endpoint with Product UUID")
-        _r = self.app.get("/product/bystore?puuid={}")\
-            .format('')
-
-'''
-    @unittest.skip('Already tested')
-    def test_02_modify_item(self):
-        """ Modify existing Item
-        """ 
-        print("Modify existing Item")
-        global new_item_test
-        _tmp_item = new_item_test
-        _tmp_item['name'] = new_item_test['name'].upper()
-        _r =  self.app.post('/item/modify',
-                data=json.dumps(_tmp_item),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-    
-    @unittest.skip('Already tested')
-    def test_03_delete_item(self):
-        """ Delete existing Item
-        """ 
-        print("Delete Item")
-        global new_item_test
-        _r =  self.app.get('/item/delete?uuid='\
-                        + new_item_test['item_uuid'])
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
+        pass
 
     @unittest.skip('Already tested')
-    def test_04_add_product(self):
-        """ Add New Product
+    def test_03_by_store_history_with_item(self):
+        """ Test By Store History endpoint with Item UUID
         """ 
-        global new_prod_test
-        print("Add New Product")
-        _r =  self.app.post('/product/add',
-                data=json.dumps(new_prod_test),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-        new_prod_test['product_uuid'] = _jr['product_uuid']
-    
-    @unittest.skip('Already tested')
-    def test_05_modify_product(self):
-        """ Modify existing Product
-        """ 
-        global new_prod_test
-        print("Modify existing Product")
-        new_prod_test['name'] = new_prod_test['name'].upper()
-        _r =  self.app.post('/product/modify',
-                data=json.dumps(new_prod_test),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
+        print("Test By Store History endpoint with Item UUID")
+        _r = self.app.get("/product/bystore/history?uuid={}"\
+            .format(_testing_item))
+        print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
@@ -164,148 +101,25 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    @unittest.skip('Already tested')
-    def test_06_upload_product_normalized(self):
-        """ Batch Upload normalized
-        """ 
-        global new_prod_test
-        print("Batch Upload normalized")
-        _buffer = io.StringIO()
-        pd.DataFrame([
-            {'product_uuid': new_prod_test['product_uuid'],
-            'normalized': new_prod_test['name'].lower()}])\
-            .to_csv(_buffer)
-        _r =  self.app.post('/product/normalized',
-                content_type='multipart/form-data',
-                data={'normalized.csv': (io.BytesIO(_buffer.getvalue().encode('utf-8')), 'text.csv')})
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-    
-    @unittest.skip('Already tested')
-    def test_07_update_prod_img(self):
-        """ Update Product Image
-        """ 
-        global new_prod_test
-        print("Update Product Image")
-        img_prod_test['product_uuid'] = new_prod_test['product_uuid']
-        _r =  self.app.post('/product/image',
-                data=json.dumps(img_prod_test),
-                headers={'content-type':'application/json'})
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-    
-    @unittest.skip('Already tested')
-    def test_08_get_prods_by_item(self):
-        """ Get Products by Item UUID (p=1, ipp=50)
-        """ 
-        print("Get Products by Item UUID (p=1, ipp=50)")
-        _p, _ipp = 1, 50
-        global new_item_test
-        _r =  self.app.get('/product/by/iuuid?keys={}&cols={}&p={}&ipp={}'\
-                .format('', #new_item_test['item_uuid'],
-                    ','.join(cols_test),
-                    _p, _ipp
-                    )
-                )
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            pprint(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-        #self.assertGreater(len(_jr), 0)
-        #self.assertTrue(set(cols_test).issubset(_jr[0].keys()))
-    
-    @unittest.skip('Already tested')
-    def test_09_get_prods_by_product(self):
-        """ Get Products by Product UUID (p=1, ipp=50)
-        """ 
-        print("Get Products by Product UUID (p=1, ipp=50)")
-        _p, _ipp = 1, 50
-        global new_prod_test, response_prod
-        _r =  self.app.get('/product/by/puuid?keys={}&cols={}&p={}&ipp={}'\
-                .format(new_prod_test['product_uuid'],
-                    ','.join(cols_test),
-                    _p, _ipp
-                    )
-                )
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            pprint(_jr)
-            # Global assingment
-            response_prod = _jr['products'][0]
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-    
-    @unittest.skip('Already tested')
-    def test_10_get_prods_by_source(self):
-        """ Get Products by Source (p=1, ipp=50)
-        """ 
-        print("Get Products by Source (p=1, ipp=50)")
-        _p, _ipp = 1, 50
-        global new_prod_test
-        _r =  self.app.get('/product/by/source?keys={}&cols={}&p={}&ipp={}'\
-                .format(new_prod_test['source'],
-                    ','.join(cols_test),
-                    _p, _ipp
-                    )
-                )
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            pprint(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-        print('Found {} prods'.format(len(_jr['products'])))
-    
-    @unittest.skip('Already tested')
-    def test_11_get_prods_by_attr(self):
-        """ Get Products by Attr (p=1, ipp=50)
-        """ 
-        print("Get Products by Attr (p=1, ipp=50)")
-        _p, _ipp, _vals, _rets = 1, 50, '', ''
-        global new_prod_test
-        _r =  self.app\
-            .get('/product/by/attr?keys={}&vals={}&rets={}&cols={}&p={}&ipp={}'\
-                .format(new_prod_test['brand'],
-                    _vals, _rets,
-                    ','.join(cols_test),
-                    _p, _ipp
-                    )
-                )
-        print(_r.status_code)
-        try:
-            _jr = json.loads(_r.data.decode('utf-8'))
-            pprint(_jr)
-        except:
-            pass
-        self.assertEqual(_r.status_code, 200)
-        print('Found {} prods'.format(len(_jr['products'])))
+    @unittest.skip('Not yet tested')
+    def test_04_by_store_history_with_prod(self):
+        """ Test By Store History endpoint with Product UUID
+        """
+        print("Test By Store History endpoint with Product UUID")
+        pass
 
-    @unittest.skip('Already tested')
-    def test_12_delete_product_image(self):
-        """ Delete existing Product Image
+    @unittest.skip('Tested already')
+    def test_05_ticket_with_item(self):
+        """ Test Ticket endpoint with Item UUIDs
         """ 
-        print("Delete existing Product Image")
-        global response_prod
-        _r =  self.app.get('/product/delete/image?uuid={}&id={}'\
-                        .format(response_prod['product_uuid'],
-                                response_prod['prod_images'][0]['id_p_image']))
-        print(_r.status_code)
+        print("Test Ticket endpoint with Item UUIDs")
+        _r = self.app.post("/product/ticket",
+            data=json.dumps(
+                {'uuids':[_testing_item]}
+                ),
+            headers={'content-type': 'application/json'}
+            )
+        print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
@@ -313,16 +127,21 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    @unittest.skip('Already tested')
-    def test_13_delete_product_attr(self):
-        """ Delete existing Product Attr
+    @unittest.skip('Not yet tested')
+    def test_06_ticket_with_prod(self):
+        """ Test Ticket endpoint with Product UUIDs
         """ 
-        print("Delete existing Product Attr")
-        global response_prod
-        _r =  self.app.get('/product/delete/attr?uuid={}&id={}'\
-                        .format(response_prod['product_uuid'],
-                                response_prod['prod_attrs'][0]['id_p_attr']))
-        print(_r.status_code)
+        print("Test Ticket endpoint with Product UUIDs")
+        pass
+    
+    @unittest.skip('Tested already')
+    def test_07_store_catalogue(self):
+        """ Test store prices catalogue endpoint
+        """ 
+        print("Test store prices catalogue endpoint")
+        _r = self.app.get("/product/catalogue?r={}&sid={}"\
+            .format(_test_ret, _test_store))
+        print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
@@ -330,22 +149,353 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    @unittest.skip('Already tested')
-    def test_90_delete_product(self):
-        """ Delete existing Product and its references
+    @unittest.skip('Tested already')
+    def test_08_count_by_store(self):
+        """ Test Count by Store
         """ 
-        print("Delete existing Product and its references")
-        global new_prod_test
-        _r =  self.app.get('/product/delete?uuid='\
-                        + new_prod_test['product_uuid'])
-        print(_r.status_code)
+        print("Test Count by Store")
+        _r = self.app\
+            .get("/product/count_by_store?r={}&sid={}&date_start={}&date_end={}"\
+            .format(_test_ret, _test_store,
+                _test_start_date, _test_end_date))
+        print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
         except:
             pass
         self.assertEqual(_r.status_code, 200)
-'''
+
+    @unittest.skip('Tested already')
+    def test_09_count_by_store_hours(self):
+        """ Test Count by Store over last X hours
+        """ 
+        print("Test Count by Store over last X hours")
+        _r = self.app\
+            .get("/product/count_by_store_hours?r={}&sid={}&last_hours={}"\
+            .format(_test_ret, _test_store, 24))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_10_byfile(self):
+        """ Test Store by File
+        """ 
+        print("Test Store by File")
+        _r = self.app\
+            .get("/product/byfile?ret={}&sid={}&stn={}"\
+            .format(_test_ret, _test_store,
+                    'Universidad'))
+        print('Status code', _r.status_code)
+        try:
+            print(_r.data)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    @unittest.skip('Tested already')
+    def test_11_retailer_with_item(self):
+        """ Test Retailer prices by Item
+        """ 
+        print("Test Retailer prices by Item")
+        _r = self.app\
+            .get("/product/retailer?retailer={}&item_uuid={}&export={}"\
+                .format(_test_ret, _testing_item, True))
+        print('Status code', _r.status_code)
+        try:
+            print(_r.data)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    @unittest.skip('Not yet tested')
+    def test_12_retailer_with_prod(self):
+        """ Test Retailer prices by Product
+        """ 
+        print("Test Retailer prices by Product")
+    
+    @unittest.skip('Tested already')
+    def test_13_compare_retailer_item(self):
+        """ -Test Compare retailer-price pairs
+        """ 
+        print("Test Compare retailer-price pairs")
+        _r = self.app.post(
+            "/product/compare/details",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "date": "2018-05-10",
+                "fixed_segment" : {
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "chedraui"
+                    },
+                "added_segments": [
+                    { 
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart"
+                    },
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "soriana"
+                    }
+                ]
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_13_compare_store_item(self):
+        """ Test Compare retailer-price pairs
+        """ 
+        print("Test Compare retailer-price pairs")
+        _r = self.app.post(
+            "/product/compare/history",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "date_ini": "2017-12-01",
+                "date_fin": "2017-12-07",
+                "interval": "day",
+                "fixed_segment" : {
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "chedraui",
+                    "store_uuid": "e02a5370-7b09-11e7-855a-0242ac110005",
+                    "name": "CHEDRAUI SELECTO UNIVERSIDAD"
+                },
+                "added_segments": [
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart",
+                        "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003",
+                        "name": "Walmart Universidad"
+                    },
+                    {
+                        "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                        "retailer": "walmart",
+                        "store_uuid": "16faeaf4-7ace-11e7-9b9f-0242ac110003",
+                        "name": "Walmart Universidad"
+                    }
+                ]
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_14_stats(self):
+        """ Test Stats per product
+        """ 
+        print("Test Stats per product")
+        _r = self.app.get(
+            "/product/stats?item_uuid={}"\
+                .format(_testing_item))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_15_count_engine(self):
+        """ Test Count by retailer (Engine)
+        """ 
+        print("Test Count by retailer (Engine)")
+        _r = self.app.get(
+            "/product/count_by_retailer_engine?retailer={}&date={}"\
+                .format(_test_ret, _test_time))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    ##
+    # ----------- STATS TESTS ------------
+    ##
+    @unittest.skip('Tested already')
+    def test_16_stats_blueprint(self):
+        """ Test stats blueprint
+        """ 
+        print("Test stats blueprint")
+        _r = self.app.get("/stats/")
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_17_stats_current(self):
+        """ Test stats current
+        """ 
+        print("Test stats current")
+        _r = self.app.post("/stats/current",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"san_pablo"},
+                    {"retailer": _test_ret}
+                ],
+                "export": False
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_18_stats_compare(self):
+        """ Test stats compare
+        """ 
+        print("Test stats compare")
+        _r = self.app.post("/stats/compare",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer":"walmart"},
+                    {"retailer":"san_pablo"},
+                    {"retailer":"city_market"},
+                    {"retailer":"f_ahorro"},
+                    {"retailer":"la_comer"}
+                ],
+                "client" : "walmart",
+                "date_start" : "2018-05-01",
+                "date_end" : "2018-05-07",
+                "ends" : False,
+                "interval" : "month",
+                "export": False
+                })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_19_stats_history(self):
+        """ Test stats history
+        """ 
+        print("Test stats history")
+        _r = self.app.post("/stats/history",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer": _test_ret}
+                ],
+                "client" : "walmart",
+                "date_start" : "2018-05-01",
+                "date_end" : "2018-05-07",
+                "interval" : "month"
+                })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    @unittest.skip('Tested already')
+    def test_20_stats_category(self):
+        """ Test stats category
+        """ 
+        print("Test stats category")
+        _r = self.app.post("/stats/category",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters":  [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer": _test_ret}
+                ]
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    ##
+    # ----------- ALARM TESTS ------------
+    ##
+    @unittest.skip('Tested already')
+    def test_21_alarm_blueprint(self):
+        """ Test alarm blueprint
+        """ 
+        print("Test alarm blueprint")
+        _r = self.app.get("/alarm/")
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_17_alarm_prices(self):
+        """ Test Alarm prices
+        """ 
+        print("Test Alarm prices")
+        _r = self.app.post("/alarm/prices",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "uuids": [_testing_item, 
+                    "decd74df-6a9d-4614-a0e3-e02fe13d1542"],
+                "retailers": ["san_pablo", 
+                    _test_ret]                
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
