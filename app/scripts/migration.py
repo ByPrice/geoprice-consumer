@@ -3,6 +3,7 @@ import argparse
 import ast
 import json
 import datetime
+from uuid import UUID
 import pandas as pd
 import requests
 from config import *
@@ -54,7 +55,7 @@ def cassandra_args():
     return args
 
 
-def fetch_day_prices(day, limit, cassconf):
+def fetch_day_prices(day, limit, cassconf, batch=100):
     """ Query data from passed keyspace
 
         Params:
@@ -65,6 +66,8 @@ def fetch_day_prices(day, limit, cassconf):
             Limit of prices to retrieve
         cassconf: dict
             Cassandra Cluster config params
+        batch : int
+            Batch size of queries
         
         Returns:
         -----
@@ -76,13 +79,68 @@ def fetch_day_prices(day, limit, cassconf):
         'KEYSPACE': cassconf['cassandra_keyspace'],
         'PORT': cassconf['cassandra_port']})
     logger.info("Connected to C* !")
-    # Drop connection
+    # Define CQL query
+    cql_query = """SELECT * 
+        FROM price_item
+        WHERE item_uuid = %s
+        AND time >= %s
+        AND time < %s"""
+    data, _prods, page = [], [], 1
+    # Loop over batches
+    while True:
+        _amount = len(data)
+        logger.info("{} prices retrieved".format(_amount))
+        # Limit statement
+        if limit:
+            if _amount > limit:
+                break
+        # Query for item_uuids
+        try:
+            _url = SRV_CATALOGUE+'/product/by/puuid?keys=&p={}&ipp={}&cols={}'\
+                                .format(page, batch, 'item_uuid')
+            items = requests.get(_url)
+            logger.debug('Status code: {}'.format(items.status_code))
+            if items.status_code != 200:
+                raise Exception("Catalogue Srv having not working")
+            items = items.json()['products']
+            if len(items) == 0:
+                raise Exception('Finished retrieving items!')
+            _prods += items
+        except Exception as e:
+            logger.error(e)
+            break
+        # For each item query prices
+        for _i in items:
+            try:
+                if not _i['item_uuid']:
+                    continue
+                r = cdb.query(cql_query,
+                    (UUID(_i['item_uuid']),
+                    day, day + datetime.timedelta(days=1)),
+                    timeout=50)
+                data += list(r)
+            except Exception as e:
+                logger.error(e)
+    # Drop connection with C*
     cdb.close()
-    return pd.DataFrame()
+    # Generate DFs
+    data = pd.DataFrame(data)
+    if data.empty:
+        return pd.DataFrame()
+    data.item_uuid = data.item_uuid.astype(str)
+    data.store_uuid = data.store_uuid.astype(str)
+    data.rename(columns={'retailer': 'source'}, inplace=True)
+    data.to_csv("price_data.csv")
+    _prods = pd.DataFrame(_prods)
+    _prods.item_uuid = _prods.item_uuid.astype(str)
+    _prods.to_csv("prod_data.csv")
+    return pd.merge(data, _prods,
+        on=['item_uuid', 'source'], how='left')
     
 
 def populate_geoprice_tables(val):
     pass
+
 
 def day_migration(day, limit=None, cassconf={}):
     """ Retrieves all data available requested day
@@ -101,12 +159,16 @@ def day_migration(day, limit=None, cassconf={}):
     logger.info("Retrieving info for migration on ({})".format(day))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(day, limit, cassconf)
+    if data.empty:
+        logger.info("No prices to migrate!")
+        return
     logger.info("Found {} prices".format(len(data)))
+    logger.debug(data.head(5))
     for j, d in data.iterrows():
         # Populate each table in new KS
         populate_geoprice_tables(d)
-        logger.info("Populated {}% of the data"\
-            .format(100.0 * j / len(data)))
+        logger.info("{}%  Populated"\
+            .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
 
 if __name__ == '__main__':
@@ -118,6 +180,6 @@ if __name__ == '__main__':
     _day = cassconf['date']
     del cassconf['date']
     # Now call to migrate day's data
-    day_migration(_day, limit=None, cassconf=cassconf)
+    day_migration(_day, limit=100, cassconf=cassconf)
     logger.info("Finished executing ({}) migration".format(_day))
 
