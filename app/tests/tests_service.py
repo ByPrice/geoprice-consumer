@@ -458,6 +458,22 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
+    ##
+    # ----------- ALARM TESTS ------------
+    ##
+    #@unittest.skip('Tested already')
+    def test_21_alarm_blueprint(self):
+        """ Test alarm blueprint
+        """ 
+        print("Test alarm blueprint")
+        _r = self.app.get("/alarm/")
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
