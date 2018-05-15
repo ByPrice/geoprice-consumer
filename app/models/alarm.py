@@ -23,3 +23,7 @@ class Alarm(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def prices_vs_prior(params):
+        return []
