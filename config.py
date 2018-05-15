@@ -35,8 +35,8 @@ CASSANDRA_PORT = os.getenv('CASSANDRA_PORT','9042')
 ENV = os.getenv('ENV','DEV')
 CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
 
-# App Name
-TESTING=False
+# Testing
+TESTING= True if os.getenv('TESTING',False) else FALSE
 
 # Logging and remote logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', ('DEBUG' if ENV != 'PRODUCTION' else 'DEBUG'))
@@ -56,15 +56,11 @@ QUEUE_GEOPRICE = 'geoprice_dev' if ENV.upper() == 'DEV' else 'geoprice'
 QUEUE_CACHE = "cache_dev" if ENV.upper() == 'DEV' else "cache"
 
 # Cassandra seeds
-contact_points = []
-for seed in CASSANDRA_CONTACT_POINTS.split(","):
-    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b',seed) \
-        and ENV.upper() != 'DEV' \
-        and ENV.upper() != 'LOCAL':
-        contact_points.append("dev."+seed)
-    else:
-        contact_points.append(seed)
-CASSANDRA_CONTACT_POINTS=contact_points
+if ENV.upper() == 'DEV':
+    CASSANDRA_CONTACT_POINTS = os.getenv('CASSANDRA_CONTACT_POINTS_DEV', '0.0.0.0')
+
+# Split contact points
+CASSANDRA_CONTACT_POINTS = CASSANDRA_CONTACT_POINTS.split(",")
 
 # Services
 SRV_PROTOCOL = os.getenv('SRV_PROTOCOL', 'http')

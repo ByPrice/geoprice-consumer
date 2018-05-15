@@ -19,6 +19,7 @@ def initdb():
         config.CASSANDRA_KEYSPACE)
     cluster_init = Cluster(config.CASSANDRA_CONTACT_POINTS)
     session_init = cluster_init.connect()
+    
     # Only drop keyspace if its in testing environmet
     if config.TESTING:
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
