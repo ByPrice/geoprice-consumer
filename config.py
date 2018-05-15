@@ -31,12 +31,14 @@ REDIS_DB = 0 if ENV != 'DEV' else 1
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')
 CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','prices')
 CASSANDRA_PORT = os.getenv('CASSANDRA_PORT','9042')
+CASSANDRA_USER = os.getenv('CASSANDRA_USER','')
+CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
 
 # Env-dependent variables
 CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
 
 # Testing
-TESTING= True if os.getenv('TESTING',False) else FALSE
+TESTING= True if os.getenv('TESTING',False) else False
 
 # Logging and remote logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', ('DEBUG' if ENV != 'PRODUCTION' else 'DEBUG'))
