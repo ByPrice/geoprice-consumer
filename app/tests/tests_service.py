@@ -349,7 +349,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_17_stats_current(self):
         """ Test stats current
         """ 
@@ -366,6 +366,41 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 ],
                 "export": False
             })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_18_stats_compare(self):
+        """ Test stats compare
+        """ 
+        print("Test stats compare")
+        _r = self.app.post("/stats/compare",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer":"walmart"},
+                    {"retailer":"san_pablo"},
+                    {"retailer":"city_market"},
+                    {"retailer":"f_ahorro"},
+                    {"retailer":"la_comer"}
+                ],
+                "client" : "walmart",
+                "date_start" : "2018-05-01",
+                "date_end" : "2018-05-07",
+                "ends" : False,
+                "interval" : "month",
+                "export": False
+                })
         )
         print('Status code', _r.status_code)
         try:

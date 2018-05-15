@@ -29,6 +29,8 @@ def jsonfier(prod):
     return jp
 
 def actual_file(prod):
+    if not prod:
+        raise errors.AppError(80009, "No prices available!")
     prod_csv = Stats.convert_csv_actual(prod)
     return Response(
         prod_csv,
@@ -37,6 +39,8 @@ def actual_file(prod):
                  "attachment; filename=actuales.csv"})
 
 def market_file(prod):
+    if not prod:
+        raise errors.AppError(80009, "No prices available!")
     prod_csv = Stats.convert_csv_market(prod)
     return Response(
         prod_csv,
@@ -63,27 +67,13 @@ def get_current():
 
 @mod.route('/compare', methods=['POST'])
 def compare():
+    """ Get item avg prices by filters 
+        compared to all others
     """
-        Controller to get item avg prices by filters compared to all others
-        {
-            "client": "walmart",
-            "date_start" : "2017-08-08",
-            "date_end" : "2017-08-10",
-            "filters" : [
-                { "category" : "9406" },
-                { "retailer" : "superama" },
-                { "retailer" : "ims" },
-                { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
-            ],
-            "ends": true,
-            interval: "day",
-            "export": true
-        }
-    """
-    logger.debug("Fetching needed by filters...")
+    logger.info("Fetching needed by filters...")
     params = request.get_json()
     if not params:
-        raise errors.AppError(10000,"Not filters requested!")
+        raise errors.AppError(80002,"No params in request")
     prod = Stats.get_comparison(params)
     if 'export' in params:
         if params['export']:

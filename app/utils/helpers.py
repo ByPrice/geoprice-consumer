@@ -158,6 +158,10 @@ def grouping_periods(params):
         groups : list
             Group of valid date ranges
     """
+    if 'date_start' in params:
+        params['date_ini'] = params['date_start']
+    if 'date_end' in params:
+        params['date_fin'] = params['date_end']
     groups = []
     di = datetime.datetime(*tuple(int(d) for d in params['date_ini'].split('-')))
     df = datetime.datetime(*tuple(int(d) for d in params['date_fin'].split('-')))
@@ -194,3 +198,47 @@ def grouping_periods(params):
             groups.append([di+ datetime.timedelta(days=1),dv])
             di = dv
     return groups
+
+def dictify(odict):
+    """ Convert nested dicts to combined dict
+
+        Params:
+        -----
+        odict : dict
+            Nested dict of prices
+        
+        Returns:
+        -----
+        dictified : dict
+            Untanggled dict of prices
+    """
+    dictified = {}
+    for k,d in odict.items():
+        dictified.update({ ' '.join([readfy(k), readfy(kk)]) : v for kk,v in d.items()})
+    return dictified
+
+def readfy(ret_key):
+    """ Convert retailer key into Readable Retailer name
+
+        Params:
+        -----
+        ret_key : str
+            Source key
+        
+        Returns:
+        -----
+        read_ret : str
+            Reformatted Source key
+    """
+    return ' '.join([rk[0].upper() + rk[1:] for rk in ret_key.split('_')])
+
+def get_datetime():
+    """ Lambda definition to convert 
+        int-like date to datetime object
+    """
+    return lambda x: datetime\
+                    .datetime(*[
+                        int(str(x)[:4]), 
+                        int(str(x)[4:6]), 
+                        int(str(x)[6:8])
+                    ])
