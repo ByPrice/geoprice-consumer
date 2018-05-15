@@ -840,7 +840,7 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 ```json
 {
   "filters": [
-    {"item":"56e67b35-d27e-4cac-9e91-533e0578b59c"},
+    {"item_uuid":"56e67b35-d27e-4cac-9e91-533e0578b59c"},
     {"retailer":"walmart"},
     {"retailer":"la_comer"}
   ]

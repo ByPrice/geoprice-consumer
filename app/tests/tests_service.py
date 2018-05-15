@@ -406,7 +406,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_19_stats_history(self):
         """ Test stats history
         """ 
@@ -426,6 +426,30 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 "date_end" : "2018-05-07",
                 "interval" : "month"
                 })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_20_stats_category(self):
+        """ Test stats category
+        """ 
+        print("Test stats category")
+        _r = self.app.post("/stats/category",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters":  [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer": _test_ret}
+                ]
+            })
         )
         print('Status code', _r.status_code)
         try:
