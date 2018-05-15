@@ -82,35 +82,14 @@ def compare():
 
 
 @mod.route('/history', methods=['POST'])
-def get_actual():
+def get_history():
+    """ Get item avg prices by filters
+        for charts rendering
     """
-        Controller to get item avg prices by filters for charts rendering
-
-        {
-            "date_start" : "2017-08-08",
-            "date_end" : "2017-08-10",
-            "filters" : [
-                { "category" : "9406" },
-                { "retailer" : "superama" },
-                { "retailer" : "ims" },
-                { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
-            ],
-            interval: "day",
-            "export": true
-        }
-    """
-    # Set Python datetime to JS timetamp
-    """
-    dt = tuple(int(x) if i!= 1 else int(x)+1\
-        for i,x in enumerate(d.isoformat().split('-')))+(0,0)
-    d_js = datetime.datetime(*dt)
-    ts_js = (d_js - datetime.datetime(1970, 1, 1,0,0))\
-            datetime.timedelta(seconds=1)*1000
-    """
-    logger.debug("Fetching needed by filters...")
+    logger.info("Fetching needed by filters...")
     params = request.get_json()
     if not params:
-        raise errors.AppError(10000,"Not filters requested!")
+        raise errors.AppErrorr(80002,"No params in request")
     prod = Stats.get_historics(params)
     return jsonfier(prod)
 

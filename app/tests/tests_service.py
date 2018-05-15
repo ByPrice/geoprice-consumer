@@ -329,13 +329,9 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     ##
     # ----------- STATS TESTS ------------
-    # - stats/current
-    # - stats/compare
-    # - stats/history
     # - stats/category
     ##
-
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_16_stats_blueprint(self):
         """ Test stats blueprint
         """ 
@@ -375,7 +371,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_18_stats_compare(self):
         """ Test stats compare
         """ 
@@ -400,6 +396,35 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 "ends" : False,
                 "interval" : "month",
                 "export": False
+                })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_19_stats_history(self):
+        """ Test stats history
+        """ 
+        print("Test stats history")
+        _r = self.app.post("/stats/history",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "filters": 
+                [
+                    {"item_uuid": _testing_item},
+                    {"item_uuid":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer":"superama"},
+                    {"retailer": _test_ret}
+                ],
+                "client" : "walmart",
+                "date_start" : "2018-05-01",
+                "date_end" : "2018-05-07",
+                "interval" : "month"
                 })
         )
         print('Status code', _r.status_code)
