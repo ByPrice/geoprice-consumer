@@ -55,8 +55,34 @@ def cassandra_args():
 
 
 def fetch_day_prices(day, limit, cassconf):
-    pass
+    """ Query data from passed keyspace
 
+        Params:
+        -----
+        day : datetime.date
+            Query Date 
+        limit : int
+            Limit of prices to retrieve
+        cassconf: dict
+            Cassandra Cluster config params
+        
+        Returns:
+        -----
+        data : pd.DataFrame
+            Prices data
+    """
+    # Connect to C*
+    cdb = SimpleCassandra({'CONTACT_POINTS': cassconf['cassandra_hosts'],
+        'KEYSPACE': cassconf['cassandra_keyspace'],
+        'PORT': cassconf['cassandra_port']})
+    logger.info("Connected to C* !")
+    # Drop connection
+    cdb.close()
+    return pd.DataFrame()
+    
+
+def populate_geoprice_tables(val):
+    pass
 
 def day_migration(day, limit=None, cassconf={}):
     """ Retrieves all data available requested day
@@ -74,7 +100,14 @@ def day_migration(day, limit=None, cassconf={}):
     """
     logger.info("Retrieving info for migration on ({})".format(day))
     # Retrieve data from Prices KS (prices.price_item)
-    data = fetch_day_prices(day, limit, {})
+    data = fetch_day_prices(day, limit, cassconf)
+    logger.info("Found {} prices".format(len(data)))
+    for j, d in data.iterrows():
+        # Populate each table in new KS
+        populate_geoprice_tables(d)
+        logger.info("Populated {}% of the data"\
+            .format(100.0 * j / len(data)))
+    logger.info("Finished populating tables")
 
 if __name__ == '__main__':
     logger.info("Starting Migration! (Prices (KS) -> GeoPrice (KS)")
