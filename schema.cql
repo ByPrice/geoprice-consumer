@@ -24,7 +24,9 @@ CREATE TABLE price (
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -46,7 +48,9 @@ CREATE TABLE price_by_product_date (
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /* command end */
 
 /* command start */
@@ -65,7 +69,9 @@ CREATE TABLE price_by_date (
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -89,7 +95,9 @@ CREATE TABLE price_by_product_store (
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LevelCompactionStrategy'}
 */
@@ -114,7 +122,9 @@ CREATE TABLE price_by_geohash (
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -139,7 +149,9 @@ CREATE TABLE price_by_source (
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -163,7 +175,9 @@ CREATE TABLE price_by_store (
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -187,7 +201,9 @@ CREATE TABLE promo (
 ) WITH CLUSTERING ORDER BY (store_uuid ASC, time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -211,7 +227,9 @@ CREATE TABLE promo_by_store (
 ) WITH CLUSTERING ORDER BY (product_uuid ASC, time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
-                     'compaction_window_size': 1};
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
@@ -225,7 +243,9 @@ CREATE TABLE price_raw (
     raw             text,
     PRIMARY KEY     (date, product_uuid)    
 ) WITH CLUSTERING ORDER BY (product_uuid ASC)
-AND COMPACTION = {'class': 'LeveledCompactionStrategy'};
+AND COMPACTION = {'class': 'LeveledCompactionStrategy'}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /* command end */
 
 /* command start */
@@ -241,5 +261,7 @@ CREATE TABLE stats_by_product (
     std_price       float,
     PRIMARY KEY     ((product_uuid, date), avg_price)
 ) WITH CLUSTERING ORDER BY (avg_price DESC)
-AND COMPACTION = {'class': 'LeveledCompactionStrategy'};
+AND COMPACTION = {'class': 'LeveledCompactionStrategy'}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /* command end */
