@@ -1,6 +1,4 @@
 import datetime
-import uuid
-import operator
 from uuid import UUID
 import itertools
 from io import StringIO
