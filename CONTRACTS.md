@@ -868,3 +868,71 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
   // ...
 ]
 ```
+
+-----
+
+## Alarm
+
+### Get Actual and Prior Day prices given a list of Items and Retailers
+
+**Method**: POST
+
+**Endpoint**: `/alarm/prices`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| uuids | List of Item UUIDs  | required |
+| puuids | List of Product UUIDs  | required |
+| retailers | List of Source keys  | required |
+| today | Revision date (YYYY-MM-DD)  | optional, default:`today` |
+
+**Request Example:**
+
+```json
+{
+    "uuids" : [
+        "2h354iu-23h5423i-5uh23i5", "3074812-3412057g-1085h5oh3"
+    ],
+    "retailers" : ["walmart","chedraui"],
+    "today" : "2017-09-20"
+}
+```
+
+**Response:**
+
+```json
+{
+"prevday": [
+    {
+        "date": "2018-01-04",
+        "item_uuid": "478c624b-bf0d-4540-bee9-c870ff0e69fd",
+        "price": 66,
+        "retailer": "chedraui"
+    },
+    {
+        "date": "2018-01-04",
+        "item_uuid": "478c624b-bf0d-4540-bee9-c870ff0e69fd",
+        "price": 66,
+        "retailer": "walmart"
+    },
+    // ...
+],
+"today": [
+    {
+        "date": "2018-01-05",
+        "item_uuid": "478c624b-bf0d-4540-bee9-c870ff0e69fd",
+        "price": 66,
+        "retailer": "chedraui"
+    },
+    {
+        "date": "2018-01-05",
+        "item_uuid": "478c624b-bf0d-4540-bee9-c870ff0e69fd",
+        "price": 66,
+        "retailer": "walmart"
+    },
+    // ...
+]
+}
+```

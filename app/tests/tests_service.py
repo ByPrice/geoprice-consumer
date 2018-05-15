@@ -461,7 +461,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     ##
     # ----------- ALARM TESTS ------------
     ##
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_21_alarm_blueprint(self):
         """ Test alarm blueprint
         """ 
@@ -470,6 +470,27 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print('Status code', _r.status_code)
         try:
             _jr = json.loads(_r.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_17_alarm_prices(self):
+        """ Test Alarm prices
+        """ 
+        print("Test Alarm prices")
+        _r = self.app.post("/alarm/prices",
+            headers={'content-type': 'application/json'},
+            data=json.dumps({
+                "uuids": [_testing_item, 
+                    "decd74df-6a9d-4614-a0e3-e02fe13d1542"],
+                "retailers": ["san_pablo",  _test_ret]                
+            })
+        )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
             print(_jr)
         except:
             pass
