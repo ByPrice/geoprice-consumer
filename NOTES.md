@@ -1,16 +1,10 @@
-# Cassandra Cluster 
+# Cassandra Cluster
 
 # Separación de archivos
 
 Jorge
-- scripts/stats
-- controllers/stats
-- models/stats
-- controllers/product
-- models/product
-- models/item
-- controllers/alarm
-- models/alarm
+- scripts/stats ...
+- migration (prices -> geoprices)
 
 Rodrigo
 - models/price
