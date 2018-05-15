@@ -505,6 +505,9 @@ class Stats(object):
 
     @staticmethod
     def convert_csv_actual(prod):
+        """ Convert Data into CSV buffer
+            with the Current Format
+        """
         logger.debug("Converting list to csv file..")
         df = pd.DataFrame()
         for crow in prod:
@@ -521,6 +524,9 @@ class Stats(object):
 
     @staticmethod
     def convert_csv_market(prod):
+        """ Convert Data into CSV buffer
+            with the Market Format
+        """
         logger.debug("Converting list to csv file..")
         df = pd.DataFrame()
         for crow in prod:
@@ -544,41 +550,54 @@ class Stats(object):
         _buffer.seek(0)
         return _buffer
 
-
     @staticmethod
     def get_historics(params):
+        """ Retrieve historic prices given a set 
+            of filters and sources to compare them 
+            against a fixed source
+
+            Params:
+            -----
+            params: dict
+                Params with filters including
+                (retailer, dates, or interval)
+            
+            Returns:
+            -----
+            formatted : list
+                List of formatted values
+        """
         logger.debug("Entered to extract Historic by period...")
-        # Items from service
-        filt_items = Stats.fetch_from_catalogue(params['filters'])
-        if not filt_items:
-            return False
         # Retailers from service
         rets = Stats.fetch_rets(params['filters'])
         if not rets:
-            logger.warning("No retailers")
-            return rets
-        # Date Grouping
-        params.update({'ends':False})
+            raise errors.AppError(80011,
+                "No retailers found.")
+        # Products from service
+        filt_items = Stats\
+            .fetch_from_catalogue(params['filters'], rets)
+        if not filt_items:
+            logger.warning("No Products found!")
+            return []
+        # Date Grouping with not only ends
+        params.update({'ends': False})
         date_groups = grouping_periods(params)
-        logger.debug('Grouping dates')
-        #logger.debug(pf(date_groups))
+        logger.debug('Got grouping dates')
         # Query over all range
-        ld = [d.date() for d in [date_groups[0][0],date_groups[-1][-1]]]
-        iqres = Retailer.get_cassandra_by_ret(filt_items,rets,ld)
-        # Prices DF           
-        df = pd.DataFrame(iqres)
-        if len(df) < 1:
+        range_dates = [date_groups[0][0],date_groups[-1][-1]]
+        df = Stats\
+            .get_cassandra_by_ret(filt_items,
+                rets, range_dates)
+        if df.empty:
             return []
         # Products DF 
-        fdf = pd.DataFrame(filt_items, columns=["item_uuid","gtin","name"])
+        info_df = pd.DataFrame(filt_items,
+            columns=['item_uuid', 'product_uuid',
+                'name', 'gtin', 'source'])
         # Obtaining Dates and formating
-        df['item_uuid'] = df['item_uuid'].apply(lambda x : str(x))
-        df['date'] = df['time'].apply(get_time_from_uuid())
-        df['timetuple'] = df['date'].apply(lambda d: tuple(int(x) if i!= 1 else int(x)\
-                                            for i,x in enumerate(d.date().isoformat().split('-')))+(0,0)\
-                                        )   ## cahnge int(x) -> int(x) + 1
-        df['date'] = df['timetuple'].apply(lambda dt :datetime.datetime(*dt))
-        df['time_js'] = df['date'].apply(lambda djs: (djs - datetime.datetime(1970, 1, 1,0,0))/datetime.timedelta(seconds=1)*1000)
+        df['date'] = df['date'].apply(get_datetime())
+        df['time_js'] = df['date'].apply(lambda djs: \
+            (djs - datetime.datetime(1970, 1, 1,0,0))/datetime.timedelta(seconds=1)*1000)
         df['day'] = df['date'].apply(lambda x : x.day)
         df['month'] = df['date'].apply(lambda x : x.month)
         df['year'] = df['date'].apply(lambda x : x.year)
@@ -586,37 +605,61 @@ class Stats(object):
         grouping_cols = {'day':['year','month','day'],
                         'month':['year','month'],
                         'week': ['year','week']}
-        df_n = pd.merge(df,fdf,on='item_uuid')
-        #logger.debug(len(df_n))
+        df_n = pd.merge(df, info_df,
+            on='product_uuid', how='left')
         # --- Compute for Metrics
-        # Group by timestamp
+        # Group by interval
         avg_l,min_l, max_l = [],[],[]
         for j,df_t in df_n.groupby(grouping_cols[params['interval']]):
-            # Compute max, min, avg
-            #print(df_t['time_js'][0])
-            avg_l.append([list(df_t['time_js'])[0],df_t['avg_price'].mean()])
-            min_l.append([list(df_t['time_js'])[0],df_t['min_price'].mean(),df_t['avg_price'].mean()])
-            max_l.append([list(df_t['time_js'])[0],df_t['max_price'].mean(),df_t['avg_price'].mean()])
-        logger.debug('Got Metrics...')
+            # Compute max, min, avg            
+            avg_l.append([
+                list(df_t['time_js'])[0],
+                df_t['avg_price'].mean()
+            ])
+            min_l.append([
+                list(df_t['time_js'])[0],
+                df_t['min_price'].mean(),
+                df_t['avg_price'].mean()
+            ])
+            max_l.append([
+                list(df_t['time_js'])[0],
+                df_t['max_price'].mean(),
+                df_t['avg_price'].mean()
+            ])
+        logger.info('Got Metrics...')
         # --- Compute for Retailers
         retailers = []
         # Group by retailer
         for i,df_t in df_n.groupby('retailer'):
-            tmp = {'name': ' '.join([rsp[0].upper() + rsp[1:] for rsp in i.split('_')]), 'data':[]}
-            #logger.debug('Grouped by retailer: '+str(i))
-            for j,df_p in df_t.groupby(grouping_cols[params['interval']]):#('time_js'):
-                # Group by timestamp
-                #print(list(df_t['time_js'])[0])
-                #print(dir(df_p['time_js']))
-                tmp['data'].append([df_p['time_js'].tolist()[0],df_p['avg_price'].mean()])
+            tmp = {
+                'name': ' '\
+                    .join([rsp[0].upper() + rsp[1:] \
+                            for rsp in i.split('_')]),
+                'data':[]
+            }
+            # Group by time interval
+            for j,df_p in df_t.groupby(grouping_cols[params['interval']]):
+                tmp['data'].append([
+                    df_p['time_js'].tolist()[0],
+                    df_p['avg_price'].mean()
+                ])
             retailers.append(tmp)
-            #logger.debug('Appended retailer: '+str(i))
-        logger.debug('Got Retailers...')
-        sub_str = "<b> Retailers:</b> " + ', '.join([' '.join([rsp[0].upper() + rsp[1:] for rsp in rt.split('_')]) for rt in rets]) + '.'
+        logger.info('Got Retailers...')
+        sub_str = "<b> Retailers:</b> " \
+            + ', '.join([' '.join([rsp[0].upper() + rsp[1:] \
+                                    for rsp in rt.split('_')]) \
+                        for rt in rets]) + '.'
         return {
                 'title': 'Tendencia de Precios',
-                'subtitle': '<b>Periodo</b>: {} - {} <br> {}'.format(ld[0].isoformat(),ld[1].isoformat(), sub_str),
-                'metrics': {'avg':avg_l,'min':min_l,'max':max_l},
+                'subtitle': '<b>Periodo</b>: {} - {} <br> {}'\
+                    .format(range_dates[0].isoformat(),
+                            range_dates[1].isoformat(),
+                            sub_str),
+                'metrics': {
+                    'avg':avg_l,
+                    'min':min_l,
+                    'max':max_l
+                },
                 'retailers': retailers
                 }
 
