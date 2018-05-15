@@ -4,8 +4,6 @@
 
 Jorge
 - scripts/stats ...
-- controllers/alarm
-- models/alarm
 - migration (prices -> geoprices)
 
 Rodrigo
