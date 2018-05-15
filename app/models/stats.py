@@ -63,7 +63,6 @@ class Stats(object):
         return prods[prods['source'].isin(rets)]\
                 .to_dict(orient='records')
         
-
     @staticmethod
     def fetch_rets(params):
         """ Retrieve retailers info
@@ -245,7 +244,6 @@ class Stats(object):
             _first = prdf[:1].reset_index()
             tmp = {
                 'item_uuid': _first.loc[0,'item_uuid'],
-                'product_uuid': _first.loc[0,'product_uuid'],
                 'name': _first.loc[0,'name'],
                 'gtin': _first.loc[0,'gtin'],
                 'prices': {}
@@ -271,19 +269,48 @@ class Stats(object):
 
     @staticmethod
     def add_empty_interval(intd, date_groups, rets, params):
-        """ Method to add empty intervals to complete correct ones"""
+        """ Add empty intervals 
+            to complete correct ones
+
+            Params:
+            -----
+            intd : datetime.datetime
+                Initial interval
+            date_groups: list
+                List of lists of dates
+            rets : list
+                List of sources keys
+            params: dict
+                Params of request
+
+            Returns:
+            -----
+            tmp2 : dict
+                Extra interval dict
+        """
         try:
             if params['interval'] == 'week':
-                intd = [int(dtt) for dtt in pd.to_datetime('{}-{}'.format(intd[0],str(intd[1]).zfill(2)) + '-0', format='%Y-%W-%w')\
-                        .date().__str__().split('-')]
+                intd = [int(dtt) \
+                    for dtt in pd\
+                                .to_datetime('{}-{}'\
+                                            .format(intd[0],
+                                                    str(intd[1]).zfill(2))\
+                                            + '-0', format='%Y-%W-%w')\
+                                .date().__str__().split('-')]
             elif params['interval'] == 'month':
                 lday = calendar.monthrange(*intd)[1]
-                intd = [int(dtt) for dtt in pd.to_datetime('{}-{}'.format(intd[0],str(intd[1]).zfill(2)) + '-{}'.format(lday), format='%Y-%m-%d')\
-                        .date().__str__().split('-')]
+                intd = [int(dtt) \
+                    for dtt in pd\
+                                .to_datetime('{}-{}'\
+                                            .format(intd[0],
+                                                    str(intd[1]).zfill(2)) \
+                                            + '-{}'.format(lday), format='%Y-%m-%d')\
+                                .date().__str__().split('-')]
             else:
                 # day
                 pass
-            d_belong = find_date_interval(pd.tslib.Timestamp(*(intd)),
+            d_belong = find_date_interval(pd.tslib\
+                                            .Timestamp(*(intd)),
                                           date_groups)
             tmp2 = {
                 'date_start': d_belong[0],
@@ -303,10 +330,10 @@ class Stats(object):
                 continue
             if (' '.join([ik[0].upper() + ik[1:]
                 for ik in r.split('_')]))\
-                    in [x['retailer'] for x in tmp2['retailers']]:
+                    in [x['source'] for x in tmp2['retailers']]:
                 continue
             tmp2['retailers'].append({
-                'retailer': ' '.join([ik[0].upper() + ik[1:]
+                'source': ' '.join([ik[0].upper() + ik[1:]
                                      for ik in r.split('_')]),
                 'price': '-',
                 'difference': '-'
@@ -315,37 +342,44 @@ class Stats(object):
 
     @staticmethod
     def get_comparison(params):
+        """ Retrieve current prices given a set 
+            of filters and sources to compare them 
+            against a fixed source
+
+            Params:
+            -----
+            params: dict
+                Params with filters including
+                (retailer, item, or category)
+            
+            Returns:
+            -----
+            formatted : list
+                List of formatted values
+        """
         logger.debug("Entered to Compare by period...")
-        # Items from service
-        filt_items = Retailer.fetch_from_catalogue(params['filters'])
-        if not filt_items:
-            return False
         # Retailers from service
-        rets = Retailer.fetch_rets(params['filters'])
+        rets = Stats.fetch_rets(params['filters'])
         if not rets:
-            logger.warning("No retailers")
-            return rets
+            raise errors.AppError(80011,
+                "No retailers found.")
+        # Products from service
+        filt_items = Stats\
+            .fetch_from_catalogue(params['filters'], rets)
+        if not filt_items:
+            logger.warning("No Products found!")
+            return []
         # Date Grouping
         date_groups = grouping_periods(params)
-        logger.debug('Grouping dates')
-        #logger.debug(date_groups)
-        # Iterate for each range of values
-        df = pd.DataFrame()
-        for dg in date_groups:
-            ld = [d.date() for d in dg]
-            iqres = Retailer.get_cassandra_by_ret(filt_items, rets, ld)
-            if len(iqres) < 1:
-                continue
-            df = pd.concat([df, pd.DataFrame(iqres)])
-        if len(df) < 1:
-            logger.debug('Empty set from query....')
+        logger.info('Found grouped dates')
+        # Retrieve prices from
+        df = Stats.get_cassandra_by_ret(filt_items,
+            rets, [date_groups[0][0], date_groups[-1][-1]])
+        if df.empty:
+            logger.warning('Empty set from query...')
             return []
-        # Set Products DF
-        fdf = pd.DataFrame(filt_items, columns=["item_uuid",
-                                                "gtin", "name"])
-        df['item_uuid'] = df['item_uuid'].apply(lambda x: str(x))
         # Parse datapoint date
-        df['date'] = df['time'].apply(get_time_from_uuid())
+        df['date'] = df['date'].apply(get_datetime())
         df['day'] = df['date'].apply(lambda x: x.day)
         df['month'] = df['date'].apply(lambda x: x.month)
         df['year'] = df['date'].apply(lambda x: x.year)
@@ -357,28 +391,42 @@ class Stats(object):
         interval_to_have = []
         for ii, row_df in df.groupby(grouping_cols[params['interval']]):
             interval_to_have.append(ii)
+        # Set Products DF
+        info_df = pd.DataFrame(filt_items,
+            columns=['item_uuid', 'product_uuid',
+                'name', 'gtin', 'source'])
+        # Add product info
+        df = pd.merge(df, info_df,
+                on='product_uuid', how='left')
+        ### TODO:
+        # Add rows with unmatched products!
+        non_matched = df[df['item_uuid'].isnull() | 
+            (df['item_uuid'] == '')].copy()
+        # Format only products with matched results
+        df = df[~(df['item_uuid'].isnull()) & 
+            (df['item_uuid'] != '')]
         # Group by item and them depending on Date Range
         interv_list = []
-        for i, df_p in df.groupby('item_uuid'):
-            tdf = pd.merge(df_p, fdf, on='item_uuid', how='left')
+        for i, tdf in df.groupby('item_uuid'):
+            tdf.reset_index(inplace=True)
             tmp = {'item_uuid': i,
-                   'name': tdf['name'][0],
-                   'gtin': tdf['gtin'][0],
-                   'interval_name': params['interval'],
-                   'intervals': []}
+                    'name': tdf['name'][0],
+                    'gtin': tdf['gtin'][0],
+                    'interval_name': params['interval'],
+                    'intervals': []}
             # Grouping by Time interval columns
             en = 0
             prev_rets = {z: 0 for z in rets}
             for j, df_t in tdf.groupby(grouping_cols[params['interval']]):
-                client = df_t[df_t['retailer'] ==
+                client = df_t[df_t['source'] ==
                               params['client']]['avg_price'].mean()
-                avg = df_t[df_t['retailer'] !=
+                avg = df_t[df_t['source'] !=
                            params['client']]['avg_price'].mean()
                 # Compare Date, if the same process it, otherwise continue
                 if j != interval_to_have[en]:
                     while j != interval_to_have[en]:
                         logger.info('Setting new empty interval')
-                        tmp2 = Retailer\
+                        tmp2 = Stats\
                             .add_empty_interval(interval_to_have[en],
                                                 date_groups, rets, params)
                         tmp['intervals'].append(tmp2)
@@ -413,9 +461,9 @@ class Stats(object):
                 })
                 tmp2.update({'difference': tmp2['client']-tmp2['avg']})
                 # Retailers computation
-                for k, df_r in df_t.groupby(['retailer']):
+                for k, df_r in df_t.groupby(['source']):
                     tmp2['retailers'].append({
-                        'retailer': ' '.join([ik[0].upper() + ik[1:]
+                        'source': ' '.join([ik[0].upper() + ik[1:]
                                               for ik in k.split('_')]),
                         'price': df_r['avg_price'].mean(),
                         'difference': (tmp2['client']-df_r['avg_price'].mean()
@@ -432,10 +480,10 @@ class Stats(object):
                         continue
                     if (' '.join([ik[0].upper() + ik[1:]
                         for ik in r.split('_')])) \
-                            in [x['retailer'] for x in tmp2['retailers']]:
+                            in [x['source'] for x in tmp2['retailers']]:
                         continue
                     tmp2['retailers'].append({
-                        'retailer': ' '.join([ik[0].upper() + ik[1:]
+                        'source': ' '.join([ik[0].upper() + ik[1:]
                                              for ik in r.split('_')]),
                         'price': '-',
                         'difference': '-'
@@ -447,15 +495,13 @@ class Stats(object):
             if en < (len(interval_to_have)):
                 while en < (len(interval_to_have)):
                     logger.info('Setting new empty interval')
-                    tmp2 = Retailer.add_empty_interval(interval_to_have[en],
+                    tmp2 = Stats.add_empty_interval(interval_to_have[en],
                                                        date_groups,
                                                        rets, params)
                     tmp['intervals'].append(tmp2)
                     en += 1
             interv_list.append(tmp)
         return interv_list
-
-
 
     @staticmethod
     def convert_csv_actual(prod):
@@ -503,11 +549,11 @@ class Stats(object):
     def get_historics(params):
         logger.debug("Entered to extract Historic by period...")
         # Items from service
-        filt_items = Retailer.fetch_from_catalogue(params['filters'])
+        filt_items = Stats.fetch_from_catalogue(params['filters'])
         if not filt_items:
             return False
         # Retailers from service
-        rets = Retailer.fetch_rets(params['filters'])
+        rets = Stats.fetch_rets(params['filters'])
         if not rets:
             logger.warning("No retailers")
             return rets
@@ -587,8 +633,8 @@ class Stats(object):
             ]
         """
         items = [{'item_uuid': iu['item']} for iu in categ_its if 'item' in iu ]
-        rets = Retailer.fetch_rets(categ_its)
-        qres = Retailer.get_cassandra_by_ret(items,rets,[datetime.date.today()+datetime.timedelta(days=-1)], False) # today
+        rets = Stats.fetch_rets(categ_its)
+        qres = Stats.get_cassandra_by_ret(items,rets,[datetime.date.today()+datetime.timedelta(days=-1)], False) # today
         if len(qres) == 0:
             logger.warning('No prices found!')
             return []
@@ -614,29 +660,21 @@ class Stats(object):
         logger.info('Got Category counts')
         return ccat
 
-def readfy(ret_key):
-    # Convert retailer key into Readable Retailer name
-    return ' '.join([rk[0].upper() + rk[1:] for rk in ret_key.split('_')])
-
-def dictify(odict):
-    # Convert nested dicts to combined dict
-    dictified = {}
-    for k,d in odict.items():
-        dictified.update({ ' '.join([readfy(k), readfy(kk)]) : v for kk,v in d.items()})
-    return dictified
-
-def get_time_from_uuid():
-    # Time from timeuuid
-    return lambda x : datetime.datetime.fromtimestamp((x.time - 0x01b21dd213814000)*100/1e9)
-
 def find_date_interval(date_i, d_groups):
     """
         Method to find date belonging over time periods
-         - date_i - initial date
-         - d_groups - Date groups 
+    
+        Params:
+        -----
+        date_i : datetime
+            Initial date
+        d_groups : list
+            Date groups
 
         Returns:
-        (date_initial, date_final) [tuple] - Initial and End date of analized period
+        -----
+        (date_initial, date_final) : tuple
+            Initial and End date of analized period
     """
     for dg in d_groups:
         #print('Data day', date_i.to_datetime())
@@ -648,61 +686,8 @@ def find_date_interval(date_i, d_groups):
                 return (dg[0],dg[0])
         else:
             #print('Group days',dg[0], dg[1])
-            if (date_i.to_pydatetime().date() >= dg[0].date()) and (date_i.to_pydatetime().date() <= dg[1].date()):
+            if (date_i.to_pydatetime().date() >= dg[0].date()) \
+                and (date_i.to_pydatetime().date() <= dg[1].date()):
                 #print('Range day')
                 return (dg[0],dg[1])
     #print('NO DATE FOUND ----------------------')
-
-
-def grouping_periods(params):
-    """
-        Method the receives a dict params with the following keys:
-         - date_start
-         - date_end
-         - ends
-         - interval
-        Returns:
-        groups [list] -  a group of valid date ranges upon this values.
-    """
-    groups = []
-    di = datetime.datetime(*tuple(int(d) for d in params['date_start'].split('-')))
-    df = datetime.datetime(*tuple(int(d) for d in params['date_end'].split('-')))
-    # Day intervals
-    if params['interval'] == 'day':
-        groups.append([di])
-        while True:
-            di += datetime.timedelta(days=1)
-            groups.append([di])
-            if di >= df:
-                break
-    # Week intervals
-    elif params['interval'] == 'week':
-        groups.append([di,di+datetime.timedelta(days=7-di.isoweekday())])
-        di += datetime.timedelta(days=7-di.weekday())
-        while True:
-            if di >= df:
-                break
-            dv = di + datetime.timedelta(days=6)
-            groups.append([di,dv])
-            di = dv + datetime.timedelta(days=1)
-    # Monthly intervals
-    else:
-        lmd = calendar.monthrange(di.year,di.month)[1]
-        groups.append([di,di+datetime.timedelta(days=lmd-di.day)])
-        di += datetime.timedelta(days=lmd-di.day)
-        while True:
-            if di >= df:
-                break
-            _di_month = di.month + 1 if di.month != 12 else 1
-            _di_year = di.year + 1 if di.month == 12 else di.year
-            lmd = calendar.monthrange(_di_year,_di_month)[1]
-            dv = di + datetime.timedelta(days=lmd)
-            groups.append([di+ datetime.timedelta(days=1),dv])
-            di = dv
-    # Ends 
-    if params['ends']:
-        if len(groups) <= 1:
-            groups = groups[:1]
-        else:
-            groups = [groups[0],groups[-1]]
-    return groups
