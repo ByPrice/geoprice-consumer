@@ -96,20 +96,14 @@ def get_history():
 
 @mod.route('/category', methods=["POST"])
 def get_category_count():
+    """ Get price average of all products 
+        inside a category and its product's count.
     """
-        Controller to get price average of all products inside a category and count
-        Params:
-        {
-            "filters":[{"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
-                        {"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
-                        {"retailer":"walmart"}]
-        }
-    """
-    logger.debug("Fetching category counts...")
+    logger.info("Fetching category counts...")
     params = request.get_json()
     if not params:
-        raise errors.AppError(10010,"No parameters passed!")
+        raise errors.AppError(80002,"No params in request")
     if 'filters' not in params:
-        raise errors.AppError(10011,"No filters param passed!")
+        raise errors.AppError(80004, "Filters params missing")
     cat_count = Stats.get_count_by_cat(params['filters'])
     return jsonfier(cat_count)

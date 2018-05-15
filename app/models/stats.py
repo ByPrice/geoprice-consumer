@@ -607,6 +607,13 @@ class Stats(object):
                         'week': ['year','week']}
         df_n = pd.merge(df, info_df,
             on='product_uuid', how='left')
+        ### TODO:
+        # Add rows with unmatched products!
+        non_matched = df[df['item_uuid'].isnull() | 
+            (df['item_uuid'] == '')].copy()
+        # Format only products with matched results
+        df = df[~(df['item_uuid'].isnull()) & 
+            (df['item_uuid'] != '')]
         # --- Compute for Metrics
         # Group by interval
         avg_l,min_l, max_l = [],[],[]
@@ -664,42 +671,82 @@ class Stats(object):
                 }
 
     @staticmethod 
-    def get_count_by_cat(categ_its):
-        """
-            Method to get all the count of the elements in a categ (given the list of items of it)
+    def get_count_by_cat(filters):
+        """ Retrieve all the count of the 
+            elements in a categ  (given the 
+            list of items).
+
             Params:
-                categ_its: list of dicts
-            Return:
-            [
-                { x: 1, y: 180.7, z: 200, name: 'Superama',retailer: 'Superama' },
-                { x: 1, y: 180.7, z: 200, name: 'Superama',retailer: 'Superama' }
-            ]
+            ----
+            filters: list
+                Dicts of categories, items and retailers
+
+            Returns:
+            -----
+            ccat : list
+                List of Retailers with Category stats
         """
-        items = [{'item_uuid': iu['item']} for iu in categ_its if 'item' in iu ]
-        rets = Stats.fetch_rets(categ_its)
-        qres = Stats.get_cassandra_by_ret(items,rets,[datetime.date.today()+datetime.timedelta(days=-1)], False) # today
-        if len(qres) == 0:
+        logger.debug("Retrieving stats by Retailer by given categ..")
+        # Retailers from service
+        rets = Stats.fetch_rets(filters)
+        if not rets:
+            raise errors.AppError(80011,
+                "No retailers found.")
+        # Map item and item_uuid as products keys
+        items = [{'item_uuid': iu['item']} for iu in filters if 'item' in iu ]
+        filters += items
+        # Products from service
+        filt_items = Stats\
+            .fetch_from_catalogue(filters, rets)
+        if not filt_items:
+            logger.warning("No Products found!")
+            return []
+        # Set dates and retrieve info
+        _dates = [datetime.datetime.utcnow()]
+        _dates.append(_dates[0] - datetime.timedelta(days=1))
+        df = Stats\
+            .get_cassandra_by_ret(filt_items,
+                rets, _dates)
+        if df.empty:
             logger.warning('No prices found!')
             return []
-        df = pd.DataFrame(qres)
-        #logger.debug(df.head())
-        ccat, counter,digs = [], 1, 1
-        for i,row in df.groupby('retailer'):
-            prod_count = row.drop_duplicates(['item_uuid'])['avg_price'].count()
-            prod_avg = row.drop_duplicates(['item_uuid'])['avg_price'].mean()
+        # Products DF 
+        info_df = pd.DataFrame(filt_items,
+            columns=['item_uuid', 'product_uuid',
+                'name', 'gtin', 'source'])
+        df = pd.merge(df, info_df,
+            on='product_uuid', how='left')
+        ### TODO:
+        # Add rows with unmatched products!
+        non_matched = df[df['item_uuid'].isnull() | 
+            (df['item_uuid'] == '')].copy()
+        # Format only products with matched results
+        df = df[~(df['item_uuid'].isnull()) & 
+            (df['item_uuid'] != '')]
+        # Perform aggregates
+        ccat, counter, digs = [], 1, 1
+        for i,row in df.groupby('source'):
+            prod_count = row\
+                .drop_duplicates(['item_uuid'])\
+                .avg_price.count()
+            prod_avg = row\
+                .drop_duplicates(['item_uuid'])\
+                .avg_price.mean()
             ccat.append({
-                    'x':counter, 
+                    'x': counter, 
                     'name': i, 
-                    'retailer': " ".join([x[0].upper()+x[1:] for x in i.split('_')]),
+                    'retailer': " "\
+                        .join([x[0].upper()+x[1:] \
+                                for x in i.split('_')]),
                     'z': round(float(prod_count),2),
                     'y': round(float(prod_avg),2)
                     })
             counter+=1
+            # Save biggest number of digits 
             digs = digs if digs > len(str(prod_count)) else len(str(prod_count))
-        # Scaling x for plot
+        # Scaling x for plot upon the number of digits
         for i,xc in enumerate(ccat):
-            ccat[i]['x'] = xc['x']*(10**(digs))
-        #logger.debug(ccat)
+            ccat[i]['x'] = xc['x']*(10**(digs))    
         logger.info('Got Category counts')
         return ccat
 
