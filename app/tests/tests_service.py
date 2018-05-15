@@ -329,7 +329,6 @@ class GeoPriceServiceTestCase(unittest.TestCase):
 
     ##
     # ----------- STATS TESTS ------------
-    # - stats/category
     ##
     @unittest.skip('Tested already')
     def test_16_stats_blueprint(self):
@@ -435,7 +434,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_20_stats_category(self):
         """ Test stats category
         """ 
@@ -458,6 +457,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_r.status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()
