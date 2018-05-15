@@ -485,7 +485,8 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             data=json.dumps({
                 "uuids": [_testing_item, 
                     "decd74df-6a9d-4614-a0e3-e02fe13d1542"],
-                "retailers": ["san_pablo",  _test_ret]                
+                "retailers": ["san_pablo", 
+                    _test_ret]                
             })
         )
         print('Status code', _r.status_code)
