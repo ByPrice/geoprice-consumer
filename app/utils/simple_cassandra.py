@@ -29,11 +29,12 @@ class SimpleCassandra(object):
             "CONSISTENCY_LEVEL" : "QUORUM" if "CONSISTENCY_LEVEL" not in config else config['CONSISTENCY_LEVEL'],
         }     
         # Auth
-        if config['USER'] and config['PASSWORD']:
-            auth_provider = PlainTextAuthProvider(
-                username=config['USER'], 
-                password=config['PASSWORD']
-            )   
+        if 'USER' in config and 'PASSWORD' in config:
+            if config['USER'] and config['PASSWORD']:
+                auth_provider = PlainTextAuthProvider(
+                    username=config['USER'], 
+                    password=config['PASSWORD']
+                )   
 
         # Cluster
         if auth_provider:
