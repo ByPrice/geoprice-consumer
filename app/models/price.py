@@ -64,6 +64,7 @@ class Price(object):
             self.gtin = int(self.gtin)
         except:
             self.gtin = None
+            logger.error("Gtin invalid format, only int accepted: {}".format(self.gtin))
         # Locations
         coords = []
         zips = []
@@ -142,6 +143,9 @@ class Price(object):
             return False
         # Currency
         if not elem['currency'] or type(elem['currency']) is not str:
+            return False
+        # Gtin
+        if not elem['gtin'] or type(elem['gtin']) is not int:
             return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
