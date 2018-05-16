@@ -76,6 +76,17 @@ def consumer_cmd():
     start()
     logger.info("Initialized database")
 
+@app.cli.command('script')
+@click.option('--name', default=None, help="Provide the task name with the option --name=<script>")
+def dump_cmd(name):
+    """ Execute script by it's name
+    """
+    if not name:
+        logger.error("You must define the name of the script to be executed")
+        return False
+    from app.scripts import start_script
+    start_script(name)
+
 # Functional Endpoints
 @app.route('/')
 def main():

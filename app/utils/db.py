@@ -1,6 +1,5 @@
 #-*-coding: utf-8-*-
 import sys
-from cassandra.cluster import Cluster
 from cassandra import AlreadyExists
 from app.utils.simple_cassandra import SimpleCassandra
 import app.utils.applogger as applogger
@@ -17,10 +16,20 @@ def initdb():
     logger.info("Initializing keyspace. Host: " + \
         str(config.CASSANDRA_CONTACT_POINTS)+" / Keyspace: "+\
         config.CASSANDRA_KEYSPACE)
-    cluster_init = Cluster(config.CASSANDRA_CONTACT_POINTS)
+
+    cass = SimpleCassandra(dict(
+        CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
+        PORT=config.CASSANDRA_PORT,
+        USER=config.CASSANDRA_USER,
+        PASSWORD=config.CASSANDRA_PASSWORD
+    ))
+    cluster_init = cass.cluster
     session_init = cluster_init.connect()
+
+    
     # Only drop keyspace if its in testing environmet
     if config.TESTING:
+        logger.info("Dropping testing keyspace")
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
 
     if config.ENV.upper() == 'DEV' or config.ENV.upper() == 'LOCAL':
@@ -72,13 +81,15 @@ def initdb():
     return True
 
 def connectdb():
-    """ Connect to Cassandra through SC
+    """ Connect to Cassandra through SimpleCassandra
     """
     global cluster
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
         PORT=config.CASSANDRA_PORT,
-        CONSISTENCY_LEVEL="LOCAL_ONE"
+        CONSISTENCY_LEVEL="LOCAL_ONE",
+        USER=config.CASSANDRA_USER,
+        PASSWORD=CASSANDRA_PASSWORD
     ))
     return cass.session
 
@@ -92,7 +103,9 @@ def getdb():
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
         KEYSPACE=config.CASSANDRA_KEYSPACE,
-        CONSISTENCY_LEVEL="LOCAL_ONE"
+        CONSISTENCY_LEVEL="LOCAL_ONE",
+        USER=config.CASSANDRA_USER,
+        PASSWORD=config.CASSANDRA_PASSWORD
     ))
     return cass
 

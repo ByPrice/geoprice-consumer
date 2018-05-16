@@ -1,0 +1,12 @@
+{
+    "Parameters": {
+        "Cluster": "byprice-production",
+        "DesiredCount": "1",
+        "Role": "ecsServiceRole",
+        "TargetGroupArn": "arn:aws:elasticloadbalancing:us-west-2:777448631924:targetgroup/geolocation/0d2e6c19078ebb72",
+        "Image": {
+            "Fn::GetParam": ["MyAppBuild", "build.json", "Image"]
+        },
+        "SecretsBucketName": "byprice-secrets" 
+    }
+}
