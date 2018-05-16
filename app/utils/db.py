@@ -1,6 +1,5 @@
 #-*-coding: utf-8-*-
 import sys
-from cassandra.cluster import Cluster
 from cassandra import AlreadyExists
 from app.utils.simple_cassandra import SimpleCassandra
 import app.utils.applogger as applogger
@@ -30,6 +29,7 @@ def initdb():
     
     # Only drop keyspace if its in testing environmet
     if config.TESTING:
+        logger.info("Dropping testing keyspace")
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
 
     if config.ENV.upper() == 'DEV' or config.ENV.upper() == 'LOCAL':
@@ -81,7 +81,7 @@ def initdb():
     return True
 
 def connectdb():
-    """ Connect to Cassandra through SC
+    """ Connect to Cassandra through SimpleCassandra
     """
     global cluster
     cass = SimpleCassandra(dict(
@@ -105,7 +105,7 @@ def getdb():
         KEYSPACE=config.CASSANDRA_KEYSPACE,
         CONSISTENCY_LEVEL="LOCAL_ONE",
         USER=config.CASSANDRA_USER,
-        PASSWORD=CASSANDRA_PASSWORD
+        PASSWORD=config.CASSANDRA_PASSWORD
     ))
     return cass
 
