@@ -85,7 +85,6 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """ 
         global new_price
         print("Testing price validation")
-        
         validate = Price.validate(new_price)
         self.assertTrue(validate)
 
