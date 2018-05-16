@@ -11,7 +11,7 @@
 CREATE TABLE price (
     product_uuid    uuid,
     time            timestamp,
-    gtin            int,     
+    gtin            bigint,     
     store_uuid      uuid,
     lat             float,
     lng             float,

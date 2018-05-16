@@ -6,17 +6,26 @@ class Task(object):
     """ Class for managing asynchronous tasks.
         
         Attributes:
-            task_id (uuid) : task_uuid to track task
-            status (str): status (PENDING, RUNNING, COMPLETED)
-            result (json): json object with the task result
-            backend (str)
-            ttl (int) : task's result time to live
+            _task_id (uuid) : task_uuid to track task
+            _result (json): json object with the task result
+            _backend (str)
+            _ttl (int) : task's result time to live
+            _status (dic): dictionaty with status vars
+                - progress (float)
+                - msg (text)
+                - text (text [PENDING, RUNNING, COMPLETED]) 
     """
 
     def __init__(self, task_uuid):
         if not task_uuid:
             # If new task, generate random uuid
-            self._task_uuid = str(uuid.uuid4())        
+            self._task_uuid = str(uuid.uuid4())     
+            self._status = None  
+            self._backend = 'redis'
+            self._ttl =  86400  # One day 
+        else:
+            self._task_uuid = task_uuid
+            self.status()
 
     @property
     def status(self):
