@@ -17,7 +17,7 @@ class Price(object):
     fields = [
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
         'price','price_original','discount', 'currency',
-        'promo','date','location','coords','zips',
+        'promo','date','location','coords','zips', 'source',
         'stores', 'lats', 'lngs', 'cities'
     ]
 
@@ -64,6 +64,7 @@ class Price(object):
             self.gtin = int(self.gtin)
         except:
             self.gtin = None
+            logger.error("Gtin invalid format, only int accepted: {}".format(self.gtin))
         # Locations
         coords = []
         zips = []
@@ -140,6 +141,12 @@ class Price(object):
         # If there is no price, return False
         if not elem['price'] or (type(elem['price']) is not float and type(elem['price']) is not int ):
             return False
+        # Currency
+        if not elem['currency'] or type(elem['currency']) is not str:
+            return False
+        # Gtin
+        if not elem['gtin'] or type(elem['gtin']) is not int:
+            return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
             return False
@@ -194,10 +201,11 @@ class Price(object):
     def save_price_raw(self):
         try:
             return self.session.execute(
-            """ INSERT INTO price_raw (
+                """ 
+                INSERT INTO price_raw (
                     date, product_uuid, raw
                 )
-                VALUES(
+                VALUES (
                     %(date)s, %(product_uuid)s, %(raw)s
                 ) 
                 """, {
@@ -280,22 +288,24 @@ class Price(object):
             return []
 
     def save_price_by_product_store(self):
-        try:
+        #try:
+        if True:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_store(
-                        product_uuid, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
                 )
             logger.debug("OK save_price_by_product_store")
             return True
-        except Exception as e:
+        if False:
+        #except Exception as e:
             logger.error("Could not save price_by_product_store")
             logger.error(self.as_dict)
             logger.error(e)
@@ -394,10 +404,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo (
-                        product_uuid, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
@@ -421,10 +431,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo_by_store (
-                        product_uuid, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
@@ -432,7 +442,7 @@ class Price(object):
             logger.debug("OK save_promo_by_store")
             return True
         except Exception as e:
-            logger.error("Could not save promo")
+            logger.error("Could not save promo_by_store")
             logger.error(self.as_dict)
             logger.error(e)
             return []
