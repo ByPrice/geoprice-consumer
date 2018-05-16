@@ -294,6 +294,6 @@ if __name__ == '__main__':
     _day = cassconf['date']
     del cassconf['date']
     # Now call to migrate day's data
-    day_migration(_day, limit=100, conf=cassconf)
+    day_migration(_day, limit=2000, conf=cassconf)
     logger.info("Finished executing ({}) migration".format(_day))
 

@@ -5,3 +5,4 @@
   [https://docs.datastax.com/en/drivers/python/3.2/_modules/cassandra/query.html#BatchStatement]
   [https://stackoverflow.com/questions/22920678/cassandra-batch-insert-in-python]
 """
+
