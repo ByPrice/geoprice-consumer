@@ -11,6 +11,7 @@ import datetime
 import app.utils.applogger as applogger
 import app.utils.errors as errors
 import app.utils.db as db
+from app.utils.rabbit_engine import RabbitEngine
 from redis import Redis
 
 # Flask app declaration
@@ -48,12 +49,15 @@ def get_redis():
             password=config.REDIS_PASSWORD
         )
 
-def get_streamer(queue=None):
-    """ App default method to connect to rabbit consumer
+def get_consumer(queue=None):
+    """ App method to connect to rabbit consumer
     """
-    if not hasattr(g, "streamer") and queue != None:
-        g._streamer[queue]
-    return g._streamer
+    if not hasattr(g, "consumer") and queue != None:
+        g._consumer = RabbitEngine(config={
+            'queue': queue, 
+            'routing_key': queue
+        }, blocking=False)
+    return g._consumer
     
 
 @app.before_request
