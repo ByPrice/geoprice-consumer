@@ -39,12 +39,12 @@ CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
 
 # Env-dependent variables
 if not TESTING:
-    CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
+    CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() in ['DEV','LOCAL'] else CASSANDRA_KEYSPACE
 else:
     CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_test"
 
 # Logging and remote logging
-LOG_LEVEL = os.getenv('LOG_LEVEL', ('DEBUG' if ENV != 'PRODUCTION' else 'DEBUG'))
+LOG_LEVEL = os.getenv('LOG_LEVEL', ('DEBUG' if ENV in ['DEV','LOCAL'] else 'DEBUG'))
 LOG_HOST = os.getenv('LOG_HOST', 'logs5.papertrailapp.com')
 LOG_PORT = os.getenv('LOG_PORT', 27971)
 
@@ -56,9 +56,9 @@ STREAMER_EXCHANGE = os.getenv('STREAMER_EXCHANGE', 'data')
 STREAMER_EXCHANGE_TYPE = os.getenv('STREAMER_EXCHANGE_TYPE', 'direct')
 
 # Rabbit queues
-QUEUE_ROUTING = "routing_dev" if ENV.upper() == 'DEV' else "routing"
-QUEUE_GEOPRICE = 'geoprice_dev' if ENV.upper() == 'DEV' else 'geoprice'
-QUEUE_CACHE = "cache_dev" if ENV.upper() == 'DEV' else "cache"
+QUEUE_ROUTING = "routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "routing"
+QUEUE_GEOPRICE = 'geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'geoprice'
+QUEUE_CACHE = "cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "cache"
 
 # Cassandra seeds
 if ENV.upper() == 'DEV':
@@ -69,8 +69,8 @@ CASSANDRA_CONTACT_POINTS = CASSANDRA_CONTACT_POINTS.split(",")
 
 # Services
 SRV_PROTOCOL = os.getenv('SRV_PROTOCOL', 'http')
-SRV_CATALOGUE = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '')  + os.getenv('SRV_CATALOGUE', 'catalogue')
-SRV_GEOLOCATION = SRV_PROTOCOL + "://" + ('dev.' if ENV == 'DEV' else '') + os.getenv('SRV_GEOLOCATION', 'geolocation')
+SRV_CATALOGUE = SRV_PROTOCOL + "://" + ('dev.' if ENV in ['DEV', 'LOCAL'] else '')  + os.getenv('SRV_CATALOGUE', 'catalogue')
+SRV_GEOLOCATION = SRV_PROTOCOL + "://" + ('dev.' if ENV in ['DEV', 'LOCAL'] else '') + os.getenv('SRV_GEOLOCATION', 'geolocation')
 
 # Tasks arguments 
 TASK_ARG_CREATE_DUMPS = os.getenv('TASK_ARG_CREATE_DUMPS', 'byprice,ims,walmart') 

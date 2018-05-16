@@ -31,14 +31,13 @@ app.register_blueprint(alarm.mod, url_prefix='/alarm')
 #app.register_blueprint(dump.mod, url_prefix='/dump')
 #app.register_blueprint(check.mod, url_prefix='/check')
 
-# Cassandra connection
+
 def get_db():
     """ Method to connect to C*
     """
     if not hasattr(g, '_db'):
         g._db = db.getdb()
 
-# Cassandra connection
 def get_redis():
     """ Method to connect to redis
     """
@@ -48,6 +47,14 @@ def get_redis():
             port=config.REDIS_PORT,
             password=config.REDIS_PASSWORD
         )
+
+def get_streamer(queue=None):
+    """ App default method to connect to rabbit consumer
+    """
+    if not hasattr(g, "streamer") and queue != None:
+        g._streamer[queue]
+    return g._streamer
+    
 
 @app.before_request
 def before_request():
