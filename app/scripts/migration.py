@@ -238,7 +238,6 @@ def format_price(val):
     return val
 
 
-@with_context
 def populate_geoprice_tables(val):
     """ Populate all tables in GeoPrice KS
         
@@ -252,7 +251,7 @@ def populate_geoprice_tables(val):
     if price.save_all():
         logger.info("Loaded tables for: {}".format(val['product_uuid']))
 
-
+@with_context
 def day_migration(day, limit=None, conf={}):
     """ Retrieves all data available requested day
         from Prices KS and inserts it into 
