@@ -11,7 +11,7 @@ from app.models.price import Price
 
 new_price = {
     "route_key" : "price",
-    "retailer" : "walmart",
+    "source" : "walmart",
     "item_uuid" : "605e179d-6ede-48e3-a4fd-820b89718589",
     "product_uuid" : "f0191eed-cae2-4128-b101-3f7a6ed6ec92",
     "gtin" : "07501043100137",
@@ -53,14 +53,17 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """
         # Define test database
         print("Setting up tests")
-        #if config.TESTING:
-        #    with app.app.app_context():
-        #        app.initdb_cmd()
+        return
+        if config.TESTING:
+            with app.app.app_context():
+                app.initdb_cmd()
 
     @classmethod
     def tearDownClass(cls):
         """ Drops database
         """
+        print("Teardown class")
+        return
         if config.TESTING:
             with app.app.app_context():
                 app.dropdb_cmd()

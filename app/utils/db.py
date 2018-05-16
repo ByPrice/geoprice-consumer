@@ -32,7 +32,7 @@ def initdb():
         logger.info("Dropping testing keyspace")
         session_init.execute("DROP KEYSPACE IF EXISTS {}".format(config.CASSANDRA_KEYSPACE))
 
-    if config.ENV.upper() == 'DEV' or config.ENV.upper() == 'LOCAL':
+    if config.ENV.upper() == 'LOCAL':
         try:
             session_init.execute("""
                 CREATE KEYSPACE %s 
