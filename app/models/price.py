@@ -18,7 +18,7 @@ class Price(object):
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
         'price','price_original','discount', 'currency',
         'promo','date','location','coords','zips', 'source',
-        'stores', 'lats', 'lngs', 'cities'
+        'stores', 'lats', 'lngs', 'cities', 'url'
     ]
 
     product_uuid = None
@@ -249,10 +249,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_date(
-                        product_uuid, date, time, store_uuid, price, price_original, promo, currency 
+                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     )
                     """,
                     elem
