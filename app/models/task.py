@@ -61,7 +61,7 @@ class Task(object):
         """
         if self.backend == 'redis':
             # Get status from redis
-            g._redis.set('task_status:'+self.task_uuid,status, self.status)
+            g._redis.set('task:status:'+self.task_uuid, self.status, ex=self.ttl )
 
         elif self.backend == None:
             # Get status from file
@@ -83,4 +83,4 @@ class Task(object):
         """ Save the task result to the backend
         """
         if self.backend == 'redis':
-            g._redis.set('task_result:'+self.task_uuid, json.dumps(self._result))
+            g._redis.set('task:result:'+self.task_uuid, json.dumps(self._result), ex=self.ttl)
