@@ -9,6 +9,8 @@ import requests
 from pygres import Pygres
 from config import *
 import app.utils.db as _db
+from app.consumer import with_context
+from app.models.price import Price
 from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 
@@ -198,9 +200,57 @@ def fetch_day_prices(_prods, day, limit, conf, batch=100):
     return pd.merge(data, _prods,
         on=['item_uuid', 'source'], how='left')
     
+def format_price(val):
+    """ Format price to convert into scraper-like
 
+        Params: 
+        -----
+        val : dict
+            Query values
+        
+        Returns:
+        -----
+        formatted : dict
+            Formatted price element
+    """
+    # Reformat
+    val.update({
+        'retailer': val['source'],
+        'currency': 'MXN',
+        'date': str(val['time']),
+        'location': {
+            'store':[
+                val['store_uuid']
+            ],
+            'zip': [val['zip']],
+            'city': [val['city']],
+            'state': [val['state']],
+            'country': 'Mexico',
+            "coords" : [
+                {
+                    "lat" : float(val['lat']),
+                    "lng" : float(val['lng'])
+                }
+            ]
+        }
+    })
+    logger.debug("Formatted {}".format(val['product_uuid']))
+    return val
+
+
+@with_context
 def populate_geoprice_tables(val):
-    pass
+    """ Populate all tables in GeoPrice KS
+        
+        Params:
+        -----
+        val : dict
+            Price value to insert
+    """
+    price_val = format_price(val)    
+    price = Price(price_val)
+    if price.save_all():
+        logger.info("Loaded tables for: {}".format(val['product_uuid']))
 
 
 def day_migration(day, limit=None, conf={}):
@@ -232,7 +282,7 @@ def day_migration(day, limit=None, conf={}):
             print(d.to_dict())
             continue
         # Populate each table in new KS
-        populate_geoprice_tables(d)
+        populate_geoprice_tables(d.to_dict())
         logger.info("{}%  Populated"\
             .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
@@ -245,6 +295,6 @@ if __name__ == '__main__':
     _day = cassconf['date']
     del cassconf['date']
     # Now call to migrate day's data
-    day_migration(_day, limit=1000, conf=cassconf)
+    day_migration(_day, limit=100, conf=cassconf)
     logger.info("Finished executing ({}) migration".format(_day))
 
