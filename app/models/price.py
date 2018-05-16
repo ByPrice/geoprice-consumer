@@ -1,9 +1,9 @@
 #-*- coding: utf-8 -*-
-from .. import db
+from flask import g
 import datetime
 import uuid
 import math
-from . import geohash
+from ..utils import geohash
 from .. import applogger
 
 # Database connection:  db.session
@@ -16,7 +16,7 @@ class Price(object):
     session = None
     fields = [
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
-        'price','price_original','discount',
+        'price','price_original','discount', 'currency',
         'promo','date','location','coords','zips',
         'stores', 'lats', 'lngs', 'cities'
     ]
@@ -27,6 +27,7 @@ class Price(object):
     url = None
     price = None
     price_original = None
+    currency = 'MXN'
     discount = None
     promo = None
     date = None
@@ -37,10 +38,11 @@ class Price(object):
     states = []
     lats = []
     lngs = []
+    location = {}
 
     def __init__(self, *initial_data, **kwargs):
         # Db session init
-        self.session = db.session
+        self.session = g._db
         # In case of dictionary initialization
         for dictionary in initial_data:
             for key in dictionary:
@@ -103,13 +105,14 @@ class Price(object):
     def as_dict(self):
         ''' Dictionary representation for saving to cassandra '''
         return {
-            'id' : self.id,
-            'product_uuid' : uuid.UUID(self.item_uuid),
-            'gtin' : self.gtin,
+            'price_uuid' : uuid.uuid4(),
+            'product_uuid' : uuid.UUID(self.product_uuid),
+            'gtin' : int(self.gtin),
             'source' : self.source,
             'url' : self.url if self.url != None else '',
             'price' : float(self.price),
             'price_original' : float(self.price_original) if self.price_original else self.price,
+            'currency' : self.currency,
             'discount' : float(self.discount) if self.discount else 0,
             'promo' : self.promo if (self.promo != None and self.promo != 'null') else 0,
             'date' : self.date,
@@ -149,11 +152,12 @@ class Price(object):
         for i in range(0,len(self.location['store'])):
             yield {
                 'product_uuid' : uuid.UUID(self.product_uuid),
-                'gtin' : self.gtin,
+                'gtin' : int(self.gtin),
                 'source' : self.source,
                 'url' : self.url,
                 'price' : float(self.price),
                 'price_original' : float(self.price_original) if self.price_original else self.price,
+                'currency' : self.currency,
                 'discount' : float(self.discount) if self.discount else 0,
                 'promo' : self.promo,
                 'date' : self.date,
@@ -223,6 +227,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price")
             return True
         except Exception as e:
             logger.error("Could not save price")
@@ -244,6 +249,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_product_date")
             return True
         except Exception as e:
             logger.error("Could not save price_by_product_date")
@@ -265,6 +271,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_date")
             return True
         except Exception as e:
             logger.error("Could not save price_by_date")
@@ -286,6 +293,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_product_store")
             return True
         except Exception as e:
             logger.error("Could not save price_by_product_store")
@@ -294,8 +302,10 @@ class Price(object):
             return []
 
 
-    # Save geohash, 
-    def save_price_geohash(self):
+    def save_price_by_geohash(self):
+        """ Save price by each goehash
+            Resolution from 4 to 12
+        """
         for elem in self.loc_generator():
             # Get the geohash of the coordinates
             ghash = geohash.encode(float(elem['lat']),float(elem['lng']))
@@ -316,7 +326,7 @@ class Price(object):
                 elem['geohash'] = gh
                 self.session.execute(
                     """
-                    INSERT INTO price_geohash(
+                    INSERT INTO price_by_geohash(
                         product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
                     )
                     VALUES(
@@ -326,6 +336,7 @@ class Price(object):
                     """,
                     elem
                 )
+        logger.debug("OK save_price_by_geohash")
         return True
 
     def save_price_by_source(self):
@@ -342,6 +353,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_source")
             return True
         except Exception as e:
             logger.error("Could not save price_by_source")
@@ -363,6 +375,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_store")
             return True
         except Exception as e:
             logger.error("Could not save price_by_source")
@@ -389,6 +402,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_promo")
             return True
         except Exception as e:
             logger.error("Could not save promo")
@@ -415,6 +429,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_promo_by_store")
             return True
         except Exception as e:
             logger.error("Could not save promo")

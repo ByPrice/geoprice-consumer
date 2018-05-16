@@ -10,6 +10,9 @@ APP_PORT = os.getenv('APP_PORT', 8000)
 APP_SECRET = os.getenv('APP_SECRET', '#geoprice')
 ENV = os.getenv('ENV','DEV')
 
+# Testing
+TESTING= True if os.getenv('TESTING',False) else False
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 BASEDIR = BASE_DIR
 PATH = os.path.dirname(os.path.realpath(__file__)) + "/"
@@ -35,10 +38,10 @@ CASSANDRA_USER = os.getenv('CASSANDRA_USER','')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
 
 # Env-dependent variables
-CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
-
-# Testing
-TESTING= True if os.getenv('TESTING',False) else False
+if not TESTING:
+    CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_dev" if ENV.upper() == 'DEV' else CASSANDRA_KEYSPACE
+else:
+    CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_test"
 
 # Logging and remote logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', ('DEBUG' if ENV != 'PRODUCTION' else 'DEBUG'))

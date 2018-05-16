@@ -34,7 +34,6 @@ class SimpleCassandra(object):
                 username=config['USER'], 
                 password=config['PASSWORD']
             )   
-        print(config['USER'], config['PASSWORD'])
 
         # Cluster
         if auth_provider:
@@ -53,15 +52,16 @@ class SimpleCassandra(object):
         # Set session
         try:
             # If keyspac is set, connect...
+            self.session = self.cluster.connect()
             if self.config['KEYSPACE']:
-                self.connect()
+                self.set_keyspace()
         except Exception as e:
             logger.error("Something happened in SimpleCassandra connection")
             logger.error(e)
             sys.exit()
 
 
-    def connect(self):
+    def set_keyspace(self):
         """ Once connecting, get the session
         """
         logger.info("Getting cassandra session...")

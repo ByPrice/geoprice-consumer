@@ -8,19 +8,19 @@ import time
 import sys
 from pprint import pprint
 from app.models.price import Price
-from app.norm import map_product_keys as mpk
 
 new_price = {
     "route_key" : "price",
     "retailer" : "walmart",
-    "item_uuid" : "f0191eed-cae2-4128-b101-3f7a6ed6ec92",
-    "product_uuid" : "4730c33-7a98-48dd-bbbd-1165f8058916",
+    "item_uuid" : "605e179d-6ede-48e3-a4fd-820b89718589",
+    "product_uuid" : "f0191eed-cae2-4128-b101-3f7a6ed6ec92",
     "gtin" : "07501043100137",
     "id" : "001920001",
     "price" : 80.00,
     "price_original" : 100.00,
     "promo" : "2x10",
-    "date" : "2018-05-09 20:54:55",
+    "currency" : "MXN",
+    "date" : "2018-05-10 20:54:55",
     "location" : {
         "store" : [
             "3b005588-be71-11e7-bb47-0242ac110002",
@@ -43,21 +43,6 @@ new_price = {
     }
 }
 
-
-class TestStreamer(threading.Thread):
-    """ Testing Streamer Thread
-    """
-
-    def __init__(self):
-        threading.Thread.__init__(self)      
-
-    def run(self):
-        print('Async Streaming Test Price!')
-        ## Run consumer
-        i = 0
-        for i in range(1000000):
-            print(i)
-
 class GeopriceConsumerTestCase(unittest.TestCase):
     """ Test Case for Geoprice Consumer
     """
@@ -67,9 +52,10 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """ Initializes the database
         """
         # Define test database
-        if config.TESTING:
-            with app.app.app_context():
-                app.initdb()
+        print("Setting up tests")
+        #if config.TESTING:
+        #    with app.app.app_context():
+        #        app.initdb_cmd()
 
     @classmethod
     def tearDownClass(cls):
@@ -77,7 +63,7 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """
         if config.TESTING:
             with app.app.app_context():
-                app.dropdb()
+                app.dropdb_cmd()
 
     def setUp(self):
         """ Set up
@@ -108,6 +94,8 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         print("Validating save price success")
         global new_price
         pr = Price(new_price)
-        result = pr.save()
+        result = pr.save_all()
         self.assertEqual(result, True)
 
+if __name__ == '__main__':
+    unittest.main()
