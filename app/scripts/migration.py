@@ -3,7 +3,9 @@ import argparse
 import ast
 import json
 import datetime
+import itertools
 from uuid import UUID
+from multiprocessing import Pool
 import pandas as pd
 import requests
 from pygres import Pygres
@@ -15,9 +17,8 @@ from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 
 # Logger
-applogger.create_logger('migration-'+APP_NAME)
+#applogger.create_logger()
 logger = applogger.get_logger()
-
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -38,7 +39,10 @@ def cassandra_args():
     parser.add_argument('--pg_db', help='Catalogue Postgres DB')
     parser.add_argument('--pg_user', help='Catalogue Postgres User')
     parser.add_argument('--pg_password', help='Catalogue Postgres Password')
-    parser.add_argument('--date', help='Migration date')
+    parser.add_argument('--from', help='Migration Starting date')
+    parser.add_argument('--until', help='Migration Ending date')
+    parser.add_argument('--date', help='Migration unique date')
+    parser.add_argument('--workers', help='Number of Workers', type=int)
     args = dict(parser.parse_args()._get_kwargs())
     # Validation of variables
     # Cassandra
@@ -57,22 +61,31 @@ def cassandra_args():
     for k in pg_default:
         if not args[k]:
             args[k] = pg_default[k]
-    # Date
-    if args['date']:
-        try:
-            args['date'] = datetime\
-                .datetime\
-                .strptime(str(args['date']), '%Y-%m-%d')\
+    def date_from_str(strdate):
+        """ Parse Date from Str (YYYY-MM-DD)
+        """
+        return datetime.datetime\
+                .strptime(str(strdate), '%Y-%m-%d')\
                 .date()
-        except:
-            logger.error("Wrong arg: Date must be in format [YYYY-MM-DD]")
-            sys.exit()
-    else:
-        args['date'] = datetime.date.today()
+    args['historic_on'] = True \
+        if (args['from'] and args['until'])\
+        else False
+    # Date
+    date_fields = ['date', 'from', 'until']
+    for df in date_fields:
+        if args[df]:
+            try:
+                args[df] = date_from_str(args[df])
+            except:
+                logger.error("Wrong arg: {} must be in format [YYYY-MM-DD]"\
+                    .format(df.capitalize()))
+                sys.exit()
+        else:
+            args[df] = datetime.date.today()
     return args
 
 
-def fetch_all_prods(conf={}, limit=None):
+def fetch_all_prods(conf, limit):
     """ Retrieve all products from Catalogue DB
 
         Params:
@@ -126,7 +139,7 @@ def fetch_all_prods(conf={}, limit=None):
     return prods
 
 
-def fetch_day_prices(_prods, day, limit, conf, batch=100):
+def fetch_day_prices(_prods, day, limit, conf):
     """ Query data from passed keyspace
 
         Params:
@@ -139,8 +152,6 @@ def fetch_day_prices(_prods, day, limit, conf, batch=100):
             Limit of prices to retrieve
         cassconf: dict
             Cassandra Cluster config params
-        batch : int
-            Batch size of queries
         
         Returns:
         -----
@@ -167,8 +178,8 @@ def fetch_day_prices(_prods, day, limit, conf, batch=100):
     # Loop over prod_ids
     for j, _i in enumerate(item_ids):
         _amount = len(data)
-        logger.info("Fetching {}, for now {} prices retrieved"\
-            .format(_i, _amount))
+        logger.info("Fetching {} in {}, for now {} prices retrieved"\
+            .format(_i, day, _amount))
         # Limit statement
         if limit:
             if _amount > limit:
@@ -181,12 +192,13 @@ def fetch_day_prices(_prods, day, limit, conf, batch=100):
             r = cdb.query(cql_query,
                 (UUID(_i),
                 day, day + datetime.timedelta(days=1)),
-                timeout=50)
+                timeout=100)
             data += list(r)
             logger.info("{} % Retrieved"\
                 .format(round(100.0*j/len(item_ids), 2)))
         except Exception as e:
             logger.error(e)
+            logger.warning("Could not retrieve {}".format(_i, day))
     # Drop connection with C*
     cdb.close()
     logger.info("""Finished retreiving prices and closed connection with C*.""")
@@ -252,7 +264,7 @@ def populate_geoprice_tables(val):
         logger.info("Loaded tables for: {}".format(val['product_uuid']))
 
 @with_context
-def day_migration(day, limit=None, conf={}):
+def day_migration(*args):
     """ Retrieves all data available requested day
         from Prices KS and inserts it into 
         GeoPrice KS.
@@ -265,10 +277,9 @@ def day_migration(day, limit=None, conf={}):
             Limit of data to apply migration from
         cassconf : dict
             Dict with Cassandra Configuration to migrate from
-    """ 
+    """
+    day, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3]
     logger.info("Retrieving info for migration on ({})".format(day))
-    # Retrieve products from Catalogue
-    prods = fetch_all_prods(conf, limit=None)
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, day, limit, conf)
     if data.empty:
@@ -287,14 +298,51 @@ def day_migration(day, limit=None, conf={}):
     logger.info("Finished populating tables")
 
 
+def get_daterange(_from, _until):
+    """ Generate a daterange from 
+        2 given limits
+
+        Params:
+        -----
+        _from : datetime.date
+            Starting Date
+        _until : datetime.date
+            Ending Date
+        
+        Returns:
+        -----
+        daterange : list
+            List of dates within limits
+    """
+    daterange = [_from]
+    # In case limits are not correct, send only from date
+    if _until < _from:
+        return daterange
+    while True:
+        _from += datetime.timedelta(days=1)
+        if _from > _until:
+            break
+        daterange.append(_from)
+    return daterange
+
+
 if __name__ == '__main__':
-    logger.info("Starting Migration! (Prices (KS) -> GeoPrice (KS)")
+    logger.info("Starting Migration script (Prices KS -> GeoPrice KS)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
-    # Format vars
-    _day = cassconf['date']
-    del cassconf['date']
-    # Now call to migrate day's data
-    day_migration(_day, limit=2000, conf=cassconf)
-    logger.info("Finished executing ({}) migration".format(_day))
-
+    # Retrieve products from Catalogue
+    prods = fetch_all_prods(cassconf, None)
+    # Verify if historic is applicable
+    if cassconf['historic_on']:
+        # Format vars
+        _workers = cassconf['workers'] if cassconf['workers'] else 3
+        daterange = get_daterange(cassconf['from'], cassconf['until'])
+        with Pool(_workers) as pool:
+            pool.map(day_migration,
+                itertools.product(daterange, [2000], [cassconf],[prods]))
+    else:
+        # Format vars
+        _day = cassconf['date']
+        # Now call to migrate day's data
+        day_migration(_day, 2000, cassconf, prods)
+        logger.info("Finished executing ({}) migration".format(_day))
