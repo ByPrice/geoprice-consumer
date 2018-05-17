@@ -1,12 +1,15 @@
 from flask import g
 import uuid
+from ..utils import applogger
+import json
 
+logger = applogger.get_logger()
 
 class Task(object):
     """ Class for managing asynchronous tasks.
         
         Attributes:
-            _task_id (uuid) : task_uuid to track task
+            _task_uuid (uuid) : task_uuid to track task
             _result (json): json object with the task result
             _backend (str)
             _ttl (int) : task's result time to live
@@ -16,16 +19,26 @@ class Task(object):
                 - text (text [PENDING, RUNNING, COMPLETED]) 
     """
 
-    def __init__(self, task_uuid):
+    def __init__(self, task_uuid=None):
+        self._backend = 'redis'
+        self._status = {}
+        self._ttl =  86400  # One day 
+        self._progress = 0
+        self._text = ''
+        self._message = ''
+        # New task
         if not task_uuid:
             # If new task, generate random uuid
             self._task_uuid = str(uuid.uuid4())     
-            self._status = None  
-            self._backend = 'redis'
-            self._ttl =  86400  # One day 
         else:
             self._task_uuid = task_uuid
-            self.status()
+
+
+    @property
+    def task_uuid(self):
+        """ Getter for task_uuid
+        """ 
+        return self._task_uuid
 
     @property
     def status(self):
@@ -33,39 +46,49 @@ class Task(object):
             set status
         """ 
         if self._backend == 'redis':
-             status = g._redis.get("task_status:"+self._task_uuid)
-             if status:
-                 self._status = json.loads(status)
+            res = g._redis.get("task:status:"+self._task_uuid)
+            if res:
+                self._status = json.loads(res.decode('utf-8'))
         elif self._backend == None:
             pass
         return self._status
 
     @status.setter
-    def status(self, text, progress, msg):
+    def status(self, status):
         """ Set status variables and status dict
         """
-        if text: self._text = text
-        if progress: self._progress = progress
-        if msg: self._msg = msg
+        props = ['text','msg','progress']
+        if type(status) != dict or (set(props) <= set(status.keys())) != True :
+            logger.error("Invalid status for task")
+            return False
+        if 'text' in status and status['text']: self._text = status['text']
+        if 'progress' in status and status['progress']: self._progress = status['progress']
+        if 'msg' in status and status['msg']: self._msg = status['msg']
         self._status = {
-            "task_id" : self._task_uuid
-            "text" : self._status_text,
-            "progress" : self._progress
-            "msg" : self._status_msg
+            "task_uuid" : self._task_uuid,
+            "text" : self._text,
+            "progress" : self._progress,
+            "msg" : self._msg
         }
+        self._save_status()
         return self._status
         
 
-    def save_status(self):
+    def _save_status(self):
         """ Save status to redis or to file
         """
-        if self.backend == 'redis':
-            # Get status from redis
-            g._redis.set('task:status:'+self.task_uuid, self.status, ex=self.ttl )
-
-        elif self.backend == None:
-            # Get status from file
-            pass
+        try:
+            if self._backend == 'redis':
+                # Get status from redis
+                g._redis.set('task:status:'+self._task_uuid, json.dumps(self._status), ex=self._ttl )
+                logger.debug("Task status stored in "+ 'task:status:'+self._task_uuid )
+                return True
+            elif self._backend == None:
+                pass
+        except Exception as e:
+            logger.error("Could not persist task status, check configuration")
+            logger.error(e)
+            return False
 
         
     @property
@@ -83,4 +106,4 @@ class Task(object):
         """ Save the task result to the backend
         """
         if self.backend == 'redis':
-            g._redis.set('task:result:'+self.task_uuid, json.dumps(self._result), ex=self.ttl)
+            g._redis.set('task:result:'+self._task_uuid, json.dumps(self._result), ex=self._ttl)
