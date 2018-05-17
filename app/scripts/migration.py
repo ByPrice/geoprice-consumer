@@ -286,6 +286,7 @@ def day_migration(day, limit=None, conf={}):
             .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
 
+
 if __name__ == '__main__':
     logger.info("Starting Migration! (Prices (KS) -> GeoPrice (KS)")
     # Parse C* and PSQL args
