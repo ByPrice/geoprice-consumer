@@ -3,6 +3,8 @@ import app
 from app.models.task import Task
 import unittest
 import config
+import uuid
+import sys
 
 task_uuid = None
 
@@ -28,7 +30,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
     def tearDownClass(cls):
         """ Drops database
         """
-        print("Teardown class")
+        print(">>>> Teardown class")
         return
 
     def setUp(self):
@@ -46,7 +48,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
     def test_01_save_task_status(self):
         """ Testing DB prices i
         """ 
-        print("Testing create new task and save status....")
+        print(">>>> Testing create new task and save status")
         global task_uuid
         task = Task()
         task.status = dict(
@@ -61,7 +63,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
     def test_02_get_task_status(self):
         """ Get task's status 
         """
-        print("Testing get task status....")
+        print(">>>> Testing get task status")
         global task_uuid
         task = Task(task_uuid)
         status = task.status
@@ -69,17 +71,41 @@ class GeopriceTaskTestCase(unittest.TestCase):
         self.assertTrue(type(status) == dict)
     
 
-    def test_03_delete_task(self):
+    def test_03_set_task_result(self):
         """ Delete task
         """
-        #print("Testing delete task....")
-        pass
+        print(">>>> Testing setting task result")
+        global task_uuid
+        task = Task(task_uuid)
+        # Set last task status
+        task.status = {
+            "text" : "COMPLETED",
+            "progress" : 100,
+            "msg" : "Task completed successfully"
+        }
+        # Set and save task result
+        
+        result = {
+            "msg" : "OK",
+            "data" : { "field{}".format(i) : str(uuid.uuid4()) for i in range(100000) }
+        }
+        print("Size of saved result: {}".format(sys.getsizeof(str(result))))
+        task.result = result
+        
+        
+        self.assertTrue(True)
 
-    def test_04_change_task_status(self):
+
+
+    def test_04_get_task_result(self):
         """ Change task status
         """
-        #print("Testing change task status....")
-        pass
+        print(">>>> Testing getting task result")
+        global task_uuid
+        task = Task(task_uuid)
+        result = task.result
+        print("Size of queried result: {}".format(sys.getsizeof(str(result))))
+        self.assertEqual(type(result), dict)
 
     def test_05_complete_task_status(self):
         """ Complete task progress and status
