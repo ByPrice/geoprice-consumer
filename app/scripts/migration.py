@@ -345,12 +345,12 @@ if __name__ == '__main__':
         with Pool(_workers) as pool:
             # Call to run migration over all dates
             pool.map(day_migration,
-                itertools.product(daterange, [2000], [cassconf],[prods]))
+                itertools.product(daterange, [None], [cassconf],[prods]))
     else:
         # Format vars
         _day = cassconf['date']
         # Now call to migrate day's data
         logger.info("Executing Alone migration for {}"\
             .format(_day))
-        day_migration((_day, 2000, cassconf, prods))
+        day_migration((_day, None, cassconf, prods))
         logger.info("Finished executing ({}) migration".format(_day))
