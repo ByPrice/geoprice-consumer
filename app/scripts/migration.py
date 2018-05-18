@@ -260,6 +260,7 @@ def populate_geoprice_tables(val):
     """
     price_val = format_price(val)    
     price = Price(price_val)
+    logger.debug("Formatted price info..")
     if price.save_all():
         logger.info("Loaded tables for: {}".format(val['product_uuid']))
 
@@ -277,6 +278,8 @@ def day_migration(*args):
             Limit of data to apply migration from
         cassconf : dict
             Dict with Cassandra Configuration to migrate from
+        prods : list
+            List of Products info
     """
     day, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3]
     logger.info("Retrieving info for migration on ({})".format(day))
@@ -337,6 +340,8 @@ if __name__ == '__main__':
         # Format vars
         _workers = cassconf['workers'] if cassconf['workers'] else 3
         daterange = get_daterange(cassconf['from'], cassconf['until'])
+        logger.info("Executing Historic migration from {} to {} with {} workers"\
+            .format(cassconf['from'], cassconf['until'], _workers))
         with Pool(_workers) as pool:
             # Call to run migration over all dates
             pool.map(day_migration,
@@ -345,5 +350,7 @@ if __name__ == '__main__':
         # Format vars
         _day = cassconf['date']
         # Now call to migrate day's data
+        logger.info("Executing Alone migration for {}"\
+            .format(_day))
         day_migration((_day, 2000, cassconf, prods))
         logger.info("Finished executing ({}) migration".format(_day))
