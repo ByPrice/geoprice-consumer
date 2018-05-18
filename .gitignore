@@ -4,5 +4,5 @@ __pycache__/
 *.sh
 *.pyc
 .vscode/
-bin/*.local
+bin/run.local
 Dockerfile.local
