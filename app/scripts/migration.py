@@ -338,6 +338,7 @@ if __name__ == '__main__':
         _workers = cassconf['workers'] if cassconf['workers'] else 3
         daterange = get_daterange(cassconf['from'], cassconf['until'])
         with Pool(_workers) as pool:
+            # Call to run migration over all dates
             pool.map(day_migration,
                 itertools.product(daterange, [2000], [cassconf],[prods]))
     else:
