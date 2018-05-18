@@ -345,5 +345,5 @@ if __name__ == '__main__':
         # Format vars
         _day = cassconf['date']
         # Now call to migrate day's data
-        day_migration(_day, 2000, cassconf, prods)
+        day_migration((_day, 2000, cassconf, prods))
         logger.info("Finished executing ({}) migration".format(_day))
