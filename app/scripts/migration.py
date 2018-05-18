@@ -105,33 +105,22 @@ def fetch_all_prods(conf, limit):
         for x,y in conf.items() if 'pg' in x}
     catdb = Pygres(psqlconf)
     logger.info("Connected to Catalogue DB!")
-    products, page, batch = [],  1, 10000
-    while True:
-        # Limit statement
+    # Query to get all items 
+    try:
+        qry = """ SELECT product_uuid, item_uuid, source,
+        gtin FROM product WHERE source NOT IN ('gs1', 'mara', 'nielsen')
+        """
         if limit:
-            if len(products) > limit:
-                break
-        # Query to get all items by paginating
-        try:
-            qry = """ SELECT product_uuid, item_uuid, source,
-            gtin FROM product ORDER BY source DESC
-            OFFSET {} LIMIT {}
-            """.format((page-1)*batch, batch)
-            tmp = catdb.query(qry).fetch()
-            if len(tmp) == 0:
-                raise Exception("Finished retrieving products!")
-            products += tmp
-            page += 1
-        except Exception as e:
-            logger.error(e)
-            break
-        logger.debug("Fetching {} products...".format(len(products)))
+            qry += ' LIMIT {}'.format(limit)
+        prods = pd.read_sql(qry, catdb.conn)
+    except Exception as e:
+        logger.error(e)
+        logger.error("Did not found any products!")
+        sys.exit()
     # Close connection
-    prods = pd.DataFrame(products).dropna()
-    # Filter results from GS1, Nielsen and Mara
-    prods[~prods['source'].isin(['mara', 'gs1', 'nielsen'])]
     prods['product_uuid'] = prods['product_uuid'].astype(str)
     prods['item_uuid'] = prods['item_uuid'].astype(str)
+    prods.fillna('', inplace=True)
     logger.info("Finished retrieving product info: {}".format(len(prods)))
     if prods.empty:
         logger.error("Did not found any products!")
@@ -164,46 +153,32 @@ def fetch_day_prices(_prods, day, limit, conf):
         'KEYSPACE': conf['cassandra_keyspace'],
         'PORT': conf['cassandra_port']
     })
-    logger.info("Connected to C* !")
+    logger.info("Connected to C*!")
     # Define CQL query
     cql_query = """SELECT * 
         FROM price_item
-        WHERE item_uuid = %s
-        AND time >= %s
+        WHERE time >= %s
         AND time < %s
     """
-    # Item IDs
-    item_ids = _prods.dropna().item_uuid.tolist()
-    data = []
-    # Loop over prod_ids
-    for j, _i in enumerate(item_ids):
-        _amount = len(data)
-        logger.info("Fetching {} in {}, for now {} prices retrieved"\
-            .format(_i, day, _amount))
-        # Limit statement
-        if limit:
-            if _amount > limit:
-                logger.info("Limit {} has been reached!".format(limit))
-                break
-        # For each item query prices
-        try:
-            if not _i:
-                continue
-            r = cdb.query(cql_query,
-                (UUID(_i),
-                day, day + datetime.timedelta(days=1)),
-                timeout=100)
-            data += list(r)
-            logger.info("{} % Retrieved"\
-                .format(round(100.0*j/len(item_ids), 2)))
-        except Exception as e:
-            logger.error(e)
-            logger.warning("Could not retrieve {}".format(_i, day))
+    # Limit statement
+    if limit:
+        cql_query += ' LIMIT {}'.format(limit)
+    # Allow filtering
+    cql_query += " ALLOW FILTERING"
+    # For each item query prices
+    try:
+        r = cdb.query(cql_query,
+            (day, day + datetime.timedelta(days=1)),
+            timeout=100)
+    except Exception as e:
+        logger.error(e)
+        logger.warning("Could not retrieve {}".format(day))
     # Drop connection with C*
     cdb.close()
     logger.info("""Finished retreiving prices and closed connection with C*.""")
     # Generate DFs
-    data = pd.DataFrame(data)
+    data = pd.DataFrame(r)
+    del r
     if data.empty:
         return pd.DataFrame()
     data['item_uuid'] = data.item_uuid.astype(str)
@@ -261,6 +236,17 @@ def populate_geoprice_tables(val):
     price_val = format_price(val)    
     price = Price(price_val)
     logger.debug("Formatted price info..")
+    try:
+        price.as_dict
+    except Exception as e:
+        logger.error("Product invalid {}".format(e))
+        logger.warning(val) 
+        # log missing items
+        with open('missing_items.csv', 'a') as _file:
+            _file.write('{},{}\n'\
+                .format(price_val['item_uuid'],
+                        price_val['retailer']))
+        return False
     if price.save_all():
         logger.info("Loaded tables for: {}".format(val['product_uuid']))
 
@@ -352,5 +338,5 @@ if __name__ == '__main__':
         # Now call to migrate day's data
         logger.info("Executing Alone migration for {}"\
             .format(_day))
-        day_migration((_day, None, cassconf, prods))
+        day_migration((_day, 2000, cassconf, prods))
         logger.info("Finished executing ({}) migration".format(_day))
