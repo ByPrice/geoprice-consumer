@@ -9,6 +9,7 @@ from multiprocessing import Pool
 import pandas as pd
 import requests
 from pygres import Pygres
+from cassandra import ConsistencyLevel
 from config import *
 import app.utils.db as _db
 from app.consumer import with_context
@@ -169,7 +170,8 @@ def fetch_day_prices(_prods, day, limit, conf):
     try:
         r = cdb.query(cql_query,
             (day, day + datetime.timedelta(days=1)),
-            timeout=100)
+            timeout=200,
+            consistency=ConsistencyLevel.ONE)
     except Exception as e:
         logger.error(e)
         logger.warning("Could not retrieve {}".format(day))
