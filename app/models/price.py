@@ -108,7 +108,7 @@ class Price(object):
         return {
             'price_uuid' : uuid.uuid4(),
             'product_uuid' : uuid.UUID(self.product_uuid),
-            'gtin' : int(self.gtin),
+            'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
             'url' : self.url if self.url != None else '',
             'price' : float(self.price),
@@ -151,12 +151,6 @@ class Price(object):
         except:
             logger.error("Invalid price: error in currency field")
             return False
-        # Gtin
-        try:
-            int(elem['gtin'])
-        except:
-            logger.error("Invalid price: error in gtin field")
-            return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
             logger.error("Invalid price: error in location")
@@ -171,7 +165,7 @@ class Price(object):
         for i in range(0,len(self.location['store'])):
             yield {
                 'product_uuid' : uuid.UUID(self.product_uuid),
-                'gtin' : int(self.gtin),
+                'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
                 'source' : self.source,
                 'url' : self.url,
                 'price' : float(self.price),

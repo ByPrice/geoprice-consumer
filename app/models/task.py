@@ -26,6 +26,15 @@ class Task(object):
             _result_msg (text)
     """
 
+    # Dictionary of task stages
+    STAGE = {
+        1 : 'STARTING',
+        2 : 'IN_PROGRESS',
+        3 : 'COMPLETED',
+        0 : 'ERROR'
+    }
+
+
     def __init__(self, task_uuid=None):
         """ Pass a task_uuid, if its empty it assumes it's a new task
         """
@@ -35,16 +44,15 @@ class Task(object):
         self._data = {}
         self._ttl =  86400  # One day 
         self._progress = 0
-        self._text = ''
+        self._stage = ''
         self._status_msg = ''
         self._result_msg = ''
-        
+        # If no task_uuid create new one        
         if not task_uuid:
             # If new task, generate random uuid
             self._task_uuid = str(uuid.uuid4())     
         else:
             self._task_uuid = task_uuid
-
 
     @property
     def task_uuid(self):
@@ -61,6 +69,52 @@ class Task(object):
         self._result = {}
         self._task_uuid = value
         return self.task_uuid
+
+    @property
+    def progress(self):
+        """ Getter for task_uuid
+        """ 
+        return self._progress
+
+    @task_uuid.setter
+    def task_uuid(self, value):
+        """ Task progress value setter,
+            while setting the value saves the status
+        """
+        try:
+            value = int(value)
+            if value < 0 or value > 100:
+                raise Exception
+        except Exception as e:
+            logger.error("Incorrect value format")
+            return false
+
+        # Case 0: STARTING
+        if value == 0:
+            status = {
+                "stage" : self.STAGE[1],
+                "msg" : "Task is starting",
+                "progress" : value
+            }
+
+        # Case >0 <100: In Progress
+        elif value > 0 and value < 100:
+            status = {
+                "stage" : self.STAGE[2],
+                "msg" : "Task is executing...",
+                "progress" : value
+            }
+
+        # Case 100: COMPLETED
+        elif value > 0 and value < 100:
+            status = {
+                "stage" : self.STAGE[2],
+                "msg" : "Task is executing...",
+                "progress" : value
+            }
+
+        self.status = status
+        return self.progress
 
     @property
     def status(self):
@@ -91,12 +145,16 @@ class Task(object):
         if type(status) != dict or (set(props) <= set(status.keys())) != True :
             logger.error("Invalid status for task")
             return False
-        if 'text' in status and status['text']: self._text = status['text']
+        if 'stage' in status and status['stage']:
+            if type(status['stage']) == str:
+                self._stage = status['stage']  
+            else:
+                self._stage = self.STAGE[status['stage']]
         if 'progress' in status and status['progress']: self._progress = status['progress']
         if 'msg' in status and status['msg']: self._status_msg = status['msg']
         self._status = {
             "task_uuid" : self._task_uuid,
-            "text" : self._text,
+            "stage" : self._stage,
             "progress" : self._progress,
             "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S"),
             "msg" : self._status_msg
@@ -148,8 +206,6 @@ class Task(object):
         }
         self._save_result()
         return self._result
-
-
 
     def _save_status(self):
         """ Save status to redis or to file

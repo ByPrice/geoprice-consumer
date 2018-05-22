@@ -52,7 +52,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         global task_uuid
         task = Task()
         task.status = dict(
-            text='STARTING', 
+            stage='STARTING', 
             progress=1, 
             msg='All set'
         )
@@ -70,7 +70,6 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print(status)
         self.assertTrue(type(status) == dict)
     
-
     def test_03_set_task_result(self):
         """ Delete task
         """
@@ -79,7 +78,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         task = Task(task_uuid)
         # Set last task status
         task.status = {
-            "text" : "COMPLETED",
+            "stage" : "COMPLETED",
             "progress" : 100,
             "msg" : "Task completed successfully"
         }
@@ -91,11 +90,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         }
         print("Size of saved result: {}".format(sys.getsizeof(str(result))))
         task.result = result
-        
-        
         self.assertTrue(True)
-
-
 
     def test_04_get_task_result(self):
         """ Change task status
@@ -110,7 +105,16 @@ class GeopriceTaskTestCase(unittest.TestCase):
     def test_05_complete_task_status(self):
         """ Complete task progress and status
         """
+        # Execute celery worker
+
+        # Kill celery worker
         pass
+
+    def test_06_start_async_task(self):
+        """ Start async_task with celery
+        """
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
