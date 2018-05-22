@@ -108,7 +108,7 @@ class Price(object):
         return {
             'price_uuid' : uuid.uuid4(),
             'product_uuid' : uuid.UUID(self.product_uuid),
-            'gtin' : self.gtin if self.gtin is None else int(self.gtin),
+            'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
             'url' : self.url if self.url != None else '',
             'price' : float(self.price),
@@ -137,19 +137,25 @@ class Price(object):
         keys = list(elem.keys())
         # Si no tiene todas las keys requeridas regresamos False
         if not set(req_vars).issubset(keys):
+            logger.error("Invalid price: not complete set of required params")
             return False
         # If there is no price, return False
-        if not elem['price'] or (type(elem['price']) is not float and type(elem['price']) is not int ):
+        try:
+            assert (type(elem['price']) is float or type(elem['price']) is int ) == True
+        except:
+            logger.error("Invalid price: error in price field")
             return False
         # Currency
-        if not elem['currency'] or type(elem['currency']) is not str:
-            return False
-        # Gtin
-        if not elem['gtin'] or type(elem['gtin']) is not int:
+        try:
+            assert type(elem['currency']) == str
+        except:
+            logger.error("Invalid price: error in currency field")
             return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
+            logger.error("Invalid price: error in location")
             return False
+
         return True
 
 
@@ -159,7 +165,7 @@ class Price(object):
         for i in range(0,len(self.location['store'])):
             yield {
                 'product_uuid' : uuid.UUID(self.product_uuid),
-                'gtin' : self.gtin if self.gtin is None else int(self.gtin),
+                'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
                 'source' : self.source,
                 'url' : self.url,
                 'price' : float(self.price),

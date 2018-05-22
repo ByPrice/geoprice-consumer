@@ -70,7 +70,6 @@ def get_prices(item_uuid, retailers):
         timeout=40)
     df = DataFrame(rows)
 
-
     # Get the stats per retailer
     for ret in retailers:
         # Get stats of the retailer
