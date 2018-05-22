@@ -18,7 +18,7 @@ BASEDIR = BASE_DIR
 PATH = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 # Celery
-CELERY_BROKER = os.getenv('CELERY_BROKER', 'redis')
+CELERY_BROKER = os.getenv('CELERY_BROKER', 'rabbitmq')
 CELERY_HOST = os.getenv("CELERY_HOST", "localhost")
 CELERY_PORT = int(os.getenv("CELERY_PORT", 6379))
 CELERY_USER =  os.getenv('CELERY_USER', '')

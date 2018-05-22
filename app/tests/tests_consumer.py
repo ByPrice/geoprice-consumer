@@ -81,17 +81,15 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
-    def test_price_validation_succes(self):
+    def test_price_validation(self):
         """ Testing DB prices i
         """ 
         global new_price
         print("Testing price validation")
         validate = Price.validate(new_price)
+        print("------------")
+        print(validate)
         self.assertTrue(validate)
-
-    def test_price_validation_fail(self):
-        global new_price
-        print("Testing price validation failure!")
 
     def test_price_save_success(self):
         print("Validating save price success")

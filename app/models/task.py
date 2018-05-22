@@ -1,12 +1,16 @@
 from flask import g
 import uuid
+from ..utils import applogger
+import json
+import datetime
 
+logger = applogger.get_logger()
 
 class Task(object):
     """ Class for managing asynchronous tasks.
         
         Attributes:
-            _task_id (uuid) : task_uuid to track task
+            _task_uuid (uuid) : task_uuid to track task
             _result (json): json object with the task result
             _backend (str)
             _ttl (int) : task's result time to live
@@ -14,18 +18,103 @@ class Task(object):
                 - progress (float)
                 - msg (text)
                 - text (text [PENDING, RUNNING, COMPLETED]) 
+            _data (dict) : result data
+            _result (dict) : dictionary with
+                - text (str)
+                - data (dict) 
+            _status_msg (text)
+            _result_msg (text)
     """
 
-    def __init__(self, task_uuid):
+    # Dictionary of task stages
+    STAGE = {
+        1 : 'STARTING',
+        2 : 'IN_PROGRESS',
+        3 : 'COMPLETED',
+        0 : 'ERROR'
+    }
+
+
+    def __init__(self, task_uuid=None):
+        """ Pass a task_uuid, if its empty it assumes it's a new task
+        """
+        self._backend = 'redis'
+        self._status = {}
+        self._result = {}
+        self._data = {}
+        self._ttl =  86400  # One day 
+        self._progress = 0
+        self._stage = ''
+        self._status_msg = ''
+        self._result_msg = ''
+        # If no task_uuid create new one        
         if not task_uuid:
             # If new task, generate random uuid
             self._task_uuid = str(uuid.uuid4())     
-            self._status = None  
-            self._backend = 'redis'
-            self._ttl =  86400  # One day 
         else:
             self._task_uuid = task_uuid
-            self.status()
+
+    @property
+    def task_uuid(self):
+        """ Getter for task_uuid
+        """ 
+        return self._task_uuid
+
+    @task_uuid.setter
+    def task_uuid(self, value):
+        """ Task uuid setter, empty the value of
+            the status and the result
+        """
+        self._status = {}
+        self._result = {}
+        self._task_uuid = value
+        return self.task_uuid
+
+    @property
+    def progress(self):
+        """ Getter for task_uuid
+        """ 
+        return self._progress
+
+    @task_uuid.setter
+    def task_uuid(self, value):
+        """ Task progress value setter,
+            while setting the value saves the status
+        """
+        try:
+            value = int(value)
+            if value < 0 or value > 100:
+                raise Exception
+        except Exception as e:
+            logger.error("Incorrect value format")
+            return false
+
+        # Case 0: STARTING
+        if value == 0:
+            status = {
+                "stage" : self.STAGE[1],
+                "msg" : "Task is starting",
+                "progress" : value
+            }
+
+        # Case >0 <100: In Progress
+        elif value > 0 and value < 100:
+            status = {
+                "stage" : self.STAGE[2],
+                "msg" : "Task is executing...",
+                "progress" : value
+            }
+
+        # Case 100: COMPLETED
+        elif value > 0 and value < 100:
+            status = {
+                "stage" : self.STAGE[2],
+                "msg" : "Task is executing...",
+                "progress" : value
+            }
+
+        self.status = status
+        return self.progress
 
     @property
     def status(self):
@@ -33,54 +122,122 @@ class Task(object):
             set status
         """ 
         if self._backend == 'redis':
-             status = g._redis.get("task_status:"+self._task_uuid)
-             if status:
-                 self._status = json.loads(status)
+            res = g._redis.get("task:status:"+self._task_uuid)
+            if res:
+                self._status = json.loads(res.decode('utf-8'))
         elif self._backend == None:
-            pass
+            logger.error("Backend not defined to get result")
         return self._status
 
     @status.setter
-    def status(self, text, progress, msg):
-        """ Set status variables and status dict
+    def status(self, status):
+        """ 
+            Setter for task status, save the value
+            in the given backend (redis)
+
+                @Params:
+                    - value (dict)
+                
+                @Returns:
+                    - result (bool)
         """
-        if text: self._text = text
-        if progress: self._progress = progress
-        if msg: self._msg = msg
+        props = ['text','msg','progress']
+        if type(status) != dict or (set(props) <= set(status.keys())) != True :
+            logger.error("Invalid status for task")
+            return False
+        if 'stage' in status and status['stage']:
+            if type(status['stage']) == str:
+                self._stage = status['stage']  
+            else:
+                self._stage = self.STAGE[status['stage']]
+        if 'progress' in status and status['progress']: self._progress = status['progress']
+        if 'msg' in status and status['msg']: self._status_msg = status['msg']
         self._status = {
-            "task_id" : self._task_uuid
-            "text" : self._status_text,
-            "progress" : self._progress
+            "task_uuid" : self._task_uuid,
+            "stage" : self._stage,
+            "progress" : self._progress,
+            "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S"),
             "msg" : self._status_msg
         }
+        self._save_status()
         return self._status
-        
-
-    def save_status(self):
-        """ Save status to redis or to file
-        """
-        if self.backend == 'redis':
-            # Get status from redis
-            g._redis.set('task:status:'+self.task_uuid, self.status, ex=self.ttl )
-
-        elif self.backend == None:
-            # Get status from file
-            pass
-
         
     @property
     def result(self):
+        """ 
+            Getter for task result, get the value
+            from the given backend and set it to the
+            variable as well
+        """
+        if self._backend == 'redis':
+            print("Getting result from redis" + "task:result:"+self._task_uuid)
+            res = g._redis.get("task:result:"+self._task_uuid)
+            if res:
+                self._result = json.loads(res.decode('utf-8'))
+            else:
+                self._result = {}
+        elif self._backend == None:
+            logger.error("Backend not defined to get result")
         return self._result
 
     @result.setter
-    def result(self, result):
-        """ Set task result
-        """
-        if result:
-            self._result = result
+    def result(self, value):
+        """ 
+            Setter for task result, save the value
+            in the given backend (redis)
 
-    def save_result(self):
-        """ Save the task result to the backend
+                @Params:
+                    - value (dict)
+                
+                @Returns:
+                    - result (bool)
         """
-        if self.backend == 'redis':
-            g._redis.set('task:result:'+self.task_uuid, json.dumps(self._result), ex=self.ttl)
+        props = ['data', 'msg']
+        if type(value) != dict or (set(props) <= set(value.keys())) != True:
+            logger.error("Malformed result")
+            return False
+        if 'data' in value and value['data']: self._data = value['data']
+        if 'msg' in value and value['msg']: self._result_msg = value['msg']
+        self._result = {
+            "task_uuid" : self._task_uuid,
+            "msg" : self._result_msg,
+            "data" : self._data,
+            "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S")
+        }
+        self._save_result()
+        return self._result
+
+    def _save_status(self):
+        """ Save status to redis or to file
+        """
+        try:
+            if self._backend == 'redis':
+                # Get status from redis
+                g._redis.set('task:status:'+self._task_uuid, json.dumps(self._status), ex=self._ttl )
+                logger.debug("Task status stored in "+ 'task:status:'+self._task_uuid )
+                return True
+            elif self._backend == None:
+                logger.error("No backend defined")
+                pass
+        except Exception as e:
+            logger.error("Could not persist task status, check configuration")
+            logger.error(e)
+            return False
+
+    def _save_result(self):
+        """ Save the result of the task in redis
+        """
+        if not hasattr(self, '_task_uuid'):
+            logger.error("Can not save result without defining the task_uuid!")
+            return False 
+        try:
+            if self._backend == 'redis':
+                g._redis.set("task:result:"+self._task_uuid, json.dumps(self._result), ex=self._ttl )
+                return True
+            elif self._backend == None:
+                logger.error("No backend defined")
+                pass
+        except Exception as e:
+            logger.error("Something went wrong saving task result")
+            logger.error(e)
+            return False
