@@ -108,7 +108,7 @@ class Price(object):
         return {
             'price_uuid' : uuid.uuid4(),
             'product_uuid' : uuid.UUID(self.product_uuid),
-            'gtin' : int(self.gtin) if self.gtin else None,
+            'gtin' : self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
             'url' : self.url if self.url != None else '',
             'price' : float(self.price),
@@ -159,7 +159,7 @@ class Price(object):
         for i in range(0,len(self.location['store'])):
             yield {
                 'product_uuid' : uuid.UUID(self.product_uuid),
-                'gtin' : int(self.gtin) if self.gtin else None,
+                'gtin' : self.gtin if self.gtin is None else int(self.gtin),
                 'source' : self.source,
                 'url' : self.url,
                 'price' : float(self.price),

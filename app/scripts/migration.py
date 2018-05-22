@@ -340,5 +340,5 @@ if __name__ == '__main__':
         # Now call to migrate day's data
         logger.info("Executing Alone migration for {}"\
             .format(_day))
-        day_migration((_day, None, cassconf, prods))
+        day_migration((_day, 20000, cassconf, prods))
         logger.info("Finished executing ({}) migration".format(_day))
