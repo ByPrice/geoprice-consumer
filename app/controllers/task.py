@@ -2,21 +2,31 @@
 from flask import Blueprint, jsonify, request, Response
 from app import errors, logger
 import datetime
+from app.models.task import Tasks
 
 mod = Blueprint('task',__name__)
 
-@mod.route('/start', methods=['POST'])
-def task_start():
+@mod.route('/start/<task_name>', methods=['POST'])
+def task_start(task_name):
     """ Endpoint to post a new task
+        @Params:
+            - params
     """
-    # Submit job task
-    task = job_task.apply_async()
+    try:
+        params = request.get_json()
+        exec("form celery_tasks import "+task_name+" as task_name")
+        task = task_name.apply_async(args=(params,))
+
+    except Exception as e:
+        logger.error("Error starting the task")
+        logger.error(e)
+
     return jsonify({
         'task_id':task.id,
-        'status': 'RUNNING',
-        'progress': 0,
-        'msg': 'Processing...'
-        }), 202
+        'msg': 'Task started',
+        'text': 'RUNNING'
+    }), 202
+
 
 @app.route('/status/<task_id>', methods=['GET'])
 def task_status(task_id):
@@ -55,3 +65,4 @@ def task_status(task_id):
             'progress': _prog,
             'msg': 'Processing...' if str(_prog) != '100' else 'Processed!'
         })
+

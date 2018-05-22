@@ -10,7 +10,7 @@ class Task(object):
     """ Class for managing asynchronous tasks.
         
         Attributes:
-            _task_uuid (uuid) : task_uuid to track task
+            _task_id (uuid) : task_id to track task
             _result (json): json object with the task result
             _backend (str)
             _ttl (int) : task's result time to live
@@ -29,14 +29,14 @@ class Task(object):
     # Dictionary of task stages
     STAGE = {
         1 : 'STARTING',
-        2 : 'IN_PROGRESS',
+        2 : 'RUNNING',
         3 : 'COMPLETED',
         0 : 'ERROR'
     }
 
 
-    def __init__(self, task_uuid=None):
-        """ Pass a task_uuid, if its empty it assumes it's a new task
+    def __init__(self, task_id=None):
+        """ Pass a task_id, if its empty it assumes it's a new task
         """
         self._backend = 'redis'
         self._status = {}
@@ -47,37 +47,37 @@ class Task(object):
         self._stage = ''
         self._status_msg = ''
         self._result_msg = ''
-        # If no task_uuid create new one        
-        if not task_uuid:
+        # If no task_id create new one        
+        if not task_id:
             # If new task, generate random uuid
-            self._task_uuid = str(uuid.uuid4())     
+            self._task_id = str(uuid.uuid4())     
         else:
-            self._task_uuid = task_uuid
+            self._task_id = task_id
 
     @property
-    def task_uuid(self):
-        """ Getter for task_uuid
+    def task_id(self):
+        """ Getter for task_id
         """ 
-        return self._task_uuid
+        return self._task_id
 
-    @task_uuid.setter
-    def task_uuid(self, value):
+    @task_id.setter
+    def task_id(self, value):
         """ Task uuid setter, empty the value of
             the status and the result
         """
         self._status = {}
         self._result = {}
-        self._task_uuid = value
-        return self.task_uuid
+        self._task_id = value
+        return self.task_id
 
     @property
     def progress(self):
-        """ Getter for task_uuid
+        """ Getter for task_id
         """ 
         return self._progress
 
-    @task_uuid.setter
-    def task_uuid(self, value):
+    @progress.setter
+    def progress(self, value):
         """ Task progress value setter,
             while setting the value saves the status
         """
@@ -106,7 +106,7 @@ class Task(object):
             }
 
         # Case 100: COMPLETED
-        elif value > 0 and value < 100:
+        elif value >= 100:
             status = {
                 "stage" : self.STAGE[2],
                 "msg" : "Task is executing...",
@@ -122,7 +122,7 @@ class Task(object):
             set status
         """ 
         if self._backend == 'redis':
-            res = g._redis.get("task:status:"+self._task_uuid)
+            res = g._redis.get("task:status:"+self._task_id)
             if res:
                 self._status = json.loads(res.decode('utf-8'))
         elif self._backend == None:
@@ -141,7 +141,7 @@ class Task(object):
                 @Returns:
                     - result (bool)
         """
-        props = ['text','msg','progress']
+        props = ['stage','msg','progress']
         if type(status) != dict or (set(props) <= set(status.keys())) != True :
             logger.error("Invalid status for task")
             return False
@@ -153,7 +153,7 @@ class Task(object):
         if 'progress' in status and status['progress']: self._progress = status['progress']
         if 'msg' in status and status['msg']: self._status_msg = status['msg']
         self._status = {
-            "task_uuid" : self._task_uuid,
+            "task_id" : self._task_id,
             "stage" : self._stage,
             "progress" : self._progress,
             "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S"),
@@ -170,8 +170,8 @@ class Task(object):
             variable as well
         """
         if self._backend == 'redis':
-            print("Getting result from redis" + "task:result:"+self._task_uuid)
-            res = g._redis.get("task:result:"+self._task_uuid)
+            print("Getting result from redis" + "task:result:"+self._task_id)
+            res = g._redis.get("task:result:"+self._task_id)
             if res:
                 self._result = json.loads(res.decode('utf-8'))
             else:
@@ -199,7 +199,7 @@ class Task(object):
         if 'data' in value and value['data']: self._data = value['data']
         if 'msg' in value and value['msg']: self._result_msg = value['msg']
         self._result = {
-            "task_uuid" : self._task_uuid,
+            "task_id" : self._task_id,
             "msg" : self._result_msg,
             "data" : self._data,
             "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S")
@@ -213,8 +213,8 @@ class Task(object):
         try:
             if self._backend == 'redis':
                 # Get status from redis
-                g._redis.set('task:status:'+self._task_uuid, json.dumps(self._status), ex=self._ttl )
-                logger.debug("Task status stored in "+ 'task:status:'+self._task_uuid )
+                g._redis.set('task:status:'+self._task_id, json.dumps(self._status), ex=self._ttl )
+                logger.debug("Task status stored in "+ 'task:status:'+self._task_id )
                 return True
             elif self._backend == None:
                 logger.error("No backend defined")
@@ -227,12 +227,12 @@ class Task(object):
     def _save_result(self):
         """ Save the result of the task in redis
         """
-        if not hasattr(self, '_task_uuid'):
-            logger.error("Can not save result without defining the task_uuid!")
+        if not hasattr(self, '_task_id'):
+            logger.error("Can not save result without defining the task_id!")
             return False 
         try:
             if self._backend == 'redis':
-                g._redis.set("task:result:"+self._task_uuid, json.dumps(self._result), ex=self._ttl )
+                g._redis.set("task:result:"+self._task_id, json.dumps(self._result), ex=self._ttl )
                 return True
             elif self._backend == None:
                 logger.error("No backend defined")
@@ -241,3 +241,18 @@ class Task(object):
             logger.error("Something went wrong saving task result")
             logger.error(e)
             return False
+
+    def error(self, msg="Error"):
+        """ Save error status in the running task
+        """
+        if not hasattr(self, '_task_id'):
+            logger.error("Can not set error to an undefined task")
+            return False 
+        # Set error status
+        self.status = {
+            "stage" : 0,
+            "msg" : msg,
+            "progress" : 100
+        }
+        return True
+        

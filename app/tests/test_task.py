@@ -5,8 +5,9 @@ import unittest
 import config
 import uuid
 import sys
+import time
 
-task_uuid = None
+task_id = None
 
 
 class GeopriceTaskTestCase(unittest.TestCase):
@@ -49,7 +50,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         """ Testing DB prices i
         """ 
         print(">>>> Testing create new task and save status")
-        global task_uuid
+        global task_id
         task = Task()
         task.status = dict(
             stage='STARTING', 
@@ -57,15 +58,15 @@ class GeopriceTaskTestCase(unittest.TestCase):
             msg='All set'
         )
         # Save global task_id
-        task_uuid = task.task_uuid
-        self.assertTrue(task_uuid)
+        task_id = task.task_id
+        self.assertTrue(task_id)
 
     def test_02_get_task_status(self):
         """ Get task's status 
         """
         print(">>>> Testing get task status")
-        global task_uuid
-        task = Task(task_uuid)
+        global task_id
+        task = Task(task_id)
         status = task.status
         print(status)
         self.assertTrue(type(status) == dict)
@@ -74,8 +75,8 @@ class GeopriceTaskTestCase(unittest.TestCase):
         """ Delete task
         """
         print(">>>> Testing setting task result")
-        global task_uuid
-        task = Task(task_uuid)
+        global task_id
+        task = Task(task_id)
         # Set last task status
         task.status = {
             "stage" : "COMPLETED",
@@ -96,19 +97,34 @@ class GeopriceTaskTestCase(unittest.TestCase):
         """ Change task status
         """
         print(">>>> Testing getting task result")
-        global task_uuid
-        task = Task(task_uuid)
+        global task_id
+        task = Task(task_id)
         result = task.result
         print("Size of queried result: {}".format(sys.getsizeof(str(result))))
         self.assertEqual(type(result), dict)
 
     def test_05_complete_task_status(self):
-        """ Complete task progress and status
+        """ Testing task with celery
         """
-        # Execute celery worker
+        # Import celery task
+        from app.celery_tasks import test_task 
+        params = {"test_param" : "Hello World!"}
+        c_task = test_task.apply_async(args=(params,))
 
-        # Kill celery worker
-        pass
+        # Get the task from the celery task
+        time.sleep(5)
+        task = Task(c_task.id)
+
+        # Check result of task
+        while task.status['progress'] < 100:
+            print("Waiting for task to finish")
+            print(task.status)
+            time.sleep(2)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+
+        self.assertEqual(prog,100)
 
     def test_06_start_async_task(self):
         """ Start async_task with celery
