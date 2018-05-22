@@ -6,3 +6,4 @@ __pycache__/
 .vscode/
 bin/*.local
 Dockerfile.local
+*.log
