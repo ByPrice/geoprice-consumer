@@ -29,11 +29,12 @@ class SimpleCassandra(object):
             "CONSISTENCY_LEVEL" : "QUORUM" if "CONSISTENCY_LEVEL" not in config else config['CONSISTENCY_LEVEL'],
         }     
         # Auth
-        if config['USER'] and config['PASSWORD']:
-            auth_provider = PlainTextAuthProvider(
-                username=config['USER'], 
-                password=config['PASSWORD']
-            )   
+        if 'USER' in config and 'PASSWORD' in config:
+            if config['USER'] and config['PASSWORD']:
+                auth_provider = PlainTextAuthProvider(
+                    username=config['USER'], 
+                    password=config['PASSWORD']
+                )   
 
         # Cluster
         if auth_provider:
@@ -90,14 +91,16 @@ class SimpleCassandra(object):
         return result
 
 
-    def query(self, qry, params=(), size=5000, timeout=30):
+    def query(self, qry, params=(), size=5000, timeout=30, consistency=None):
         """ Cassandra query with pagination
             @Params:
                 - qry {str}: cassandra query
                 - size {int}: size of the query batch
         """
         result = []
-        statement = SimpleStatement(qry, fetch_size=size)
+        consistency = consistency if consistency else self.session.default_consistency_level
+        statement = SimpleStatement(qry, fetch_size=size,
+            consistency_level=consistency)
         for row in self.session.execute(statement, params, timeout=timeout):
             result.append(row)
         return result

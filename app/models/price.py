@@ -452,3 +452,35 @@ class Price(object):
             logger.error(self.as_dict)
             logger.error(e)
             return []
+    
+    @staticmethod
+    def save_stats_by_product(elem):
+        """ Save aggregated values by day
+
+            Params:
+            -----
+            elem : dict
+                Product aggregated values
+        """    
+        try:
+            g._db.execute(
+                """
+                INSERT INTO stats_by_product (
+                    product_uuid, date, avg_price, datapoints,
+                    max_price, min_price, mode_price, std_price
+                )
+                VALUES(
+                    %(product_uuid)s, %(date)s, %(avg_price)s,
+                    %(datapoints)s, %(max_price)s, %(min_price)s,
+                    %(mode_price)s, %(std_price)s
+                )
+                """,
+                elem
+            )
+            logger.debug("OK save_stats_by_product")
+            return True
+        except Exception as e:
+            logger.error("Could not save save_stats_by_product")
+            logger.error(elem)
+            logger.error(e)
+            return False

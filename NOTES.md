@@ -3,8 +3,7 @@
 # Separación de archivos
 
 Jorge
-- scripts/stats ...
-- migration (prices -> geoprices)
+- migration (prices -> geoprices) [by Day] Missing for N days
 
 Rodrigo
 - models/price
