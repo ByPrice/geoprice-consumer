@@ -345,5 +345,5 @@ if __name__ == '__main__':
     with Pool(_workers) as pool:
         # Call to run migration over all dates
         pool.map(day_migration,
-            itertools.product(daterange, retailers, [2000], [cassconf], [prods]))
+            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
     logger.info("Finished executing ({}) migration".format(daterange))
