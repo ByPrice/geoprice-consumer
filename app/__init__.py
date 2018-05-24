@@ -33,31 +33,96 @@ logger = applogger.get_logger()
 #app.register_blueprint(check.mod, url_prefix='/check')
 
 
+def build_context(
+    services=None,
+    queue_consumer=None,
+    queue_producer=None 
+    ):
+    """ App method to setup global
+        variables for app context
+    """
+    get_db()
+    get_redis()
+    get_sdks(services=services)
+    get_consumer(queue=queue_consumer)
+    get_consumer(queue=queue_producer)
+
+
 def get_db():
     """ Method to connect to C*
     """
-    if not hasattr(g, '_db'):
-        g._db = db.getdb()
+    try:
+        if not hasattr(g, '_db'):
+            g._db = db.getdb()
+    except Exception as e:
+        logger.error("Could not connect to Database!!")
+        logger.error(e)
+
 
 def get_redis():
     """ Method to connect to redis
     """
-    if not hasattr(g, '_redis'):
-        g._redis = Redis(
-            host=config.REDIS_HOST,
-            port=config.REDIS_PORT,
-            password=config.REDIS_PASSWORD or None
-        )
+    try:
+        if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis'::
+            g._redis = Redis(
+                host=config.REDIS_HOST,
+                port=config.REDIS_PORT,
+                password=config.REDIS_PASSWORD or None
+            )
+    except Exception as e:
+        logger.error("Could not connect to redis server!!")
+        logger.error(e)
+
+
+def get_sdks(modules):
+    """ Method build service SDKs
+    """
+    # Import geolocation
+    if 'geolocation' in required:
+        from app.utils.geolocation import Geolocation
+        if not hasattr(g, '_geolocation'):
+            g._geolocation = Geolocation(
+                uri=config.SRV_GEOLOCATION,
+                protocol=config.SRV_PROTOCOL
+            )
+    # Import catalogue
+    if 'catalogue' in required:
+        from app.utils.catalogue import Catalogue
+        if not hasattr(g, '_catalogue'):
+            g._catalogue = Catalogue(
+                uri=config.SRV_CATALOGUE,
+                protocol=config.SRV_PROTOCOL
+            )
 
 def get_consumer(queue=None):
     """ App method to connect to rabbit consumer
     """
-    if not hasattr(g, "consumer") and queue != None:
-        g._consumer = RabbitEngine(config={
-            'queue': queue, 
-            'routing_key': queue
-        }, blocking=False)
-    return g._consumer
+    try:
+        if not hasattr(g, "_consumer") and queue != None:
+            g._consumer[queue] = RabbitEngine(config={
+                'queue': queue, 
+                'routing_key': queue
+            }, blocking=False)
+    except Exception as e:
+        logger.error("Could not connect to rabbitmq consumer!!")
+        logger.error(e)
+
+    
+
+def get_producer(queue=None):
+    """ App method to connect to rabbit consumer
+    """
+    try:
+        if not hasattr(g, "_producer") and queue != None:
+            g._producer[queue] = RabbitEngine(config={
+                'queue': queue, 
+                'routing_key': queue
+            }, blocking=False)
+    except Exception as e:
+        logger.error("Could not connect to rabbitmq producer!!")
+        logger.error(e)
+
+    
     
 
 @app.before_request
@@ -65,10 +130,7 @@ def before_request():
     """ Before request method
     """
     # Connect to database
-    get_db()
-    # Connect to redis
-    if config.TASK_BACKEND=='redis':
-        get_redis()
+    build_context()
     
 
 @app.cli.command('initdb')

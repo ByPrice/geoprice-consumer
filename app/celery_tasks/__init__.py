@@ -55,8 +55,7 @@ def with_context(original_function):
         ctx.push()
         logger.debug('AppContext is been created')
         # Connect db
-        geoprice.get_db()
-        geoprice.get_redis()
+        geoprice.build_context()
         logger.debug('Connected to cassandra and redis')
         original_function(*args,**kwargs)
         # Teardown context
@@ -104,19 +103,6 @@ def price_map(self, params):
     # Get Task ID
     _task_id = self.request.id
     logger.info("Executing Map Task: %s", _task_id)
-
-    if not params:
-        raise errors.AppError(40002, "Params Missing!", 400)
-    if 'filters' not in params:
-        raise errors.AppError(40003, "Filters param Missing!", 400)
-    if 'retailers' not in params:
-        raise errors.AppError(40003, "Retailers param Missing!", 400)
-    if 'date_start' not in params:
-        params['date_start'] = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
-    if 'date_end' not in params:
-        params['date_end'] = datetime.date.today().isoformat()
-    if 'interval' not in params:
-        params['interval']
         
     try:
         prices_map.run(
