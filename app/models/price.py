@@ -64,7 +64,7 @@ class Price(object):
             self.gtin = int(self.gtin)
         except:
             self.gtin = None
-            logger.error("Gtin invalid format, only int accepted: {}".format(self.gtin))
+            #logger.error("Gtin invalid format, only int accepted: {}".format(self.gtin))
         # Locations
         coords = []
         zips = []
