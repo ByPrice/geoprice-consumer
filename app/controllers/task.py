@@ -15,11 +15,19 @@ def task_start(task_name):
     try:
         params = request.get_json()
         exec("form celery_tasks import "+task_name+" as task_name")
+        
+        # Validate or raise an exception
+        params = task_name.validate(params)
+        if not params:
+            raise Exception("Invalid params!")
+        
+        # Start async task
         task = task_name.apply_async(args=(params,))
 
     except Exception as e:
         logger.error("Error starting the task")
         logger.error(e)
+        raise errors.AppError(e)
 
     return jsonify({
         'task_id':task.id,

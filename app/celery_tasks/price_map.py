@@ -1,7 +1,7 @@
 from flask import g
 import datetime
 import app
-from app.utils import applogger
+from app.utils import applogger, errors
 from app.models.task import Task
 import config
 import requests
@@ -20,6 +20,31 @@ grouping_cols = {
     'month': ['year', 'month'],
     'week': ['year', 'week']
 }
+
+def validate_params(params):
+    """ Params validation method
+        @Params:
+            - params (dict): params to validate
+
+        @Returns:
+            - params: (dict): Validated params
+    """
+    if not params:
+        raise errors.AppError(40002, "Params Missing!", 400)
+    if 'filters' not in params:
+        raise errors.AppError(40003, "Filters param Missing!", 400)
+    if 'retailers' not in params:
+        raise errors.AppError(40003, "Retailers param Missing!", 400)
+    if 'date_start' not in params:
+        raise errors.AppError(40003, "Start Date param Missing!", 400)
+    if 'date_end' not in params:
+        raise errors.AppError(40003, "End Date param Missing!", 400)
+    if 'interval' not in params:
+        # In case interval is not explicit, set to day
+        params['interval'] = 'day' 
+
+    return params
+
 
 
 def add_dates(df):
@@ -180,8 +205,20 @@ def grouped_by_store(task_id, filters, rets, _ini, _fin, _inter):
 
     # Start status file in 0
     task.progress = 0 
+
+    # Given the filters (list of item_uuids), get the prices
+    # for the given dates and time interval (day, week, month)
+    # for
+
+
+
+
+
+
     # Validate Params
     filters += [{'retailer': _ret} for _ret in rets.keys()]
+
+
     # Fetch Items by filters
     items = fetch_from_item(filters)
     # Save status
@@ -300,21 +337,3 @@ def grouped_by_store(task_id, filters, rets, _ini, _fin, _inter):
     logger.info('Finished computing {}!'.format(task_id))
     
 
-def run(params):
-    """ Validate run function and start
-    """
-    if not params:
-        raise errors.AppError(40002, "Params Missing!", 400)
-    if 'filters' not in params:
-        raise errors.AppError(40003, "Filters param Missing!", 400)
-    if 'retailers' not in params:
-        raise errors.AppError(40003, "Retailers param Missing!", 400)
-    if 'date_start' not in params:
-        raise errors.AppError(40003, "Start Date param Missing!", 400)
-    if 'date_end' not in params:
-        raise errors.AppError(40003, "End Date param Missing!", 400)
-    if 'interval' not in params:
-        # In case interval is not explicit, set to day
-        params['interval'] = 'day' 
-
-    return True

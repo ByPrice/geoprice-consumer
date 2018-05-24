@@ -95,3 +95,30 @@ class Item(object):
                     if j in cols}
             )
         return products
+
+    
+    @staticmethod
+    def get_item_details(filters):
+        """ Get item details from catalogue service
+            
+            Params:
+            -----
+            - filters: (list) Item Filters
+
+            Returns: 
+            -----
+            (list) List of Items with Name and GTIN
+        """
+        # Fetch uuids from filters in ITEM
+        payload  = json.dumps(filters)
+        url = 'http://'+config.SRV_CATALOUGUE+'/item/filtered'
+        headers = {'content-type':'application/json'}
+        logger.debug(url)
+        try:
+            resp = requests.request("POST", url, data=payload, headers=headers)
+            logger.debug(resp.status_code) 
+            return resp.json()
+        except Exception as e:
+            logger.error(e)
+            g.error = {'code': 10001,'message':'Issues fetching info...'}
+            return False
