@@ -126,10 +126,39 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
 
-    def test_06_start_async_task(self):
-        """ Start async_task with celery
+    def test_06_complete_task_price_map(self):
+        """ Test price
         """
-        pass
+        # Import celery task
+        from app.celery_tasks import test_task 
+        # Filters for the task
+        filters = [
+            {"item_uuid" : ""},
+            {"item_uuid" : ""},
+            {"retailer" : ""}
+        ]
+        params = {
+            "filters" : filters,
+            "retailers" : ["walmart","superama"],
+            "date_start" : "2018-05-25",
+            "date_end" : "2018-05-29",
+            "interval" : "day"
+        }
+        c_task = price_map.apply_async(args=(params,))
+
+        # Get the task from the celery task
+        task = Task(c_task.id)
+
+        # Check result of task
+        while task.status['progress'] < 100:
+            print("Waiting for task to finish")
+            print(task.status)
+            time.sleep(2)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+
+        self.assertEqual(prog,100)
 
 
 if __name__ == '__main__':
