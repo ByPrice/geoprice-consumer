@@ -10,14 +10,18 @@ class Geolocation(obj):
         self.protocol = protocol or "http"
         self.base_url = "{}://{}".format(self.protocol, self.uri)
 
-    @staticmethod
     def get_retailers(self):
-        """ Get list of all retailers
+        """ Request list of retailers and set them
+            in retailers variables
         """
-        pass
+        self.retailers = requests.get(
+            self.base_url\
+            +"/retailer/all"
+        ).json()
+        self.retailers_dict = { i['key'] : i for i in self.retailers }
+        return self.retailers
 
-    @staticmethod
-    def stores(rets):
+    def get_stores(self, rets=None, active=None):
         """ Static method to retrieve stores by retailer keys
 
             Params:
@@ -30,11 +34,12 @@ class Geolocation(obj):
 
         """
         stores = []
+        qry_active = '&active={}'.format(active) if active else ''
         for retailer in rets:
             # Fetch Stores by retailer
             try:
                 stores_j = requests\
-                    .get(self.base_url+"/store/retailer?key="+retailer)\
+                    .get(self.base_url+"/store/retailer?key="+retailer+qry_active)\
                     .json()
                 logger.debug("Fetched {} stores!".format(retailer))
             except Exception as e:

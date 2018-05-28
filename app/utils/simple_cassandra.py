@@ -99,8 +99,11 @@ class SimpleCassandra(object):
         """
         result = []
         consistency = consistency if consistency else self.session.default_consistency_level
-        statement = SimpleStatement(qry, fetch_size=size,
-            consistency_level=consistency)
+        statement = SimpleStatement(
+            qry, 
+            fetch_size=size,
+            consistency_level=consistency
+        )
         for row in self.session.execute(statement, params, timeout=timeout):
             result.append(row)
         return result
