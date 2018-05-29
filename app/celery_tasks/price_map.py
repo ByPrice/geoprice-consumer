@@ -46,23 +46,32 @@ def validate_params(params):
     return params
 
 
+def time_to_js(x):
+    """ Convert date to timestamp in JS format
+    """
+    y = (djs - datetime.datetime(1970, 1, 1,0,0))/datetime.timedelta(seconds=1)* 1000
+    return y
+
+
 def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     """ Static method to retrieve passed prices by all 
         available stores given UUIDS, retailer keys
         and date range . 
         Result is temporarly stored in dumps/<task_id>
 
-        Params:
+        @Params:
         -----
             - task_id: (str) Celery Task ID
             - filters: (list) Item Filters 
                 [item_uuids, store_uuids, retailers]
-            - rets: (list) Needed Retailers
+            - rets: (list) List of posible retailers to query depending
+                    on the client configurations
             - date_start: (str) ISO format Start Date
             - date_end: (str) ISO format End Date 
             - interval: (str) Time interval  
 
         @Returns:
+        -----
             - map: {
                 "date" : [ {
                     "lat" : "",
@@ -70,11 +79,13 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
                     "value" :
                 } ]
             }
-            - table:
+            - table: 
+            - history
                   
     """
     global task
     task.task_id = task_id
+    task.progress = 1
 
     # Filters
     f_retailers = [ f['retailer'] for f in filters if 'retailer' in f ]
@@ -94,11 +105,11 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     logger.info("Dates list: {}".format(dates))
 
     # Get retailers and its details
-    retailers = { r['key'] : r for r in g._geolocation.get_retailers() }
+    retailers = { r['key'] : r for r in rets }
     if f_retailers:
         retailers_by_key = { k : v for k,v in retailers.items() if k in f_retailers }
     else:
-        retailers_by_key = retailers 
+        retailers_by_key = rets 
 
     # Get all stores
     stores = g._geolocation.get_stores(retailers_by_key.keys())
@@ -115,6 +126,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
         cols=['item_uuid','gtin','name']
     )
     items_by_uuid = { i['item_uuid'] : i for i in items }
+    task.progress = 20
     
     # Get product_uuids per item
     table = []
@@ -167,6 +179,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
             }
             table.append(row)
             
+    task.progress = 60
     logger.info("Got the info to build the df: ")
     print(table)
 
@@ -178,47 +191,104 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     interval = 'day' if not interval else interval
     columns_map = grouping_cols[interval]+['store_uuid']
     columns_table = grouping_cols[interval]+['product_uuid']
+    columns_history = grouping_cols[interval]+['retailer']
+    columns_interval = grouping_cols[interval]
 
     # Get stats for interval and store
     result['map'] = {}
-    grouped_by_interval = df.groupby(columns_map)
-    for key, prod_interval in grouped_by_interval:
+    grouped_by_store = df.groupby(columns_map)
+    for key, prod_store in grouped_by_store:
         # Sorting by dates
-        prod_interval.sort_values(by=['date'], ascending=True, inplace=True)
-        tmp_prod_interval = dict(grouped.iloc[0])
+        prod_store.sort_values(by=['date'], ascending=True, inplace=True)
+        tmp_prod_store = dict(prod_store.iloc[0])
         interval_date = prod_interval.time.tolist()[0].date().isoformat()
         # Build the response
         result['map'][interval_date].append({
-            "gtin" : tmp_prod_interval['gtin'],
-            "lat" : tmp_prod_interval['lat'],
-            "lng" : tmp_prod_interval['lng'],
-            "retailer" : tmp_prod_interval['retailer'],
-            "store" : tmp_prod_interval['store'],
-            "date" : tmp_prod_interval['date'],
-            "avg" : round(prod_interval.price.avg(),2)
-            "max" : round(prod_interval.price.max(),2),
-            "min" : round(prod_interval.price.min(),2),
-            "original" : round(prod_interval.price_original.mean(),2)
+            "gtin" : tmp_prod_store['gtin'],
+            "lat" : tmp_prod_store['lat'],
+            "lng" : tmp_prod_store['lng'],
+            "retailer" : tmp_prod_store['retailer'],
+            "store" : tmp_prod_store['store'],
+            "date" : tmp_prod_store['date'],
+            "avg" : round(prod_store.price.avg(),2)
+            "max" : round(prod_store.price.max(),2),
+            "min" : round(prod_store.price.min(),2),
+            "original" : round(prod_store.price_original.mean(),2)
         })
         # Result
-        result['map'][interval_date] = tmp_prod_interval
+        result['map'][interval_date] = tmp_prod_store
 
     # Groped stats for the table
     result['table'] = {}
     df.sort_values(by=['retailer'], ascending=True, inplace=True)
     # Order by retailer
-    grouped_by_retailer = df.groupby(columns_table)
-    for key, prod_retailer in grouped_by_retailer:
-        prod_retailer.sort_values(by=['retailer','date'], ascending=True, inplace=True)
-        tmp_prod_retailer = dict(grouped.iloc[0])
-        result['table'][tmp_prod_retailer['retailer_name']] = {
-            "date" : tmp_prod_retailer['date'],
-            "gtin" : tmp_prod_retailer['gtin'],
-            "name" : tmp_prod_retailer['name'],
-            "store" : tmp_prod_retailer['store'],
-            "price" : round(prod_retailer.price.min(),2),
-            "price_original" : round(prod_retailer.price_original.min(),2)
+    grouped_by_interval = df.groupby(columns_table)
+    for key, prod_interval in grouped_by_interval:
+        prod_interval.sort_values(by=['retailer','date'], ascending=True, inplace=True)
+        tmp_prod_interval = dict(prod_interval.iloc[0])
+        result['table'][tmp_prod_interval['retailer_name']] = {
+            "date" : tmp_prod_interval['date'],
+            "gtin" : tmp_prod_interval['gtin'],
+            "name" : tmp_prod_interval['name'],
+            "store" : tmp_prod_interval['store'],
+            "price" : round(prod_interval.price.min(),2),
+            "price_original" : round(prod_interval.price_original.min(),2)
         }
+
+    # Group by interval and retailer, then get stats
+    # result['history'] = { 'aggregate' [], 'retailers' : [] }
+    result['history'] = {}
+    history = {
+        "retailers" : [],
+        "aggregate" : {
+            "min" : [],
+            "max" : [],
+            "avg" : []
+        }
+    }
+
+    df['time_js'] = df.time.apply(lambda x : time_to_js(x) )
+    df.sort_values(by=['date'], ascending=True, inplace=True)
+
+    # Group by interval to get the aggregations
+    grouped = df.groupby(columns_interval)
+    for key, aggregate in grouped:
+        aggregate = df.sort_values(by=['date'], ascending=True)
+        tmp_aggregate = dict(aggregate.iloc[0])
+        result['history']['aggregate']['min'].append([
+            tmp_aggregate['time_js'],
+            round(aggregate.price.min(), 2)
+        ])
+        history['aggregate']['max'].append([
+            tmp_aggregate['time_js'],
+            round(aggregate.price.min(), 2)
+        ])
+        history['aggregate']['avg'].append([
+            tmp_aggregate['time_js'],
+            round(aggregate.price.mean(), 2)
+        ])
+
+    # Nested grouping for retailer info by interval
+    grouped_by_retailer = df.groupby(['retailer'])
+    for key, prod_retailer in grouped_retailer:
+        prod_retailer.sort_values(by=['retailer'], ascending=True, inplace=True)
+        tmp_prod_retailer = dict(grouped_retailer.iloc[0])
+
+        # Retailer data
+        ret_aggregate = {
+            "data" : [],
+            "name" : tmp_prod_retailer['retailer']
+        }
+
+        # Group by date and loop
+        grouped_by_ret_inter = prod_retailer.grouby(columns_interval)
+        for _key, prod_ret_inter in grouped_by_ret_inter:
+            prod_ret_inter.sort_values(by=['date'], ascending=True, inplace=True)
+            tmp_prod_ret_inter = dict(grouped_by_ret_inter.iloc[0])
+            ret_aggregate['data'].append([
+                tmp_prod_ret_inter['time_js'],
+                round(aggregate.price.mean(), 2)
+            ])
 
     # Save task result
     task.progress = 100
