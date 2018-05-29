@@ -11,6 +11,7 @@ import numpy as np
 import requests
 from pygres import Pygres
 from cassandra import ConsistencyLevel
+import tqdm
 from config import *
 import app.utils.db as _db
 from app.consumer import with_context
@@ -245,18 +246,18 @@ def populate_geoprice_tables(val):
     try:
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
-        price.as_dict
     except Exception as e:
-        logger.error("Product invalid: {}".format(e))
-        logger.warning(val)
+        # logger.error("Product invalid: {}".format(e))
+        # logger.warning(val)
         # log missing items
         with open('missing_items.csv', 'a') as _file:
             _file.write('{},{}\n'\
                 .format(price_val['item_uuid'],
                         price_val['retailer']))
         return False
-    if price.save_all():
-        logger.info("Loaded tables for: {}".format(val['product_uuid']))
+    #logger.info("[2] Saving All...")
+    if price.save_all_batch():
+        logger.debug("Loaded tables for: {}".format(val['product_uuid']))
 
 @with_context
 def day_migration(*args):
@@ -278,17 +279,18 @@ def day_migration(*args):
             List of Products info
     """
     day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
-    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
+    logger.debug("Retrieving info for migration on ({}-{})".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
-        logger.info("No prices to migrate in {}-{}!".format(ret, day))
+        logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
-    logger.info("Found {} prices".format(len(data)))    
-    for j, d in data.iterrows():
+    logger.info("Found {} prices".format(len(data)))
+    for j, d in tqdm.tqdm(data.iterrows()):
         # Populate each table in new KS
+        #logger.info("[1] Populating...")
         populate_geoprice_tables(d.to_dict())
-        logger.info("{}%  Populated"\
+        logger.debug("{}%  Populated"\
             .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
 
@@ -327,7 +329,7 @@ if __name__ == '__main__':
     cassconf = cassandra_args()
     # Retrieve products from Catalogue, retailers and workers
     prods = fetch_all_prods(cassconf, None)
-    retailers = list(set(prods['source'].tolist()))
+    retailers = list(set(prods['source'].tolist()))[:1]
     _workers = cassconf['workers'] if cassconf['workers'] else 3
     # Verify if historic is applicable
     if cassconf['historic_on']:
@@ -345,5 +347,5 @@ if __name__ == '__main__':
     with Pool(_workers) as pool:
         # Call to run migration over all dates
         pool.map(day_migration,
-            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+            itertools.product(daterange, retailers, [1000], [cassconf], [prods]))
     logger.info("Finished executing ({}) migration".format(daterange))
