@@ -79,8 +79,8 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
                     "value" :
                 } ]
             }
-            - table: 
-            - history
+            - table: all table data
+            - history: history chart data
                   
     """
     global task
@@ -109,7 +109,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     if f_retailers:
         retailers_by_key = { k : v for k,v in retailers.items() if k in f_retailers }
     else:
-        retailers_by_key = rets 
+        retailers_by_key = retailers 
 
     # Get all stores
     stores = g._geolocation.get_stores(retailers_by_key.keys())
@@ -128,7 +128,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     items_by_uuid = { i['item_uuid'] : i for i in items }
     task.progress = 20
     
-    # Get products per item and then prices
+    # Get products per item and then prices to build the main DF
     table = []
     prices = []
     for i,it in enumerate(items):
@@ -218,6 +218,10 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
         # Result
         result['map'][interval_date] = tmp_prod_store
 
+    task.progress = 70
+    logger.info("Built map result: ")
+    print(result['map'])
+
     # Groped stats for the table
     result['table'] = {}
     df.sort_values(by=['retailer'], ascending=True, inplace=True)
@@ -235,6 +239,10 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
             "price_original" : round(prod_interval.price_original.min(),2)
         }
 
+    task.progress = 70
+    logger.info("Built table result: ")
+    print(result['table'])
+
     # Group by interval and retailer, then get stats
     # result['history'] = { 'aggregate' [], 'retailers' : [] }
     result['history'] = {}
@@ -245,6 +253,10 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
             "max" : [],
             "avg" : []
         }
+        "title" : "Tendencia de precios regionalizados",
+        "subtitle" : "Retailers: {}".format( 
+            ", ".join( [ v['name'] for k,v in retailers_by_key.items() ] ) 
+        )
     }
 
     df['time_js'] = df.time.apply(lambda x : time_to_js(x) )
@@ -289,6 +301,13 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
                 tmp_prod_ret_inter['time_js'],
                 round(aggregate.price.mean(), 2)
             ])
+
+        # Append to history variable
+        history['retailers'].append(ret_aggregate)
+
+
+    result['history'] = history
+    result['history'][]
 
     # Save task result
     task.progress = 100
