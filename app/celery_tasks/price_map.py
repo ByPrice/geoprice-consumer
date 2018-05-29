@@ -119,7 +119,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     else:
         stores_by_uuid = { s['uuid'] : s for s in stores }
 
-    # Get item details
+    # Get details of all items requested
     items = g._catalogue.get_items(
         values=f_items, 
         by='item_uuid', 
@@ -128,7 +128,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
     items_by_uuid = { i['item_uuid'] : i for i in items }
     task.progress = 20
     
-    # Get product_uuids per item
+    # Get products per item and then prices
     table = []
     prices = []
     for i,it in enumerate(items):
