@@ -1,9 +1,7 @@
 env/
 .envvars
 __pycache__/
-*.sh
 *.pyc
 .vscode/
-bin/run.local
 Dockerfile.local
 *.log

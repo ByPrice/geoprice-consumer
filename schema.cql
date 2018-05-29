@@ -82,7 +82,7 @@ OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 CREATE TABLE price_by_product_store (
     product_uuid    uuid,
     store_uuid      uuid,
-    date            time,
+    date            int,
     time            timestamp,
     lat             float,
     lng             float,

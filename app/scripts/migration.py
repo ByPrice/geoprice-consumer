@@ -7,6 +7,7 @@ import itertools
 from uuid import UUID
 from multiprocessing import Pool
 import pandas as pd
+import numpy as np
 import requests
 from pygres import Pygres
 from cassandra import ConsistencyLevel
@@ -129,13 +130,15 @@ def fetch_all_prods(conf, limit):
     return prods
 
 
-def fetch_day_prices(_prods, day, limit, conf):
+def fetch_day_prices(_prods, ret, day, limit, conf):
     """ Query data from passed keyspace
 
         Params:
         -----
         _prods : pd.DataFrame
             Products info
+        ret : str
+            Retailer key 
         day : datetime.date
             Query Date 
         limit : int
@@ -157,27 +160,28 @@ def fetch_day_prices(_prods, day, limit, conf):
     logger.info("Connected to C*!")
     # Define CQL query
     cql_query = """SELECT * 
-        FROM price_item
-        WHERE time >= %s
-        AND time < %s
+        FROM price_retailer
+        WHERE retailer = %s
+        AND date = %s
     """
     # Limit statement
     if limit:
         cql_query += ' LIMIT {}'.format(limit)
-    # Allow filtering
-    cql_query += " ALLOW FILTERING"
     # For each item query prices
     try:
+        # Format vars
+        day = int(day.isoformat().replace('-',''))
         r = cdb.query(cql_query,
-            (day, day + datetime.timedelta(days=1)),
+            (ret, day),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
+        r = []
         logger.error(e)
         logger.warning("Could not retrieve {}".format(day))
     # Drop connection with C*
     cdb.close()
-    logger.info("""Finished retreiving prices and closed connection with C*.""")
+    logger.info("""Got {} prices prices from {} in {}""".format(len(r), ret, day))
     # Generate DFs
     data = pd.DataFrame(r)
     del r
@@ -239,10 +243,12 @@ def populate_geoprice_tables(val):
     price = Price(price_val)
     logger.debug("Formatted price info..")
     try:
+        if type(price.product_uuid) is float and np.isnan(price.product_uuid):
+            raise Exception("Product UUID needs to be generated!")
         price.as_dict
     except Exception as e:
-        logger.error("Product invalid {}".format(e))
-        logger.warning(val) 
+        logger.error("Product invalid: {}".format(e))
+        logger.warning(val)
         # log missing items
         with open('missing_items.csv', 'a') as _file:
             _file.write('{},{}\n'\
@@ -262,6 +268,8 @@ def day_migration(*args):
         -----
         day : datetime.date
             Day to execute migration
+        ret : str
+            Retailer
         limit : int, optional, default=None
             Limit of data to apply migration from
         cassconf : dict
@@ -269,19 +277,15 @@ def day_migration(*args):
         prods : list
             List of Products info
     """
-    day, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3]
-    logger.info("Retrieving info for migration on ({})".format(day))
+    day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
+    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
-    data = fetch_day_prices(prods, day, limit, conf)
+    data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
-        logger.info("No prices to migrate!")
+        logger.info("No prices to migrate in {}-{}!".format(ret, day))
         return
     logger.info("Found {} prices".format(len(data)))    
     for j, d in data.iterrows():
-        # Verify values
-        if not d.product_uuid:
-            print(d.to_dict())
-            continue
         # Populate each table in new KS
         populate_geoprice_tables(d.to_dict())
         logger.info("{}%  Populated"\
@@ -321,24 +325,25 @@ if __name__ == '__main__':
     logger.info("Starting Migration script (Prices KS -> GeoPrice KS)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
-    # Retrieve products from Catalogue
+    # Retrieve products from Catalogue, retailers and workers
     prods = fetch_all_prods(cassconf, None)
+    retailers = list(set(prods['source'].tolist()))
+    _workers = cassconf['workers'] if cassconf['workers'] else 3
     # Verify if historic is applicable
     if cassconf['historic_on']:
         # Format vars
-        _workers = cassconf['workers'] if cassconf['workers'] else 3
         daterange = get_daterange(cassconf['from'], cassconf['until'])
         logger.info("Executing Historic migration from {} to {} with {} workers"\
             .format(cassconf['from'], cassconf['until'], _workers))
-        with Pool(_workers) as pool:
-            # Call to run migration over all dates
-            pool.map(day_migration,
-                itertools.product(daterange, [None], [cassconf],[prods]))
     else:
         # Format vars
-        _day = cassconf['date']
+        daterange = [cassconf['date']]
         # Now call to migrate day's data
-        logger.info("Executing Alone migration for {}"\
-            .format(_day))
-        day_migration((_day, None, cassconf, prods))
-        logger.info("Finished executing ({}) migration".format(_day))
+        logger.info("Executing Alone migration for {} with {} workers"\
+            .format(daterange, _workers))
+    # Call Multiprocessing for async queries
+    with Pool(_workers) as pool:
+        # Call to run migration over all dates
+        pool.map(day_migration,
+            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+    logger.info("Finished executing ({}) migration".format(daterange))
