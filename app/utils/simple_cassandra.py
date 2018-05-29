@@ -1,7 +1,8 @@
 import sys
 from cassandra.cluster import Cluster
 from cassandra import ConsistencyLevel
-from cassandra.query import SimpleStatement, PreparedStatement
+from cassandra.query import SimpleStatement, PreparedStatement, bind_params
+from cassandra.auth import PlainTextAuthProvider
 from cassandra.concurrent import execute_concurrent_with_args
 import logging
 
@@ -12,6 +13,7 @@ class SimpleCassandra(object):
 
     def __init__(self, config, **kwargs):
         self.config = config
+        auth_provider = None
 
         # Kwargs
         self.autocommit = kwargs.get('autocommit', False)
@@ -25,26 +27,42 @@ class SimpleCassandra(object):
             "PORT" : "9042" if "PORT" not in config else config['PORT'],
             "TIMEOUT" : 30 if "TIMEOUT" not in config else config['TIMEOUT'],
             "CONSISTENCY_LEVEL" : "QUORUM" if "CONSISTENCY_LEVEL" not in config else config['CONSISTENCY_LEVEL'],
-        }        
+        }     
+        # Auth
+        if 'USER' in config and 'PASSWORD' in config:
+            if config['USER'] and config['PASSWORD']:
+                auth_provider = PlainTextAuthProvider(
+                    username=config['USER'], 
+                    password=config['PASSWORD']
+                )   
+
         # Cluster
-        self.cluster = Cluster(
-            self.config['CONTACT_POINTS'],
-            port=self.config['PORT'],
-            connect_timeout=30
-        )
+        if auth_provider:
+            self.cluster = Cluster(
+                self.config['CONTACT_POINTS'],
+                port=self.config['PORT'],
+                connect_timeout=30,
+                auth_provider=auth_provider
+            )
+        else:
+            self.cluster = Cluster(
+                self.config['CONTACT_POINTS'],
+                port=self.config['PORT'],
+                connect_timeout=30
+            )
         # Set session
         try:
-            self.session = self.cluster.connect(self.config['KEYSPACE'])
             # If keyspac is set, connect...
+            self.session = self.cluster.connect()
             if self.config['KEYSPACE']:
-                self.connect()
+                self.set_keyspace()
         except Exception as e:
             logger.error("Something happened in SimpleCassandra connection")
             logger.error(e)
             sys.exit()
 
 
-    def connect(self):
+    def set_keyspace(self):
         """ Once connecting, get the session
         """
         logger.info("Getting cassandra session...")
@@ -73,14 +91,19 @@ class SimpleCassandra(object):
         return result
 
 
-    def query(self, qry, params=(), size=5000, timeout=30):
+    def query(self, qry, params=(), size=5000, timeout=30, consistency=None):
         """ Cassandra query with pagination
             @Params:
                 - qry {str}: cassandra query
                 - size {int}: size of the query batch
         """
         result = []
-        statement = SimpleStatement(qry, fetch_size=size)
+        consistency = consistency if consistency else self.session.default_consistency_level
+        statement = SimpleStatement(
+            qry, 
+            fetch_size=size,
+            consistency_level=consistency
+        )
         for row in self.session.execute(statement, params, timeout=timeout):
             result.append(row)
         return result

@@ -1,19 +1,12 @@
-# Cassandra Cluster 
+# Cassandra Cluster
 
 # Separación de archivos
 
 Jorge
-- scripts/stats
-- controllers/stats
-- models/stats
-- controllers/product
-- models/product
-- models/item
-- controllers/alarm
-- models/alarm
+- migration (prices -> geoprices) [by Day] Missing for N days
 
 Rodrigo
-- models/price 
+- models/price
 - scripts/dumps
 - run.sh 
 - models/task

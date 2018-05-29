@@ -1,9 +1,9 @@
 #-*- coding: utf-8 -*-
-from .. import db
+from flask import g
 import datetime
 import uuid
 import math
-from . import geohash
+from ..utils import geohash
 from .. import applogger
 
 # Database connection:  db.session
@@ -16,9 +16,9 @@ class Price(object):
     session = None
     fields = [
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
-        'price','price_original','discount',
-        'promo','date','location','coords','zips',
-        'stores', 'lats', 'lngs', 'cities'
+        'price','price_original','discount', 'currency',
+        'promo','date','location','coords','zips', 'source',
+        'stores', 'lats', 'lngs', 'cities', 'url'
     ]
 
     product_uuid = None
@@ -27,6 +27,7 @@ class Price(object):
     url = None
     price = None
     price_original = None
+    currency = 'MXN'
     discount = None
     promo = None
     date = None
@@ -37,10 +38,11 @@ class Price(object):
     states = []
     lats = []
     lngs = []
+    location = {}
 
     def __init__(self, *initial_data, **kwargs):
         # Db session init
-        self.session = db.session
+        self.session = g._db
         # In case of dictionary initialization
         for dictionary in initial_data:
             for key in dictionary:
@@ -62,6 +64,7 @@ class Price(object):
             self.gtin = int(self.gtin)
         except:
             self.gtin = None
+            #logger.error("Gtin invalid format, only int accepted: {}".format(self.gtin))
         # Locations
         coords = []
         zips = []
@@ -103,13 +106,14 @@ class Price(object):
     def as_dict(self):
         ''' Dictionary representation for saving to cassandra '''
         return {
-            'id' : self.id,
-            'product_uuid' : uuid.UUID(self.item_uuid),
-            'gtin' : self.gtin,
+            'price_uuid' : uuid.uuid4(),
+            'product_uuid' : uuid.UUID(self.product_uuid),
+            'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
             'url' : self.url if self.url != None else '',
             'price' : float(self.price),
             'price_original' : float(self.price_original) if self.price_original else self.price,
+            'currency' : self.currency,
             'discount' : float(self.discount) if self.discount else 0,
             'promo' : self.promo if (self.promo != None and self.promo != 'null') else 0,
             'date' : self.date,
@@ -133,13 +137,25 @@ class Price(object):
         keys = list(elem.keys())
         # Si no tiene todas las keys requeridas regresamos False
         if not set(req_vars).issubset(keys):
+            logger.error("Invalid price: not complete set of required params")
             return False
         # If there is no price, return False
-        if not elem['price'] or (type(elem['price']) is not float and type(elem['price']) is not int ):
+        try:
+            assert (type(elem['price']) is float or type(elem['price']) is int ) == True
+        except:
+            logger.error("Invalid price: error in price field")
+            return False
+        # Currency
+        try:
+            assert type(elem['currency']) == str
+        except:
+            logger.error("Invalid price: error in currency field")
             return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
+            logger.error("Invalid price: error in location")
             return False
+
         return True
 
 
@@ -149,11 +165,12 @@ class Price(object):
         for i in range(0,len(self.location['store'])):
             yield {
                 'product_uuid' : uuid.UUID(self.product_uuid),
-                'gtin' : self.gtin,
+                'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
                 'source' : self.source,
                 'url' : self.url,
                 'price' : float(self.price),
                 'price_original' : float(self.price_original) if self.price_original else self.price,
+                'currency' : self.currency,
                 'discount' : float(self.discount) if self.discount else 0,
                 'promo' : self.promo,
                 'date' : self.date,
@@ -190,10 +207,11 @@ class Price(object):
     def save_price_raw(self):
         try:
             return self.session.execute(
-            """ INSERT INTO price_raw (
+                """ 
+                INSERT INTO price_raw (
                     date, product_uuid, raw
                 )
-                VALUES(
+                VALUES (
                     %(date)s, %(product_uuid)s, %(raw)s
                 ) 
                 """, {
@@ -223,6 +241,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price")
             return True
         except Exception as e:
             logger.error("Could not save price")
@@ -236,14 +255,15 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_date(
-                        product_uuid, date, time, store_uuid, price, price_original, promo, currency 
+                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     )
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_product_date")
             return True
         except Exception as e:
             logger.error("Could not save price_by_product_date")
@@ -265,6 +285,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_date")
             return True
         except Exception as e:
             logger.error("Could not save price_by_date")
@@ -273,29 +294,34 @@ class Price(object):
             return []
 
     def save_price_by_product_store(self):
-        try:
+        #try:
+        if True:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_store(
-                        product_uuid, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_product_store")
             return True
-        except Exception as e:
+        if False:
+        #except Exception as e:
             logger.error("Could not save price_by_product_store")
             logger.error(self.as_dict)
             logger.error(e)
             return []
 
 
-    # Save geohash, 
-    def save_price_geohash(self):
+    def save_price_by_geohash(self):
+        """ Save price by each goehash
+            Resolution from 4 to 12
+        """
         for elem in self.loc_generator():
             # Get the geohash of the coordinates
             ghash = geohash.encode(float(elem['lat']),float(elem['lng']))
@@ -316,7 +342,7 @@ class Price(object):
                 elem['geohash'] = gh
                 self.session.execute(
                     """
-                    INSERT INTO price_geohash(
+                    INSERT INTO price_by_geohash(
                         product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
                     )
                     VALUES(
@@ -326,6 +352,7 @@ class Price(object):
                     """,
                     elem
                 )
+        logger.debug("OK save_price_by_geohash")
         return True
 
     def save_price_by_source(self):
@@ -342,6 +369,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_source")
             return True
         except Exception as e:
             logger.error("Could not save price_by_source")
@@ -363,6 +391,7 @@ class Price(object):
                     """,
                     elem
                 )
+            logger.debug("OK save_price_by_store")
             return True
         except Exception as e:
             logger.error("Could not save price_by_source")
@@ -381,14 +410,15 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo (
-                        product_uuid, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
                 )
+            logger.debug("OK save_promo")
             return True
         except Exception as e:
             logger.error("Could not save promo")
@@ -407,17 +437,80 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo_by_store (
-                        product_uuid, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
                 )
+            logger.debug("OK save_promo_by_store")
             return True
         except Exception as e:
-            logger.error("Could not save promo")
+            logger.error("Could not save promo_by_store")
             logger.error(self.as_dict)
             logger.error(e)
             return []
+    
+    @staticmethod
+    def save_stats_by_product(elem):
+        """ Save aggregated values by day
+
+            Params:
+            -----
+            elem : dict
+                Product aggregated values
+        """    
+        try:
+            g._db.execute(
+                """
+                INSERT INTO stats_by_product (
+                    product_uuid, date, avg_price, datapoints,
+                    max_price, min_price, mode_price, std_price
+                )
+                VALUES(
+                    %(product_uuid)s, %(date)s, %(avg_price)s,
+                    %(datapoints)s, %(max_price)s, %(min_price)s,
+                    %(mode_price)s, %(std_price)s
+                )
+                """,
+                elem
+            )
+            logger.debug("OK save_stats_by_product")
+            return True
+        except Exception as e:
+            logger.error("Could not save save_stats_by_product")
+            logger.error(elem)
+            logger.error(e)
+            return False
+
+
+    @staticmethod
+    def query_by_product_store(products=[], stores=[], dates=[]):
+        """ Query cassandra by prod_uuid, store_uuid and dates
+            by three nested loops getting all values possibles
+            @Returns:
+                [{
+                    "product" : "",
+                    "store" : "",
+                    "date" : ""
+                }]
+        """
+        # Order dates
+        dates = date.sort()
+        
+        # Nested loops
+        for d in dates:
+            for s in stores:
+                for p in prods:
+                    rows = g._db.query("""
+                        select * from 
+                        price_by_product_store 
+                        where product_uuid=%s 
+                        and store_uuid=%s
+                        and date=%s
+                    """, [p,s,d])
+                    result.append(rows)
+                    
+        return result     
