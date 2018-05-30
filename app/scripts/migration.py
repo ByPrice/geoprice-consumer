@@ -2,6 +2,7 @@ import sys
 import argparse
 import ast
 import json
+from app.utils import geohash
 import datetime
 import itertools
 from uuid import UUID
@@ -220,6 +221,7 @@ def format_price(val):
             'city': [val['city']],
             'state': [val['state']],
             'country': 'Mexico',
+            'geohash': val['geohash'],
             "coords" : [
                 {
                     "lat" : float(val['lat']),
@@ -285,6 +287,11 @@ def day_migration(*args):
     if data.empty:
         logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
+    data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
+    data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
+    del(data_aux["lat"])
+    del (data_aux["lng"])
+    data = data.merge(data_aux, on="store_uuid", how="left")
     logger.info("Found {} prices".format(len(data)))
     for j, d in tqdm.tqdm(data.iterrows()):
         # Populate each table in new KS
