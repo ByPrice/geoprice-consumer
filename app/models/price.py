@@ -6,7 +6,6 @@ import math
 from ..utils import geohash
 from .. import applogger
 
-geohash_dict = {}
 # Database connection:  db.session
 logger = applogger.get_logger()
 
@@ -197,13 +196,13 @@ class Price(object):
         # self.save_price_by_product_date()
         # self.save_price_by_date()
         # self.save_price_by_product_store()
-        # self.save_price_by_geohash()
+        self.save_price_by_geohash()
         # self.save_price_by_source()
         # self.save_price_by_store()
         # self.save_promo()
         # self.save_promo_by_store()
         #
-        self.save_batch()
+        #self.save_batch()
 
         #logger.info("[4] Finish saving...")
         return True
@@ -495,177 +494,104 @@ class Price(object):
             - execute()
             - execue_async() en caso de que se haga cuello de botella
         '''
-        elem = self.get_geohash()
-        self.save_batch(elem)
-        #self.save_price_by_geohash()
-        #logger.info("[4] Finish saving...")
+        self.save_batch_geohash()
+        self.save_batch()
         return True
 
-    def get_set_geohash(self, store_uuid, lat, lng):
-        global geohash_dict
-        geohash_dict[store_uuid] = geohash.encode(lat, lng)
-        return geohash_dict.get(store_uuid)
 
-    def get_geohash(self):
+    def save_batch_geohash(self):
         """ Save price by each goehash
             Resolution from 4 to 12
         """
-        elem = list(self.loc_generator())[0]
-        # Get the geohash of the coordinates
-
-        ghash = geohash_dict.get(elem["store_uuid"], self.get_set_geohash(elem['store_uuid'], float(elem['lat']), float(elem['lng'])))
-        elem['geohash'], elem['geohash1'], elem['geohash2'], elem['geohash3'], elem['geohash4'], elem['geohash5'], elem['geohash6'], elem['geohash7'], elem['geohash8'] = ghash, ghash[:-1], ghash[:-2], ghash[:-3], ghash[:-4], ghash[:-5], ghash[:-6], ghash[:-7], ghash[:-8]
-        return elem
-
-
-    def save_batch(self, elem):
         try:
+            elem = list(self.loc_generator())[0]
+            # Get the geohash of the coordinates
+            for i in range(0, 9):
+                self.session.execute(
+                    """
+                    INSERT INTO price_by_geohash(
+                        product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(geohash)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
+                        %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    )
+                    """,
+                    elem
+                )
+                elem['geohash'] = elem['geohash'][:-1]
+            return True
+        except:
+            return False
 
-            self.session.execute("""
+
+    def save_batch(self):
+        try:
+            elem = list(self.loc_generator())[0]
+            self.session.execute(
+                """
                 BEGIN BATCH
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+
+                INSERT INTO price(
+                        product_uuid, time, gtin, store_uuid, lat, lng, price, price_original, promo, url, currency
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(time)s, %(gtin)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    );
+
+                INSERT INTO price_by_product_date(
+                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
+                    );
+
+                INSERT INTO price_by_date(
+                        date, time, product_uuid, store_uuid, price, price_original, promo, url, currency
+                    )
+                    VALUES(
+                        %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    );
+
+                INSERT INTO price_by_product_store(
+                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    );
+
+                INSERT INTO price_by_source (
+                     source, date, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(geohash)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(source)s, %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+
+                INSERT INTO price_by_store (
+                    store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(geohash1)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+
+                INSERT INTO promo (
+                    product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(geohash2)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+
+                INSERT INTO promo_by_store (
+                    product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(geohash3)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                )
-                VALUES(
-                    %(product_uuid)s, %(geohash4)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                )
-                VALUES(
-                    %(product_uuid)s, %(geohash5)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                )
-                VALUES(
-                    %(product_uuid)s, %(geohash6)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                )
-                VALUES(
-                    %(product_uuid)s, %(geohash7)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
-                
-                INSERT INTO price_by_geohash(
-                    product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                )
-                VALUES(
-                    %(product_uuid)s, %(geohash8)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                    %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
-                
+
                 APPLY BATCH;
                 """,
                 elem
             )
-
-            # self.session.execute(
-            #     """
-            #     BEGIN BATCH
-            #
-            #     INSERT INTO price(
-            #             product_uuid, time, gtin, store_uuid, lat, lng, price, price_original, promo, url, currency
-            #         )
-            #         VALUES(
-            #             %(product_uuid)s, %(time)s, %(gtin)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #         );
-            #
-            #     INSERT INTO price_by_product_date(
-            #             product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
-            #         )
-            #         VALUES(
-            #             %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
-            #         );
-            #
-            #     INSERT INTO price_by_date(
-            #             date, time, product_uuid, store_uuid, price, price_original, promo, url, currency
-            #         )
-            #         VALUES(
-            #             %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #         );
-            #
-            #     INSERT INTO price_by_product_store(
-            #             product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency
-            #         )
-            #         VALUES(
-            #             %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #         );
-            #
-            #     INSERT INTO price_by_source (
-            #          source, date, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency
-            #     )
-            #     VALUES(
-            #         %(source)s, %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #     );
-            #
-            #     INSERT INTO price_by_store (
-            #         store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency
-            #     )
-            #     VALUES(
-            #         %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #     );
-            #
-            #     INSERT INTO promo (
-            #         product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
-            #     )
-            #     VALUES(
-            #         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #     );
-            #
-            #     INSERT INTO promo_by_store (
-            #         product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
-            #     )
-            #     VALUES(
-            #         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-            #     );
-            #
-            #     APPLY BATCH;
-            #     """,
-            #     elem
-            # )
-            logger.debug("OK save_batch")
             return True
         except Exception as e:
             # logger.error("Could not save save_stats_by_product")
