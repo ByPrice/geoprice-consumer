@@ -145,7 +145,7 @@ CREATE TABLE price_by_source (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((source, date), time, product_uuid)
+    PRIMARY KEY     ((source, date), time, product_uuid, store_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
                      'compaction_window_unit': 'DAYS',
@@ -171,7 +171,7 @@ CREATE TABLE price_by_store (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((store_uuid, date), time, product_uuid, store_uuid)
+    PRIMARY KEY     ((store_uuid, date), time, product_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
                      'compaction_window_unit': 'DAYS',
