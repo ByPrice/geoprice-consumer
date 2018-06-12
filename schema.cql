@@ -118,7 +118,7 @@ CREATE TABLE price_by_geohash (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((product_uuid, geohash), time)   
+    PRIMARY KEY     ((product_uuid, geohash), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
                      'compaction_window_unit': 'DAYS', 
