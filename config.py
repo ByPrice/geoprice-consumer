@@ -56,9 +56,9 @@ STREAMER_EXCHANGE = os.getenv('STREAMER_EXCHANGE', 'data')
 STREAMER_EXCHANGE_TYPE = os.getenv('STREAMER_EXCHANGE_TYPE', 'direct')
 
 # Rabbit queues
-QUEUE_ROUTING = "routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "routing"
-QUEUE_GEOPRICE = 'geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'geoprice'
-QUEUE_CACHE = "cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "cache"
+QUEUE_ROUTING = "bp_routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_routing"
+QUEUE_GEOPRICE = 'bp_geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'bp_geoprice'
+QUEUE_CACHE = "bp_cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_cache"
 
 # Cassandra seeds
 if ENV.upper() == 'DEV':
