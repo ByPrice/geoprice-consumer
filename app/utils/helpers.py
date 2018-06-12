@@ -9,6 +9,28 @@ import calendar
 geo_stores_url = SRV_GEOLOCATION+'/store/retailer?key=%s'
 geo_rets_url = SRV_GEOLOCATION+'/retailer/all'
 
+
+def tuplize(_list, is_uuid=False):
+    """ Static method to convert into a tuple-like string
+
+        Params: 
+        -----
+        - _list: (list) Elements to convert
+        - is_uuid: (bool) UUID flag to remove or not single-quotes
+
+        Returns:
+        -----
+        (str) Tuple-like Converted String
+    """
+    lstr = str(tuple(_list))
+    if len(_list) == 1:
+        lstr = lstr.replace(',','')
+    if is_uuid:
+        lstr = lstr.replace("'","")
+    return lstr
+
+
+
 def tupleize_date(date, periods):
     """ Generate date tuples from a certain date 
         and a number of prior periods (days)

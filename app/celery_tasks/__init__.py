@@ -3,7 +3,7 @@ import json
 import datetime
 import os
 from app.utils import applogger
-from app.models.task import Task, TASK_STAGE
+from app.models.task import Task
 import config
 import app as geoprice
 from celery import Celery
@@ -55,8 +55,7 @@ def with_context(original_function):
         ctx.push()
         logger.debug('AppContext is been created')
         # Connect db
-        geoprice.get_db()
-        geoprice.get_redis()
+        geoprice.build_context()
         logger.debug('Connected to cassandra and redis')
         original_function(*args,**kwargs)
         # Teardown context
@@ -66,24 +65,28 @@ def with_context(original_function):
 
 
 @celery_app.task(bind=True)
-def test_task(self):
+@with_context
+def test_task(self, params):
     """ Celery test task
     """
     # Fetch Task ID
     task_id = self.request.id
     logger.info('Verifying Task:'+str(task_id))
+    logger.info('Received params: {}'.format(params))
 
     # Get the state
-    task = Task()
+    task = Task(task_id)
     task.progress = 0
 
     # Make an operation
     import time
     time.sleep(2)
+    logger.info('Processing task')
     task.progress = 50
     
     # Save result
     time.sleep(2)
+    logger.info('Getting task result')
     task.progress = 100
     task.result = {
         "msg" : "Task completed successfully",
@@ -92,31 +95,73 @@ def test_task(self):
      
 
 @celery_app.task(bind=None)
-def get_price_map(self):
+@with_context
+def price_map(self, params):
     """ Async task for getting prices_map
     """
     from . import price_map
-    price_map.run()
+    # Get Task ID
+    _task_id = self.request.id
+    logger.info("Executing Map Task: %s", _task_id)
+        
+    try:
+        prices_map.run(
+            _task_id,
+            params['filters'],
+            params['retailers'],
+            params['date_start'],
+            params['date_end'],
+            params['interval']
+        )
+    except Exception as e:
+        logger.error(e)
+        logger.warning('Could not fetch Map prices!')
+        return False
+
+    return True
     
+
 
 @celery_app.task(bind=True)
 @with_context
-def prices_history(self, params):
+def price_history(self, params):
     """ Async task for geting price history 
+        - Create new task
+        - Pass parameters
     """
+    from . import price_history
     # Get Task ID
     _task_id = self.request.id
-    logger.info("Executing Historic Task: %s", _task_id)
+    logger.info("Executing Map Task: %s", _task_id)
+
+    # Params validation
+    if not params:
+        raise errors.AppError(40002, "Params Missing!", 400)
+    if 'filters' not in params:
+        raise errors.AppError(40003, "Filters param Missing!", 400)
+    if 'retailers' not in params:
+        raise errors.AppError(40003, "Retailers param Missing!", 400)
+    if 'date_start' not in params:
+        raise errors.AppError(40003, "Start Date param Missing!", 400)
+    if 'date_end' not in params:
+        raise errors.AppError(40003, "End Date param Missing!", 400)
+    if 'interval' not in params:
+        # In case interval is not explicit, set to day
+        params['interval'] = 'day' 
+
     # Call Historia method
     try:
-        Historia.grouped_by_retailer(_task_id,
-                            params['filters'],
-                            params['retailers'],
-                            params['date_start'],
-                            params['date_end'],
-                            params['interval'])
+        price_history.run(
+            _task_id,
+            params['filters'],
+            params['retailers'],
+            params['date_start'],
+            params['date_end'],
+            params['interval']
+        )
     except Exception as e:
         logger.error(e)
         logger.warning('Could not fetch Historic prices!')
-        return {'progress': 100, 'total': 100, 'status': 'Failed'}
-    return {'progress': 100, 'total': 100, 'status': 'Completed'}
+        return False
+
+    return True
