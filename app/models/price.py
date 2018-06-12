@@ -484,3 +484,33 @@ class Price(object):
             logger.error(elem)
             logger.error(e)
             return False
+
+
+    @staticmethod
+    def query_by_product_store(products=[], stores=[], dates=[]):
+        """ Query cassandra by prod_uuid, store_uuid and dates
+            by three nested loops getting all values possibles
+            @Returns:
+                [{
+                    "product" : "",
+                    "store" : "",
+                    "date" : ""
+                }]
+        """
+        # Order dates
+        dates = date.sort()
+        
+        # Nested loops
+        for d in dates:
+            for s in stores:
+                for p in prods:
+                    rows = g._db.query("""
+                        select * from 
+                        price_by_product_store 
+                        where product_uuid=%s 
+                        and store_uuid=%s
+                        and date=%s
+                    """, [p,s,d])
+                    result.append(rows)
+                    
+        return result     
