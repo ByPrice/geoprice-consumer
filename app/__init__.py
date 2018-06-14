@@ -63,7 +63,7 @@ def get_redis():
     """ Method to connect to redis
     """
     try:
-        if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis'::
+        if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis':
             g._redis = Redis(
                 host=config.REDIS_HOST,
                 port=config.REDIS_PORT,
