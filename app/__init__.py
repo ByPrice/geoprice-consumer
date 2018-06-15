@@ -21,15 +21,15 @@ applogger.create_logger()
 logger = applogger.get_logger()
 
 # Flask controllers imports
-#from app.controllers import product, stats, alarm
+from app.controllers import product, stats, alarm, dump
 
 # Flask blueprint registration
-#app.register_blueprint(product.mod, url_prefix='/product')
-#app.register_blueprint(stats.mod, url_prefix='/stats')
-#app.register_blueprint(alarm.mod, url_prefix='/alarm')
+app.register_blueprint(product.mod, url_prefix='/product')
+app.register_blueprint(stats.mod, url_prefix='/stats')
+app.register_blueprint(alarm.mod, url_prefix='/alarm')
+app.register_blueprint(dump.mod, url_prefix='/dump')
 #app.register_blueprint(mapa.mod, url_prefix='/mapa')
 #app.register_blueprint(historia.mod, url_prefix='/historia')
-#app.register_blueprint(dump.mod, url_prefix='/dump')
 #app.register_blueprint(check.mod, url_prefix='/check')
 
 
@@ -43,9 +43,9 @@ def build_context(
     """
     get_db()
     get_redis()
-    get_sdks(services=services)
+    get_sdks(services)
     get_consumer(queue=queue_consumer)
-    get_consumer(queue=queue_producer)
+    get_producer(queue=queue_producer)
 
 
 def get_db():
@@ -63,7 +63,7 @@ def get_redis():
     """ Method to connect to redis
     """
     try:
-        if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis'::
+        if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis':
             g._redis = Redis(
                 host=config.REDIS_HOST,
                 port=config.REDIS_PORT,
@@ -77,8 +77,10 @@ def get_redis():
 def get_sdks(modules):
     """ Method build service SDKs
     """
+    if modules is None:
+        return False
     # Import geolocation
-    if 'geolocation' in required:
+    if 'geolocation' in modules:
         from app.utils.geolocation import Geolocation
         if not hasattr(g, '_geolocation'):
             g._geolocation = Geolocation(
@@ -86,7 +88,7 @@ def get_sdks(modules):
                 protocol=config.SRV_PROTOCOL
             )
     # Import catalogue
-    if 'catalogue' in required:
+    if 'catalogue' in modules:
         from app.utils.catalogue import Catalogue
         if not hasattr(g, '_catalogue'):
             g._catalogue = Catalogue(
@@ -98,11 +100,14 @@ def get_consumer(queue=None):
     """ App method to connect to rabbit consumer
     """
     try:
-        if not hasattr(g, "_consumer") and queue != None:
+        if not hasattr(g, "_consumer"):
+            g._consumer = {}
+        if queue != None and queue not in g._consumer:
             g._consumer[queue] = RabbitEngine(config={
                 'queue': queue, 
                 'routing_key': queue
             }, blocking=False)
+            logger.debug("Init Consumer..")
     except Exception as e:
         logger.error("Could not connect to rabbitmq consumer!!")
         logger.error(e)
@@ -113,11 +118,14 @@ def get_producer(queue=None):
     """ App method to connect to rabbit consumer
     """
     try:
-        if not hasattr(g, "_producer") and queue != None:
+        if not hasattr(g, "_producer"):
+            g._producer = {}
+        if queue != None and queue not in g._producer:
             g._producer[queue] = RabbitEngine(config={
                 'queue': queue, 
                 'routing_key': queue
             }, blocking=False)
+            logger.debug("Init Producer..")
     except Exception as e:
         logger.error("Could not connect to rabbitmq producer!!")
         logger.error(e)
