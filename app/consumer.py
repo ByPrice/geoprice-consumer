@@ -55,8 +55,7 @@ def callback(ch, method, properties, body):
             # Publish message to price-cache
             if g._producer[q_cache]:
                 g._producer[q_cache].publish_message(q_cache, new_price)
-    except NoHostAvailable as e:
-        logger.error("No Cassandra host available, shutting down...")
+    except Exception as e:
         logger.error(e)
         sys.exit()
     except Exception as e:
