@@ -151,7 +151,8 @@ class Price(object):
             assert type(elem['currency']) == str
         except:
             logger.warning("Invalid price: error in currency field")
-            del elem['currency']
+            if 'currency' in elem:
+                del elem['currency']
         # Retailer or Source validation
         if 'retailer' not in elem and 'source' not in elem:
             logger.error("Missing Retailer or Source field")
