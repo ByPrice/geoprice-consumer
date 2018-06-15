@@ -92,8 +92,6 @@ class Price(object):
         # Retailer as source
         self.source = self.retailer if not self.source else self.source
 
-
-
     @property
     def values(self):
         ''' Display the column names and values of the current object
@@ -152,8 +150,8 @@ class Price(object):
         try:
             assert type(elem['currency']) == str
         except:
-            logger.error("Invalid price: error in currency field")
-            return False
+            logger.warning("Invalid price: error in currency field")
+            del elem['currency']
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
             logger.error("Invalid price: error in location")
