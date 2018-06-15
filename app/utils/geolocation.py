@@ -1,7 +1,7 @@
 import requests
 
 
-class Geolocation(obj):
+class Geolocation(object):
 
     def __init__(self, uri="", protocol="http"):
         """ Init method
