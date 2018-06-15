@@ -112,7 +112,6 @@ def get_consumer(queue=None):
         logger.error("Could not connect to rabbitmq consumer!!")
         logger.error(e)
 
-    
 
 def get_producer(queue=None):
     """ App method to connect to rabbit consumer
@@ -124,14 +123,11 @@ def get_producer(queue=None):
             g._producer[queue] = RabbitEngine(config={
                 'queue': queue, 
                 'routing_key': queue
-            }, blocking=False)
+            }, blocking=True)
             logger.debug("Init Producer..")
     except Exception as e:
         logger.error("Could not connect to rabbitmq producer!!")
         logger.error(e)
-
-    
-    
 
 @app.before_request
 def before_request():

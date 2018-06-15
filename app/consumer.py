@@ -2,6 +2,7 @@ import datetime
 import json
 from config import *
 import requests
+from cassandra.cluster import NoHostAvailable
 import re
 from uuid import uuid1 as UUID
 import app as geoprice
