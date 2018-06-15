@@ -18,7 +18,7 @@ class Price(object):
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
         'price','price_original','discount', 'currency',
         'promo','date','location','coords','zips', 'source',
-        'stores', 'lats', 'lngs', 'cities', 'url'
+        'stores', 'lats', 'lngs', 'cities', 'url', 'retailer'
     ]
 
     product_uuid = None
@@ -89,6 +89,8 @@ class Price(object):
         self.states = states
         self.lats = lats
         self.lngs = lngs
+        # Retailer as source
+        self.source = self.retailer if not self.source else self.source
 
 
 
@@ -133,11 +135,12 @@ class Price(object):
         ''' Quick fields validation
         '''
         logger.debug("Validating price")
-        req_vars = ["product_uuid","source","price","price_original","date","location"]
+        req_vars = ["product_uuid","retailer","price","price_original","date","location"]
         keys = list(elem.keys())
         # Si no tiene todas las keys requeridas regresamos False
         if not set(req_vars).issubset(keys):
             logger.error("Invalid price: not complete set of required params")
+            logger.debug(elem)
             return False
         # If there is no price, return False
         try:
