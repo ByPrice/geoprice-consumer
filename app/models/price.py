@@ -23,6 +23,7 @@ class Price(object):
 
     product_uuid = None
     source = None
+    retailer = None
     gtin = None
     url = None
     price = None
