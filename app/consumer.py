@@ -9,6 +9,7 @@ from flask import g
 from functools import wraps
 from app.utils import db, applogger, errors
 from app.utils.rabbit_engine import RabbitEngine
+from app.models.price import Price
 import sys
 
 logger = applogger.get_logger()
