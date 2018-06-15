@@ -133,7 +133,7 @@ class Price(object):
         ''' Quick fields validation
         '''
         logger.debug("Validating price")
-        req_vars = ["product_uuid","retailer","price","price_original","date","location"]
+        req_vars = ["product_uuid","price","price_original","date","location"]
         keys = list(elem.keys())
         # Si no tiene todas las keys requeridas regresamos False
         if not set(req_vars).issubset(keys):
@@ -152,6 +152,10 @@ class Price(object):
         except:
             logger.warning("Invalid price: error in currency field")
             del elem['currency']
+        # Retailer or Source validation
+        if 'retailer' not in elem and 'source' not in elem:
+            logger.error("Missing Retailer or Source field")
+            return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
             logger.error("Invalid price: error in location")
