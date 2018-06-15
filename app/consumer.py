@@ -9,6 +9,7 @@ from flask import g
 from functools import wraps
 from app.utils import db, applogger, errors
 from app.utils.rabbit_engine import RabbitEngine
+from app.models.price import Price
 import sys
 
 logger = applogger.get_logger()
@@ -42,7 +43,7 @@ def with_context(original_function):
 def callback(ch, method, properties, body):
     try:
         new_price = json.loads(body.decode('utf-8'))
-        logger.debug("Price "+new_price['retailer']+" - "+new_price['item_uuid']+" - stores: "+ str(len(new_price['location']['store'])))
+        logger.debug("Price "+new_price['retailer']+" - "+new_price['product_uuid']+" - stores: "+ str(len(new_price['location']['store'])))
         # Valuamos las variables recibidas para verificar que tenga todos los datos
         if not Price.validate(new_price):
             logger.debug('Could not validate price')
@@ -50,7 +51,7 @@ def callback(ch, method, properties, body):
         else:
             price = Price(new_price)
             price.save_all()
-            logger.info('Saved price for ' + price.retailer + ' ' + str(price.item_uuid))
+            logger.info('Saved price for ' + price.retailer + ' ' + str(price.product_uuid))
             # Publish message to price-cache
             if g._producer[q_cache]:
                 g._producer[q_cache].publish_message(q_cache, new_price)

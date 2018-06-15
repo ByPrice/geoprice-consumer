@@ -18,7 +18,7 @@ class Price(object):
         'product_uuid', 'gtin', 'store_uuid', 'product_id',
         'price','price_original','discount', 'currency',
         'promo','date','location','coords','zips', 'source',
-        'stores', 'lats', 'lngs', 'cities', 'url'
+        'stores', 'lats', 'lngs', 'cities', 'url', 'retailer'
     ]
 
     product_uuid = None
@@ -89,8 +89,8 @@ class Price(object):
         self.states = states
         self.lats = lats
         self.lngs = lngs
-
-
+        # Retailer as source
+        self.source = self.retailer if not self.source else self.source
 
     @property
     def values(self):
@@ -133,11 +133,12 @@ class Price(object):
         ''' Quick fields validation
         '''
         logger.debug("Validating price")
-        req_vars = ["product_uuid","source","price","price_original","date","location"]
+        req_vars = ["product_uuid","price","price_original","date","location"]
         keys = list(elem.keys())
         # Si no tiene todas las keys requeridas regresamos False
         if not set(req_vars).issubset(keys):
             logger.error("Invalid price: not complete set of required params")
+            logger.debug(elem)
             return False
         # If there is no price, return False
         try:
@@ -149,7 +150,11 @@ class Price(object):
         try:
             assert type(elem['currency']) == str
         except:
-            logger.error("Invalid price: error in currency field")
+            logger.warning("Invalid price: error in currency field")
+            del elem['currency']
+        # Retailer or Source validation
+        if 'retailer' not in elem and 'source' not in elem:
+            logger.error("Missing Retailer or Source field")
             return False
         # If there is no location of the price, return False
         if not elem['location'] or not elem['location']['coords'] or type(elem['location']['coords']) != list:
