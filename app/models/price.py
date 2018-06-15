@@ -149,7 +149,8 @@ class Price(object):
             return False
         # Currency
         try:
-            assert type(elem['currency']) == str
+            if 'currency' in elem:
+                assert type(elem['currency']) == str
         except:
             logger.warning("Invalid price: error in currency field")
             if 'currency' in elem:
