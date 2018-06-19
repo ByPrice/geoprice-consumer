@@ -143,7 +143,8 @@ class Product(object):
         # Format response
         df_cols = ['item_uuid', 'product_uuid', 'price',
             'store_uuid', 'url', 'price_original',
-            'discount', 'time', 'source', 'date', 'distance', 'promo']
+            'discount', 'time', 'source', 'date', 'distance',
+            'promo']
         prods = filt_df[df_cols]\
             .rename(columns={'price_original': 'previous_price'})\
             .sort_values(by=['price', 'distance'])\
@@ -157,16 +158,16 @@ class Product(object):
                 d_time, d_name, d_address = Product.contact_store_info(tmp_store)
                 # If centralized, generate record for each store
                 prods[i]['store'] = {
-                    'store_uuid' : irow['store_uuid'],
+                    'store_uuid' : tmp_store['store_uuid'],
                     'name': d_name,
                     'delivery_time': d_time,
                     'delivery_cost': float(tmp_store["delivery_cost"]) \
                         if tmp_store['delivery_cost'] is not None else None,
                     'delivery_radius': float(tmp_store["delivery_radius"]),
                     'address': d_address,
-                    'latitude' : irow['lat'],
-                    'longitude' : irow['lng'],
-                    'postal_code' : str(irow['zip']).zfill(5)
+                    'latitude' : tmp_store['lat'],
+                    'longitude' : tmp_store['lng'],
+                    'postal_code' : str(tmp_store['zip']).zfill(5)
                 }
             except Exception as e:
                 logger.error(e)
