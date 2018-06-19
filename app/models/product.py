@@ -142,16 +142,14 @@ class Product(object):
         filt_df['date'] = filt_df['time'].astype(str)
         # Format response
         df_cols = ['item_uuid', 'product_uuid', 'price',
-            'url', 'price_original', 'discount', 'time',
-            'source', 'date', 'distance', 'promo']
+            'store_uuid', 'url', 'price_original',
+            'discount', 'time', 'source', 'date', 'distance', 'promo']
         prods = filt_df[df_cols]\
             .rename(columns={'price_original': 'previous_price'})\
             .sort_values(by=['price', 'distance'])\
             .to_dict(orient='records')
         for i, irow in enumerate(prods):
             try:
-                logger.debug(stores_df.head(1))
-                logger.debug(irow)
                 tmp_store = stores_df\
                             .loc[stores_df['store_uuid'] == irow['store_uuid']]\
                             .to_dict(orient="records")[0]
