@@ -150,23 +150,25 @@ class Product(object):
             .to_dict(orient='records')
         for i, irow in enumerate(prods):
             try:
+                print(stores_df.head(1))
+                print(irow)
                 tmp_store = stores_df\
-                            .loc[stores_df['store_uuid'] == irow['store_uuid']]\
+                            .loc[stores_df['store_uuid'] == irow['store_uuid']\
                             .to_dict(orient="records")[0]
                 print(tmp_store)
                 d_time, d_name, d_address = Product.contact_store_info(tmp_store)
                 # If centralized, generate record for each store
                 prods[i]['store'] = {
-                    'store_uuid' : irow.store_uuid,
+                    'store_uuid' : irow['store_uuid'],
                     'name': d_name,
                     'delivery_time': d_time,
                     'delivery_cost': float(tmp_store["delivery_cost"]) \
                         if tmp_store['delivery_cost'] is not None else None,
                     'delivery_radius': float(tmp_store["delivery_radius"]),
                     'address': d_address,
-                    'latitude' : irow.lat,
-                    'longitude' : irow.lng,
-                    'postal_code' : str(irow.zip).zfill(5)
+                    'latitude' : irow['lat'],
+                    'longitude' : irow['lng'],
+                    'postal_code' : str(irow['zip']).zfill(5)
                 }
             except Exception as e:
                 logger.error(e)
