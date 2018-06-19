@@ -146,7 +146,6 @@ class Product(object):
             'discount', 'time', 'source', 'date', 'distance',
             'promo']
         prods = filt_df[df_cols]\
-            .rename(columns={'price_original': 'previous_price'})\
             .sort_values(by=['price', 'distance'])\
             .to_dict(orient='records')
         for i, irow in enumerate(prods):
