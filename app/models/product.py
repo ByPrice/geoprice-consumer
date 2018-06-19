@@ -153,8 +153,9 @@ class Product(object):
                 print(stores_df.head(1))
                 print(irow)
                 tmp_store = stores_df\
-                            .loc[stores_df['store_uuid'] == irow['store_uuid']\
+                            .loc[stores_df['store_uuid'] == irow['store_uuid']]\
                             .to_dict(orient="records")[0]
+                print(tmp_store)
                 d_time, d_name, d_address = Product.contact_store_info(tmp_store)
                 # If centralized, generate record for each store
                 prods[i]['store'] = {
