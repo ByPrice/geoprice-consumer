@@ -224,8 +224,8 @@ def format_price(val):
             'geohash': val['geohash'],
             "coords" : [
                 {
-                    "lat" : float(val['lat']),
-                    "lng" : float(val['lng'])
+                    "lat" : float(val['lat']) if val['lat'] else 19.432609,
+                    "lng" : float(val['lng']) if val['lng'] else -99.133203
                 }
             ]
         }
