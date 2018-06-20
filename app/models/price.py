@@ -505,6 +505,7 @@ class Price(object):
         """
         try:
             elem = list(self.loc_generator())[0]
+            elem["geohash"] = geohash.encode(float(elem['lat']), float(elem['lng']))
             # Get the geohash of the coordinates
             for i in range(0, 9):
                 self.session.execute(
