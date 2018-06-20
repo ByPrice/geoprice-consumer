@@ -194,7 +194,8 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     data.rename(columns={'retailer': 'source'}, inplace=True)
     return pd.merge(data, _prods,
         on=['item_uuid', 'source'], how='left')
-    
+
+
 def format_price(val):
     """ Format price to convert into scraper-like
 
@@ -260,6 +261,7 @@ def populate_geoprice_tables(val):
     #logger.info("[2] Saving All...")
     if price.save_all_batch():
         logger.debug("Loaded tables for: {}".format(val['product_uuid']))
+
 
 @with_context
 def day_migration(*args):

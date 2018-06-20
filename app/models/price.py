@@ -521,7 +521,8 @@ class Price(object):
                 )
                 elem['geohash'] = elem['geohash'][:-1]
             return True
-        except:
+        except Exception as e:
+            logger.error("Cannot save geohash: {}".format(e))
             return False
 
 
@@ -594,7 +595,5 @@ class Price(object):
             )
             return True
         except Exception as e:
-            # logger.error("Could not save save_stats_by_product")
-            # logger.error(elem)
-            # logger.error(e)
+            logger.error(e)
             return False
