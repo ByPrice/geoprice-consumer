@@ -288,8 +288,8 @@ def day_migration(*args):
         logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
     data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
-    data_aux["lat"] =[lat if (lat and lat != np.nan) else 19.432609 for lat in data_aux.lat]
-    data_aux["lng"] = [lng if (lng and lng != np.nan) else -99.133203 for lng in data_aux.lng]
+    data_aux["lat"] =[lat if lat else 19.432609 for lat in data_aux.lat]
+    data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
     data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
     del(data_aux["lat"])
     del (data_aux["lng"])
