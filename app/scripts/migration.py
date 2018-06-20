@@ -288,6 +288,8 @@ def day_migration(*args):
         logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
     data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
+    data_aux["lat"] =[lat if (lat and lat != np.nan) else 19.432609 for lat in data_aux.lat]
+    data_aux["lng"] = [lng if (lng and lng != np.nan) else -99.133203 for lng in data_aux.lng]
     data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
     del(data_aux["lat"])
     del (data_aux["lng"])
@@ -336,7 +338,7 @@ if __name__ == '__main__':
     cassconf = cassandra_args()
     # Retrieve products from Catalogue, retailers and workers
     prods = fetch_all_prods(cassconf, None)
-    retailers = list(set(prods['source'].tolist()))[:1]
+    retailers = list(set(prods['source'].tolist()))
     _workers = cassconf['workers'] if cassconf['workers'] else 3
     # Verify if historic is applicable
     if cassconf['historic_on']:
@@ -354,5 +356,5 @@ if __name__ == '__main__':
     with Pool(_workers) as pool:
         # Call to run migration over all dates
         pool.map(day_migration,
-            itertools.product(daterange, retailers, [1000], [cassconf], [prods]))
+            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
     logger.info("Finished executing ({}) migration".format(daterange))
