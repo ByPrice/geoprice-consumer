@@ -58,6 +58,8 @@ def cassandra_args():
         args['cassandra_port'] = 9042
     if not args['cassandra_keyspace']:
         args['cassandra_keyspace'] = 'prices'
+    if not args['cassandra_keyspace2']:
+        args['cassandra_keyspace2'] = 'stats'
     # Catalogue
     pg_default = {'pg_host': 'localhost', 'pg_port':5432,
         'pg_db':'catalogue', 'pg_user':'postgres',
