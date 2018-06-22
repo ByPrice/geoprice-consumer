@@ -128,7 +128,6 @@ def fetch_all_prods(conf, limit):
         sys.exit()
     return prods
 
-
 def fetch_day_prices(_prods, ret, day, limit, conf):
     """ Query data from passed keyspace
 
@@ -193,7 +192,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         on=['item_uuid', 'source'], how='left')
 
 
-def fetch_day_stats(day, conf):
+def fetch_day_stats(day, conf, df_aux):
     """ Query data from passed keyspace
 
         Params:
@@ -227,12 +226,34 @@ def fetch_day_stats(day, conf):
     # Define CQL query
     cql_query = """SELECT * 
         FROM stats_by_retailer
-        WHERE date >= minTimeuuid('{date1}')
-        AND date < minTimeuuid('{date2}') 
+        WHERE time >= minTimeuuid(%s)
+        AND time < minTimeuuid(%s) 
         ALLOW FILTERING
     """
-    print("////////////////////////////////////////////////")
-    print(cql_query)
+    try:
+        r = cdb.query(cql_query,
+            (date1, date2),
+            timeout=200,
+            consistency=ConsistencyLevel.ONE)
+    except Exception as e:
+        r = []
+        logger.error(e)
+        logger.warning("Could not retrieve {}".format(day))
+
+    # Drop connection with C*
+    cdb.close()
+    logger.info("""Got {} prices prices in {}""".format(len(r), day))
+    # Generate DFs
+    data = pd.DataFrame(r)
+    del r
+    if data.empty:
+        return pd.DataFrame()
+    data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
+    del(data["item_uuid"])
+    del(data["time"])
+    data["date"] = int(str(date1).replace('-', ''))
+    print(data.head())
+    return data
 
 
 def format_price(val):
@@ -364,10 +385,10 @@ def stats_migration(*args):
         prods : list
             List of Products info
     """
-    day, conf = args[0][0], args[0][1]
+    day, conf, df_aux = args[0][0], args[0][1], args[0][2]
     logger.debug("Retrieving stats on ({})".format(day))
     # Retrieve data from Prices KS (prices.price_item)
-    fetch_day_stats(day, conf)
+    fetch_day_stats(day, conf, df_aux)
 
 
 def get_daterange(_from, _until):
@@ -423,7 +444,6 @@ if __name__ == '__main__':
     #     # Call to run migration over all dates
     #     pool.map(day_migration,
     #         itertools.product(daterange, retailers, [None], [cassconf], [prods]))
-
     with Pool(_workers) as pool:
-        pool.map(stats_migration, itertools.product(daterange, [cassconf]))
+        pool.map(stats_migration, itertools.product(daterange, [cassconf], [prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
     logger.info("Finished executing ({}) migration".format(daterange))
