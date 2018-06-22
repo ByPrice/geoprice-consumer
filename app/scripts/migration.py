@@ -235,7 +235,7 @@ def fetch_day_stats(day, conf, df_aux):
     SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
         WHERE time >= minTimeuuid('2016-04-01 00:00:00')
-        AND time < minTimeuuid('2016-04-01 01:00:00') 
+        AND time < minTimeuuid('2016-04-01 00:30:00') 
         ALLOW FILTERING
     """
     try:
