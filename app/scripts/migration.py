@@ -238,6 +238,7 @@ def fetch_day_stats(day, conf, df_aux):
         AND time < minTimeuuid('2016-04-01 00:30:00') 
         ALLOW FILTERING
     """
+    print(cql_query)
     try:
         r = cdb.query(cql_query, (),
             size=2000,
