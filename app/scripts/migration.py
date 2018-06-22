@@ -1,20 +1,15 @@
 import sys
 import argparse
-import ast
-import json
 from app.utils import geohash
 import datetime
 import itertools
-from uuid import UUID
 from multiprocessing import Pool
 import pandas as pd
 import numpy as np
-import requests
 from pygres import Pygres
 from cassandra import ConsistencyLevel
 import tqdm
 from config import *
-import app.utils.db as _db
 from app.consumer import with_context
 from app.models.price import Price
 from app.utils import applogger
@@ -58,7 +53,7 @@ def cassandra_args():
         args['cassandra_port'] = 9042
     if not args['cassandra_keyspace']:
         args['cassandra_keyspace'] = 'prices'
-    if not args['cassandra_keyspace2']:
+    if not args.get('cassandra_keyspace2'):
         args['cassandra_keyspace2'] = 'stats'
     # Catalogue
     pg_default = {'pg_host': 'localhost', 'pg_port':5432,
@@ -226,13 +221,18 @@ def fetch_day_stats(day, conf):
         'PORT': conf['cassandra_port']
     })
     logger.info("Connected to C*!")
+    date1 = str(day)
+    date2 = str(day + datetime.timedelta(days=1))
+
     # Define CQL query
     cql_query = """SELECT * 
         FROM stats_by_retailer
-        WHERE date = %s
+        WHERE date >= minTimeuuid('{date1}')
+        AND date < minTimeuuid('{date2}') 
+        ALLOW FILTERING
     """
     print("////////////////////////////////////////////////")
-    print(day)
+    print(cql_query)
 
 
 def format_price(val):
