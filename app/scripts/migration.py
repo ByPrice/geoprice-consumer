@@ -363,7 +363,7 @@ def stats_migration(*args):
             List of Products info
     """
     day, conf = args[0][0], args[0][1]
-    logger.debug("Retrieving info for migration on ({}-{})".format(day, ret))
+    logger.debug("Retrieving stats on ({})".format(day))
     # Retrieve data from Prices KS (prices.price_item)
     fetch_day_stats(day, conf)
 
