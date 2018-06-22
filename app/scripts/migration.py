@@ -240,6 +240,7 @@ def fetch_day_stats(day, conf, df_aux):
     """
     try:
         r = cdb.query(cql_query, (date1, date2),
+            size=2000,
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
