@@ -196,6 +196,43 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         on=['item_uuid', 'source'], how='left')
 
 
+def fetch_day_stats(day, conf):
+    """ Query data from passed keyspace
+
+        Params:
+        -----
+        _prods : pd.DataFrame
+            Products info
+        ret : str
+            Retailer key
+        day : datetime.date
+            Query Date
+        limit : int
+            Limit of prices to retrieve
+        cassconf: dict
+            Cassandra Cluster config params
+
+        Returns:
+        -----
+        data : pd.DataFrame
+            Prices data
+    """
+    # Connect to C*
+    cdb = SimpleCassandra({
+        'CONTACT_POINTS': conf['cassandra_hosts'],
+        'KEYSPACE': conf['cassandra_keyspace2'],
+        'PORT': conf['cassandra_port']
+    })
+    logger.info("Connected to C*!")
+    # Define CQL query
+    cql_query = """SELECT * 
+        FROM stats_by_retailer
+        WHERE date = %s
+    """
+    print("////////////////////////////////////////////////")
+    print(day)
+
+
 def format_price(val):
     """ Format price to convert into scraper-like
 
@@ -297,6 +334,7 @@ def day_migration(*args):
     del (data_aux["lng"])
     data = data.merge(data_aux, on="store_uuid", how="left")
     logger.info("Found {} prices".format(len(data)))
+
     for j, d in tqdm.tqdm(data.iterrows()):
         # Populate each table in new KS
         #logger.info("[1] Populating...")
@@ -304,6 +342,30 @@ def day_migration(*args):
         logger.debug("{}%  Populated"\
             .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
+
+@with_context
+def stats_migration(*args):
+    """ Retrieves all data available requested day
+        from Prices KS and inserts it into
+        GeoPrice KS.
+
+        Params:
+        -----
+        day : datetime.date
+            Day to execute migration
+        ret : str
+            Retailer
+        limit : int, optional, default=None
+            Limit of data to apply migration from
+        cassconf : dict
+            Dict with Cassandra Configuration to migrate from
+        prods : list
+            List of Products info
+    """
+    day, conf = args[0][0], args[0][1]
+    logger.debug("Retrieving info for migration on ({}-{})".format(day, ret))
+    # Retrieve data from Prices KS (prices.price_item)
+    fetch_day_stats(day, conf)
 
 
 def get_daterange(_from, _until):
@@ -355,8 +417,11 @@ if __name__ == '__main__':
         logger.info("Executing Alone migration for {} with {} workers"\
             .format(daterange, _workers))
     # Call Multiprocessing for async queries
+    # with Pool(_workers) as pool:
+    #     # Call to run migration over all dates
+    #     pool.map(day_migration,
+    #         itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+
     with Pool(_workers) as pool:
-        # Call to run migration over all dates
-        pool.map(day_migration,
-            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+        pool.map(stats_migration, itertools.product(daterange, [cassconf]))
     logger.info("Finished executing ({}) migration".format(daterange))

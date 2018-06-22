@@ -496,6 +496,7 @@ class Price(object):
         '''
         self.save_batch_geohash()
         self.save_batch()
+        self.save_stats()
         return True
 
 
@@ -598,3 +599,7 @@ class Price(object):
         except Exception as e:
             logger.error(e)
             return False
+
+
+    def save_batch(self):
+        elem = list(self.loc_generator())[0]
