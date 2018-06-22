@@ -234,12 +234,12 @@ def fetch_day_stats(day, conf, df_aux):
     cql_query = """
     SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
-        WHERE time >= minTimeuuid(%s)
-        AND time < minTimeuuid(%s) 
+        WHERE time >= minTimeuuid(2016-04-01 00:00:00)
+        AND time < minTimeuuid(2016-04-01 01:00:00) 
         ALLOW FILTERING
     """
     try:
-        r = cdb.query(cql_query, (date1, date2),
+        r = cdb.query(cql_query, (),
             size=2000,
             timeout=200,
             consistency=ConsistencyLevel.ONE)
