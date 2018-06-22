@@ -224,9 +224,10 @@ def fetch_day_stats(day, conf, df_aux):
     timestamp1 = calendar.timegm(day.timetuple())
     day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
     date1 = str(day_aux)
-    date2 = str(day_aux + datetime.timedelta(hours=8))
-    date3 = str(day_aux + datetime.timedelta(hours=16))
-    date4 = str(day_aux + datetime.timedelta(hours=24))
+    date2 = str(day_aux + datetime.timedelta(hours=6))
+    date3 = str(day_aux + datetime.timedelta(hours=12))
+    date4 = str(day_aux + datetime.timedelta(hours=18))
+    date5 = str(day_aux + datetime.timedelta(hours=24))
 
 
     # Define CQL query
