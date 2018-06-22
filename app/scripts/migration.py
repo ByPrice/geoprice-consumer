@@ -2,6 +2,7 @@ import sys
 import argparse
 from app.utils import geohash
 import datetime
+import calendar
 import itertools
 from multiprocessing import Pool
 import pandas as pd
@@ -220,19 +221,24 @@ def fetch_day_stats(day, conf, df_aux):
         'PORT': conf['cassandra_port']
     })
     logger.info("Connected to C*!")
-    date1 = str(day)
-    date2 = str(day + datetime.timedelta(days=1))
+    timestamp1 = calendar.timegm(day.timetuple())
+    day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
+    date1 = str(day_aux)
+    date2 = str(day_aux + datetime.timedelta(hours=8))
+    date3 = str(day_aux + datetime.timedelta(hours=16))
+    date4 = str(day_aux + datetime.timedelta(hours=24))
+
 
     # Define CQL query
-    cql_query = """SELECT * 
+    cql_query = """
+    SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
         WHERE time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
         ALLOW FILTERING
     """
     try:
-        r = cdb.query(cql_query,
-            (date1, date2),
+        r = cdb.query(cql_query, (date1, date2),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
