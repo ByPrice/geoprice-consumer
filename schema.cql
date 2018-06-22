@@ -22,8 +22,8 @@ CREATE TABLE price (
     currency        text,
     PRIMARY KEY     (product_uuid, time)    
 ) WITH CLUSTERING ORDER BY (time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -44,10 +44,10 @@ CREATE TABLE price_by_product_date (
     url             text,
     promo           text,
     currency        text,
-    PRIMARY KEY     ((product_uuid, date), time)    
+    PRIMARY KEY     ((product_uuid, date), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -65,10 +65,10 @@ CREATE TABLE price_by_date (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     (date, time, product_uuid)   
+    PRIMARY KEY     (date, time, product_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -93,8 +93,8 @@ CREATE TABLE price_by_product_store (
     currency        text,
     PRIMARY KEY     ((product_uuid, store_uuid, date), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -120,8 +120,8 @@ CREATE TABLE price_by_geohash (
     currency        text,
     PRIMARY KEY     ((product_uuid, geohash), time)
 ) WITH CLUSTERING ORDER BY (time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -145,10 +145,10 @@ CREATE TABLE price_by_source (
     promo           text,
     url             text,
     currency        text,
-    PRIMARY KEY     ((source, date), time, product_uuid)
+    PRIMARY KEY     ((source, date), time, product_uuid, store_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -161,7 +161,7 @@ OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 /* Prices by store */
 CREATE TABLE price_by_store (
     store_uuid      uuid,
-    date            int, 
+    date            int,
     time            timestamp,
     product_uuid    uuid,
     lat             float,
@@ -173,8 +173,8 @@ CREATE TABLE price_by_store (
     currency        text,
     PRIMARY KEY     ((store_uuid, date), time, product_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -199,8 +199,8 @@ CREATE TABLE promo (
     currency        text,
     PRIMARY KEY     ((product_uuid, date), store_uuid, time)
 ) WITH CLUSTERING ORDER BY (store_uuid ASC, time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -225,8 +225,8 @@ CREATE TABLE promo_by_store (
     currency        text,
     PRIMARY KEY     ((store_uuid, date), product_uuid, time)
 ) WITH CLUSTERING ORDER BY (product_uuid ASC, time DESC)
-AND COMPACTION = {'class': 'TimeWindowCompactionStrategy', 
-                     'compaction_window_unit': 'DAYS', 
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
@@ -241,7 +241,7 @@ CREATE TABLE price_raw (
     date            int,
     product_uuid    uuid,
     raw             text,
-    PRIMARY KEY     (date, product_uuid)    
+    PRIMARY KEY     (date, product_uuid)
 ) WITH CLUSTERING ORDER BY (product_uuid ASC)
 AND COMPACTION = {'class': 'LeveledCompactionStrategy'}
 AND read_repair_chance = 0.1
@@ -252,7 +252,7 @@ AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /* Stats */
 CREATE TABLE stats_by_product (
     product_uuid    uuid,
-    date            int, 
+    date            int,
     avg_price       float,
     datapoints      int,
     max_price       float,
