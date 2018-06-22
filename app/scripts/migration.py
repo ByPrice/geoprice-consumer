@@ -1,18 +1,16 @@
 import sys
 import argparse
-import ast
-import json
+from app.utils import geohash
 import datetime
+import calendar
 import itertools
-from uuid import UUID
 from multiprocessing import Pool
 import pandas as pd
 import numpy as np
-import requests
 from pygres import Pygres
 from cassandra import ConsistencyLevel
+import tqdm
 from config import *
-import app.utils.db as _db
 from app.consumer import with_context
 from app.models.price import Price
 from app.utils import applogger
@@ -56,6 +54,8 @@ def cassandra_args():
         args['cassandra_port'] = 9042
     if not args['cassandra_keyspace']:
         args['cassandra_keyspace'] = 'prices'
+    if not args.get('cassandra_keyspace2'):
+        args['cassandra_keyspace2'] = 'stats'
     # Catalogue
     pg_default = {'pg_host': 'localhost', 'pg_port':5432,
         'pg_db':'catalogue', 'pg_user':'postgres',
@@ -129,7 +129,6 @@ def fetch_all_prods(conf, limit):
         sys.exit()
     return prods
 
-
 def fetch_day_prices(_prods, ret, day, limit, conf):
     """ Query data from passed keyspace
 
@@ -192,7 +191,78 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     data.rename(columns={'retailer': 'source'}, inplace=True)
     return pd.merge(data, _prods,
         on=['item_uuid', 'source'], how='left')
-    
+
+
+def fetch_day_stats(day, conf, df_aux):
+    """ Query data from passed keyspace
+
+        Params:
+        -----
+        _prods : pd.DataFrame
+            Products info
+        ret : str
+            Retailer key
+        day : datetime.date
+            Query Date
+        limit : int
+            Limit of prices to retrieve
+        cassconf: dict
+            Cassandra Cluster config params
+
+        Returns:
+        -----
+        data : pd.DataFrame
+            Prices data
+    """
+    # Connect to C*
+    cdb = SimpleCassandra({
+        'CONTACT_POINTS': conf['cassandra_hosts'],
+        'KEYSPACE': conf['cassandra_keyspace2'],
+        'PORT': conf['cassandra_port']
+    })
+    logger.info("Connected to C*!")
+    timestamp1 = calendar.timegm(day.timetuple())
+    day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
+    date1 = str(day_aux)
+    date2 = str(day_aux + datetime.timedelta(hours=6))
+    date3 = str(day_aux + datetime.timedelta(hours=12))
+    date4 = str(day_aux + datetime.timedelta(hours=18))
+    date5 = str(day_aux + datetime.timedelta(hours=24))
+
+
+    # Define CQL query
+    cql_query = """
+    SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
+        FROM stats_by_retailer
+        WHERE time >= minTimeuuid(%s)
+        AND time < minTimeuuid(%s) 
+        ALLOW FILTERING
+    """
+    try:
+        r = cdb.query(cql_query, (date1, date2),
+            timeout=200,
+            consistency=ConsistencyLevel.ONE)
+    except Exception as e:
+        r = []
+        logger.error(e)
+        logger.warning("Could not retrieve {}".format(day))
+
+    # Drop connection with C*
+    cdb.close()
+    logger.info("""Got {} prices prices in {}""".format(len(r), day))
+    # Generate DFs
+    data = pd.DataFrame(r)
+    del r
+    if data.empty:
+        return pd.DataFrame()
+    data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
+    del(data["item_uuid"])
+    del(data["time"])
+    data["date"] = int(str(date1).replace('-', ''))
+    print(data.head())
+    return data
+
+
 def format_price(val):
     """ Format price to convert into scraper-like
 
@@ -219,10 +289,11 @@ def format_price(val):
             'city': [val['city']],
             'state': [val['state']],
             'country': 'Mexico',
+            'geohash': val['geohash'],
             "coords" : [
                 {
-                    "lat" : float(val['lat']),
-                    "lng" : float(val['lng'])
+                    "lat" : float(val['lat']) if val['lat'] else 19.432609,
+                    "lng" : float(val['lng']) if val['lng'] else -99.133203
                 }
             ]
         }
@@ -245,18 +316,19 @@ def populate_geoprice_tables(val):
     try:
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
-        price.as_dict
     except Exception as e:
-        logger.error("Product invalid: {}".format(e))
-        logger.warning(val)
+        # logger.error("Product invalid: {}".format(e))
+        # logger.warning(val)
         # log missing items
         with open('missing_items.csv', 'a') as _file:
             _file.write('{},{}\n'\
                 .format(price_val['item_uuid'],
                         price_val['retailer']))
         return False
-    if price.save_all():
-        logger.info("Loaded tables for: {}".format(val['product_uuid']))
+    #logger.info("[2] Saving All...")
+    if price.save_all_batch():
+        logger.debug("Loaded tables for: {}".format(val['product_uuid']))
+
 
 @with_context
 def day_migration(*args):
@@ -278,19 +350,52 @@ def day_migration(*args):
             List of Products info
     """
     day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
-    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
+    logger.debug("Retrieving info for migration on ({}-{})".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
-        logger.info("No prices to migrate in {}-{}!".format(ret, day))
+        logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
-    logger.info("Found {} prices".format(len(data)))    
-    for j, d in data.iterrows():
+    data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
+    data_aux["lat"] =[lat if lat else 19.432609 for lat in data_aux.lat]
+    data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
+    data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
+    del(data_aux["lat"])
+    del (data_aux["lng"])
+    data = data.merge(data_aux, on="store_uuid", how="left")
+    logger.info("Found {} prices".format(len(data)))
+
+    for j, d in tqdm.tqdm(data.iterrows()):
         # Populate each table in new KS
+        #logger.info("[1] Populating...")
         populate_geoprice_tables(d.to_dict())
-        logger.info("{}%  Populated"\
+        logger.debug("{}%  Populated"\
             .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
+
+@with_context
+def stats_migration(*args):
+    """ Retrieves all data available requested day
+        from Prices KS and inserts it into
+        GeoPrice KS.
+
+        Params:
+        -----
+        day : datetime.date
+            Day to execute migration
+        ret : str
+            Retailer
+        limit : int, optional, default=None
+            Limit of data to apply migration from
+        cassconf : dict
+            Dict with Cassandra Configuration to migrate from
+        prods : list
+            List of Products info
+    """
+    day, conf, df_aux = args[0][0], args[0][1], args[0][2]
+    logger.debug("Retrieving stats on ({})".format(day))
+    # Retrieve data from Prices KS (prices.price_item)
+    fetch_day_stats(day, conf, df_aux)
 
 
 def get_daterange(_from, _until):
@@ -342,8 +447,10 @@ if __name__ == '__main__':
         logger.info("Executing Alone migration for {} with {} workers"\
             .format(daterange, _workers))
     # Call Multiprocessing for async queries
+    # with Pool(_workers) as pool:
+    #     # Call to run migration over all dates
+    #     pool.map(day_migration,
+    #         itertools.product(daterange, retailers, [None], [cassconf], [prods]))
     with Pool(_workers) as pool:
-        # Call to run migration over all dates
-        pool.map(day_migration,
-            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+        pool.map(stats_migration, itertools.product(daterange, [cassconf], [prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
     logger.info("Finished executing ({}) migration".format(daterange))
