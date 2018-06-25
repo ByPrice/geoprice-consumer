@@ -230,14 +230,14 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
 
     # Define CQL query
     cql_query = """
-    SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
+    SELECT item_uuid, retailer, toDate(time) as date, avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
         WHERE item_uuid in %s
         AND retailer=%s
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
     """
-    print(cql_query)
+    print(item_uuids)
     try:
         r = cdb.query(cql_query, (item_uuids, retailer, date1, date2),
             timeout=200,
@@ -257,8 +257,6 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         return pd.DataFrame()
     data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
     del(data["item_uuid"])
-    del(data["time"])
-    data["date"] = int(str(date1).replace('-', ''))
     print(data.head())
     return data
 
@@ -396,12 +394,12 @@ def stats_migration(*args):
     logger.debug("Retrieving stats on ({})".format(day))
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
-        df_aux = df_retailer[~df_aux.item_uuid.isnull()].reset_index()
-        del (df_aux["index"])
-        for aux in range(0, len(df_aux), 50):
-            item_uuids = tuple(item_uuid for item_uuid in df_aux.iloc[aux: aux + 50].item_uuid if item_uuid and not isinstance(item_uuid, list))
+        df_clean = df_retailer[~df_retailer.item_uuid.isnull()].reset_index()
+        del (df_clean["index"])
+        for aux in range(0, len(df_clean), 50):
+            item_uuids = tuple(item_uuid for item_uuid in df_clean.iloc[aux: aux + 50].item_uuid if item_uuid )
             if item_uuids:
-                fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
+                fetch_day_stats(day, conf, df_clean, item_uuids, retailer)
 
 
 def get_daterange(_from, _until):
