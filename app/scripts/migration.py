@@ -227,6 +227,7 @@ def fetch_day_stats(day, conf, df_aux, uuids, retailer):
     date2 = str(day_aux + datetime.timedelta(hours=24))
 
 
+
     # Define CQL query
     cql_query = """
     SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
@@ -236,6 +237,7 @@ def fetch_day_stats(day, conf, df_aux, uuids, retailer):
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
     """
+    print(cql_query)
     try:
         r = cdb.query(cql_query, (uuids, retailer, date1, date2),
             timeout=200,
