@@ -10,6 +10,7 @@ import numpy as np
 from pygres import Pygres
 from cassandra import ConsistencyLevel
 import tqdm
+import uuid
 from config import *
 from app.consumer import with_context
 from app.models.price import Price
@@ -237,7 +238,6 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
     """
-    print(item_uuids)
     try:
         r = cdb.query(cql_query, (item_uuids, retailer, date1, date2),
             timeout=200,
@@ -245,6 +245,7 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     except Exception as e:
         r = []
         logger.error(e)
+        logger.error(item_uuids)
         logger.warning("Could not retrieve {}".format(day))
 
     # Drop connection with C*
@@ -392,14 +393,15 @@ def stats_migration(*args):
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
     logger.debug("Retrieving stats on ({})".format(day))
+    df_aux["item_uuid"] = df_aux.item_uuid.astype(uuid.UUID)
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
-        df_clean = df_retailer[~df_retailer.item_uuid.isnull()].reset_index()
-        del (df_clean["index"])
-        for aux in range(0, len(df_clean), 50):
-            item_uuids = tuple(item_uuid for item_uuid in df_clean.iloc[aux: aux + 50].item_uuid if item_uuid )
+        df_retailer = df_retailer[~df_retailer.item_uuid.isnull()].reset_index()
+        del (df_retailer["index"])
+        for aux in range(0, len(df_retailer), 50):
+            item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid if item_uuid )
             if item_uuids:
-                fetch_day_stats(day, conf, df_clean, item_uuids, retailer)
+                fetch_day_stats(day, conf, df_retailer, item_uuids, retailer)
 
 
 def get_daterange(_from, _until):
