@@ -232,8 +232,8 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     cql_query = """
     SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
-        WHERE item_uuid in %s,
-        AND retailer=%s, 
+        WHERE item_uuid in %s
+        AND retailer=%s
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
     """
@@ -396,10 +396,10 @@ def stats_migration(*args):
     logger.debug("Retrieving stats on ({})".format(day))
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
-        df_aux = df_retailer.reset_index()
+        df_aux = df_retailer[~df_aux.item_uuid.isnull()].reset_index()
         del (df_aux["index"])
         for aux in range(0, len(df_aux), 50):
-            item_uuids = tuple(df_aux.iloc[aux: aux + 50].item_uuid)
+            item_uuids = list(df_aux.iloc[aux: aux + 50].item_uuid)
             if item_uuids:
                 fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
 
