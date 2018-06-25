@@ -193,7 +193,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         on=['item_uuid', 'source'], how='left')
 
 
-def fetch_day_stats(day, conf, df_aux):
+def fetch_day_stats(day, conf, df_aux, uuids, retailer):
     """ Query data from passed keyspace
 
         Params:
@@ -224,22 +224,20 @@ def fetch_day_stats(day, conf, df_aux):
     timestamp1 = calendar.timegm(day.timetuple())
     day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
     date1 = str(day_aux)
-    date2 = str(day_aux + datetime.timedelta(hours=6))
-    date3 = str(day_aux + datetime.timedelta(hours=12))
-    date4 = str(day_aux + datetime.timedelta(hours=18))
-    date5 = str(day_aux + datetime.timedelta(hours=24))
+    date2 = str(day_aux + datetime.timedelta(hours=24))
 
 
     # Define CQL query
     cql_query = """
     SELECT item_uuid, retailer, toDate(time), avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
-        WHERE time >= minTimeuuid(%s)
+        WHERE item_uuid in %s,
+        AND retailer=%s, 
+        AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
-        ALLOW FILTERING
     """
     try:
-        r = cdb.query(cql_query, (date1, date2),
+        r = cdb.query(cql_query, (uuids, retailer, date1, date2),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
@@ -394,8 +392,14 @@ def stats_migration(*args):
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
     logger.debug("Retrieving stats on ({})".format(day))
-    # Retrieve data from Prices KS (prices.price_item)
-    fetch_day_stats(day, conf, df_aux)
+    for index, df_retailer in df_aux.groupby("retailer"):
+        retailer = list(df_retailer.retailer.drop_duplicates())[0]
+        df_aux = df_retailer.reset_index()
+        del (df_aux["index"])
+        for aux in range(0, len(df_aux), 50):
+            uuids = tuple(df_aux.iloc[aux: aux + 50].uuid)
+            if uuids:
+                fetch_day_stats(day, conf, df_aux, uuids, retailer)
 
 
 def get_daterange(_from, _until):
@@ -451,6 +455,8 @@ if __name__ == '__main__':
     #     # Call to run migration over all dates
     #     pool.map(day_migration,
     #         itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+
+    prods = prods.drop_duplicates("product_uuid")
     with Pool(_workers) as pool:
         pool.map(stats_migration, itertools.product(daterange, [cassconf], [prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
     logger.info("Finished executing ({}) migration".format(daterange))
