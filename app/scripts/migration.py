@@ -399,7 +399,7 @@ def stats_migration(*args):
         df_aux = df_retailer[~df_aux.item_uuid.isnull()].reset_index()
         del (df_aux["index"])
         for aux in range(0, len(df_aux), 50):
-            item_uuids = list(df_aux.iloc[aux: aux + 50].item_uuid)
+            item_uuids = tuple(item_uuid for item_uuid in df_aux.iloc[aux: aux + 50].item_uuid if item_uuid and not isinstance(item_uuid, list))
             if item_uuids:
                 fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
 
