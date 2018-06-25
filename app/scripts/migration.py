@@ -193,7 +193,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         on=['item_uuid', 'source'], how='left')
 
 
-def fetch_day_stats(day, conf, df_aux, uuids, retailer):
+def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     """ Query data from passed keyspace
 
         Params:
@@ -239,7 +239,7 @@ def fetch_day_stats(day, conf, df_aux, uuids, retailer):
     """
     print(cql_query)
     try:
-        r = cdb.query(cql_query, (uuids, retailer, date1, date2),
+        r = cdb.query(cql_query, (item_uuids, retailer, date1, date2),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
@@ -399,9 +399,9 @@ def stats_migration(*args):
         df_aux = df_retailer.reset_index()
         del (df_aux["index"])
         for aux in range(0, len(df_aux), 50):
-            uuids = tuple(df_aux.iloc[aux: aux + 50].uuid)
-            if uuids:
-                fetch_day_stats(day, conf, df_aux, uuids, retailer)
+            item_uuids = tuple(df_aux.iloc[aux: aux + 50].item_uuid)
+            if item_uuids:
+                fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
 
 
 def get_daterange(_from, _until):
