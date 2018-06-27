@@ -233,13 +233,13 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     cql_query = """
     SELECT item_uuid, retailer, toDate(time) as date, avg_price, datapoints, max_price, min_price, mode_price, std_price    
         FROM stats_by_retailer
-        WHERE item_uuid in %s
+        WHERE item_uuid in {}
         AND retailer=%s
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
-    """
+    """.format(str(item_uuids).replace("'", ""))
     try:
-        r = cdb.query(cql_query, (item_uuids, retailer, date1, date2),
+        r = cdb.query(cql_query, (retailer, date1, date2),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
     except Exception as e:
