@@ -496,7 +496,6 @@ class Price(object):
         '''
         self.save_batch_geohash()
         self.save_batch()
-        self.save_stats()
         return True
 
 
