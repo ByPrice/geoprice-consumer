@@ -221,7 +221,6 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         'KEYSPACE': conf['cassandra_keyspace2'],
         'PORT': conf['cassandra_port']
     })
-    logger.info("Connected to C*!")
     timestamp1 = calendar.timegm(day.timetuple())
     day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
     date1 = str(day_aux)
@@ -250,7 +249,7 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
 
     # Drop connection with C*
     cdb.close()
-    logger.info("""Got {} prices prices in {}""".format(len(r), day))
+    logger.debug("""Got {} prices prices in {}""".format(len(r), day))
     # Generate DFs
     data = pd.DataFrame(r)
     del r
@@ -393,13 +392,12 @@ def stats_migration(*args):
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
     logger.debug("Retrieving stats on ({})".format(day))
-    df_aux["item_uuid"] = df_aux.item_uuid.astype(uuid.UUID)
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
-        df_retailer = df_retailer[~df_retailer.item_uuid.isnull()].reset_index()
+        df_retailer = df_retailer.reset_index()
         del (df_retailer["index"])
         for aux in range(0, len(df_retailer), 50):
-            item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid.astype(str))
+            item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid if item_uuid and item_uuid != "None")
             if item_uuids:
                 fetch_day_stats(day, conf, df_retailer, item_uuids, retailer)
 
@@ -453,10 +451,10 @@ if __name__ == '__main__':
         logger.info("Executing Alone migration for {} with {} workers"\
             .format(daterange, _workers))
     # Call Multiprocessing for async queries
-    # with Pool(_workers) as pool:
-    #     # Call to run migration over all dates
-    #     pool.map(day_migration,
-    #         itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+    with Pool(_workers) as pool:
+        # Call to run migration over all dates
+        pool.map(day_migration,
+            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
 
     prods = prods.drop_duplicates("product_uuid")
     with Pool(_workers) as pool:
