@@ -124,7 +124,7 @@ def get_producer(queue=None):
             g._producer[queue] = RabbitEngine(config={
                 'queue': queue, 
                 'routing_key': queue
-            }, blocking=False)
+            }, blocking=True)
             logger.debug("Init Producer..")
     except Exception as e:
         logger.error("Could not connect to rabbitmq producer!!")
