@@ -4,7 +4,6 @@ import pika
 import os
 import json
 from config import *
-import logging
 
 LOGGER = logging.getLogger(APP_NAME)
 
@@ -43,7 +42,7 @@ class RabbitEngine(object):
         self.HOST = config['host'] if 'host' in config.keys() else os.getenv('STREAMER_HOST','localhost')
         self.PORT = config['port'] if 'port' in config.keys() else os.getenv('STREAMER_PORT','5672')
         self.CONN_ATTEMPTS = str(config['connection_attempts']) if 'connection_attempts' in config.keys() else '3'
-        self.HEARTBEAT = config['heartbeat'] if 'heartbeat' in config.keys() else '0'
+        self.HEARTBEAT = config['heartbeat_interval'] if 'heartbeat_interval' in config.keys() else '0'
 
         self.EXCHANGE = config['exchange'] if 'exchange' in config.keys() else os.getenv('STREAMER_EXCHANGE','data')
         self.EXCHANGE_TYPE = config['exchange_type'] if 'exchange_type' in config.keys() else os.getenv('STREAMER_EXCHANGE_TYPE','direct')
@@ -52,19 +51,16 @@ class RabbitEngine(object):
 
 
         if not blocking:
-            self._url = 'amqp://%s:%s@%s:%s/%s?connection_attempts=%s&heartbeat=%s' % \
+            self._url = 'amqp://%s:%s@%s:%s/%s?connection_attempts=%s&heartbeat_interval=%s' % \
                          (self.USER,self.PWD,self.HOST,self.PORT,'%2F',self.CONN_ATTEMPTS,self.HEARTBEAT)
             self._connection = self.connect()
         else:
-            LOGGER.info("Conncetion params Exchange ({}) Exchange type ({}) Queue ({})".format(self.EXCHANGE, self.EXCHANGE_TYPE, self.QUEUE))
-            self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.HOST,heartbeat=0))
+            self._connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.HOST,heartbeat_interval=0))
             self._channel = self._connection.channel()
             self._channel.exchange_declare(exchange=self.EXCHANGE,type=self.EXCHANGE_TYPE)
             self._channel.queue_declare(queue=self.QUEUE)
-            self._channel.queue_bind(queue=self.QUEUE, exchange=self.EXCHANGE, routing_key=self.ROUTING_KEY)
-
-        if purge:
-            self._channel.queue_purge(queue=self.QUEUE)
+            if purge:
+                self._channel.queue_purge(queue=self.QUEUE)
 
 
     def set_callback(self,callback):
@@ -252,7 +248,6 @@ class RabbitEngine(object):
         """
         LOGGER.info('Issuing consumer related RPC commands')
         self.add_on_cancel_callback()
-        self._channel.basic_qos(prefetch_count=1)
         self._consumer_tag = self._channel.basic_consume(self._callback,
                                                          self.QUEUE)
 
@@ -291,7 +286,7 @@ class RabbitEngine(object):
 
         """
         confirmation_type = method_frame.method.NAME.split('.')[1].lower()
-        LOGGER.debug('Received %s for delivery tag: %i',
+        LOGGER.info('Received %s for delivery tag: %i',
                     confirmation_type,
                     method_frame.method.delivery_tag)
         if confirmation_type == 'ack':
@@ -299,7 +294,7 @@ class RabbitEngine(object):
         elif confirmation_type == 'nack':
             self._nacked += 1
         self._deliveries.remove(method_frame.method.delivery_tag)
-        LOGGER.debug('Published %i messages, %i have yet to be confirmed, '
+        LOGGER.info('Published %i messages, %i have yet to be confirmed, '
                     '%i were acked and %i were nacked',
                     self._message_number, len(self._deliveries),
                     self._acked, self._nacked)
@@ -313,14 +308,13 @@ class RabbitEngine(object):
     def publish_message(self,routing_key,message):
         if self._stopping:
             return
-        if not routing_key:
-            routing_key = self.ROUTING_KEY
         properties = pika.BasicProperties(app_id="byprice",content_type='application/json', delivery_mode=2)
         self._channel.basic_publish(exchange=self.EXCHANGE,
-                                    routing_key=routing_key,
+                                    routing_key=self.ROUTING_KEY,
                                     body=json.dumps(message, ensure_ascii=False),
                                     properties=properties)
         self._message_number += 1
+        LOGGER.debug('Published message # %i', self._message_number)
 
 
 
@@ -358,7 +352,7 @@ class RabbitEngine(object):
         :param pika.Spec.BasicProperties: properties
         :param str|unicode body: The message body
         """
-        LOGGER.info('Received message # %s from %s: %s',
+        LOGGER.debug('Received message # %s from %s: %s',
                     basic_deliver.delivery_tag, properties.app_id, body)
         self.acknowledge_message(basic_deliver.delivery_tag)
 

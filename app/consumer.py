@@ -2,6 +2,7 @@ import datetime
 import json
 from config import *
 import requests
+from cassandra.cluster import NoHostAvailable
 import re
 from uuid import uuid1 as UUID
 import app as geoprice
@@ -53,8 +54,11 @@ def callback(ch, method, properties, body):
             price.save_all()
             logger.info('Saved price for ' + price.retailer + ' ' + str(price.product_uuid))
             # Publish message to price-cache
-            if g._producer[q_cache]:
+            if q_cache in g._producer and  g._producer[q_cache]:
                 g._producer[q_cache].publish_message(q_cache, new_price)
+            else:
+                logger.warning("Producer not initialized!")
+                logger.error(g._producer)
     except NoHostAvailable as e:
         logger.error("No Cassandra host available, shutting down...")
         logger.error(e)
