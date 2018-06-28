@@ -236,29 +236,34 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         AND retailer=%s
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
-    """.format(str(item_uuids).replace("'", ""))
-    try:
-        r = cdb.query(cql_query, (retailer, date1, date2),
-            timeout=200,
-            consistency=ConsistencyLevel.ONE)
-    except Exception as e:
-        r = []
-        logger.error(e)
-        logger.error(item_uuids)
-        logger.warning("Could not retrieve {}".format(day))
+    """
+    if len(item_uuids) > 0:
+        if len(item_uuids) > 1:
+            cql_query = cql_query.format(str(item_uuids).replace("'", ""))
+        else:
+            cql_query = cql_query.format(str(item_uuids).replace("'", "").replace(",", ""))
+        try:
+            r = cdb.query(cql_query, (retailer, date1, date2),
+                timeout=200,
+                consistency=ConsistencyLevel.ONE)
+        except Exception as e:
+            r = []
+            logger.error(e)
+            logger.error(item_uuids)
+            logger.warning("Could not retrieve {}".format(day))
 
-    # Drop connection with C*
-    cdb.close()
-    logger.debug("""Got {} prices prices in {}""".format(len(r), day))
-    # Generate DFs
-    data = pd.DataFrame(r)
-    del r
-    if data.empty:
-        return pd.DataFrame()
-    data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
-    del(data["item_uuid"])
-    print(data.head())
-    return data
+        # Drop connection with C*
+        cdb.close()
+        logger.debug("""Got {} prices prices in {}""".format(len(r), day))
+        # Generate DFs
+        data = pd.DataFrame(r)
+        del r
+        if data.empty:
+            return pd.DataFrame()
+        data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
+        del(data["item_uuid"])
+        print(data.head())
+        return data
 
 
 def format_price(val):
