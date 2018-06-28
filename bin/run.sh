@@ -23,12 +23,12 @@ elif [[ $MODE == "CONSUMER" ]]
     echo "Starting $APP_NAME in CONSUMER mode"
     ./env/bin/flask consumer &
 
-elif [[ $MODE == "SCRIPT" ]]
+elif [[ $MODE == "TASK" ]]
     then
     # Run as task
     echo "Starting $APP_NAME in TASK mode"
     # Get argument of task name... $TASK_NAME
-    ./env/bin/flask script --name=$TASK
+    ./env/bin/flask script --name=$SCRIPT
     
 fi
 
