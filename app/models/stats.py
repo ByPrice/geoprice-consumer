@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from uuid import UUID
 from io import StringIO
 import math
@@ -748,3 +749,34 @@ class Stats(object):
             ccat[i]['x'] = xc['x']*(10**(digs))    
         logger.info('Got Category counts')
         return ccat
+
+    @staticmethod
+    def save_stats(data):
+        session = g._db
+        try:
+            for index, row in data.iterrows():
+                session.execute(
+                    """
+                    INSERT INTO price(
+                        product_uuid, date, avg_price, datapoints, max_price, min_price, mode_price, std_price
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(date)s, %(avg_price)s, %(datapoints)s, %(max_price)s, %(min_price)s, %(mode_price)s, %(std_price)s
+                    )
+                    """,
+                    {
+                        "product_uuid": uuid.UUID(row.product_uuid),
+                        "date": int(str(row.date).replace("-", "")),
+                        "avg_price": row.avg_price,
+                        "datapoints": row.datapoints,
+                        "max_price": row.max_price,
+                        "min_price": row.min_price,
+                        "mode_price": row.mode_price,
+                        "std_price": row.std_price
+                    }
+                )
+            logger.debug("OK save_price")
+            return True
+        except Exception as e:
+            logger.error("Could not save price")
+            logger.error(e)

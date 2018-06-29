@@ -14,6 +14,7 @@ import uuid
 from config import *
 from app.consumer import with_context
 from app.models.price import Price
+from app.models.stats import Stats
 from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 
@@ -225,9 +226,6 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
     date1 = str(day_aux)
     date2 = str(day_aux + datetime.timedelta(hours=24))
-
-
-
     # Define CQL query
     cql_query = """
     SELECT item_uuid, retailer, toDate(time) as date, avg_price, datapoints, max_price, min_price, mode_price, std_price    
@@ -237,34 +235,31 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         AND time >= minTimeuuid(%s)
         AND time < minTimeuuid(%s) 
     """
-    if len(item_uuids) > 0:
-        if len(item_uuids) > 1:
-            cql_query = cql_query.format(str(item_uuids).replace("'", ""))
-        else:
-            cql_query = cql_query.format(str(item_uuids).replace("'", "").replace(",", ""))
-        try:
-            r = cdb.query(cql_query, (retailer, date1, date2),
-                timeout=200,
-                consistency=ConsistencyLevel.ONE)
-        except Exception as e:
-            r = []
-            logger.error(e)
-            logger.error(item_uuids)
-            logger.warning("Could not retrieve {}".format(day))
+    if len(item_uuids) > 1:
+        cql_query = cql_query.format(str(item_uuids).replace("'", ""))
+    else:
+        cql_query = cql_query.format(str(item_uuids).replace("'", "").replace(",", ""))
+    try:
+        r = cdb.query(cql_query, (retailer, date1, date2),
+            timeout=200,
+            consistency=ConsistencyLevel.ONE)
+    except Exception as e:
+        r = []
+        logger.error(e)
+        logger.error(item_uuids)
+        logger.warning("Could not retrieve {}".format(day))
 
-        # Drop connection with C*
-        cdb.close()
-        logger.debug("""Got {} prices prices in {}""".format(len(r), day))
-        # Generate DFs
-        data = pd.DataFrame(r)
-        del r
-        if data.empty:
-            return pd.DataFrame()
+    # Drop connection with C*
+    cdb.close()
+    # Generate DFs
+    data = pd.DataFrame(r)
+    del r
+    if not data.empty:
         data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
         del(data["item_uuid"])
-        print(data.head())
         return data
-
+    else:
+        return pd.DataFrame()
 
 def format_price(val):
     """ Format price to convert into scraper-like
@@ -397,14 +392,18 @@ def stats_migration(*args):
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
     logger.debug("Retrieving stats on ({})".format(day))
+    df_stats_list = []
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
         df_retailer = df_retailer.reset_index()
         del (df_retailer["index"])
         for aux in range(0, len(df_retailer), 50):
+            logger.debug("Getting items from {} to {}".format(aux, aux + 50))
             item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid if item_uuid and item_uuid != "None")
-            if item_uuids:
-                fetch_day_stats(day, conf, df_retailer, item_uuids, retailer)
+            logger.debug("Appending items from {} to {}".format(aux, aux + 50))
+            df_stats_list.append(fetch_day_stats(day, conf, df_retailer, item_uuids, retailer))
+    df_stats = pd.concat(df_stats_list)
+    Stats.save_stats(df_stats.drop_duplicates())
 
 
 def get_daterange(_from, _until):
