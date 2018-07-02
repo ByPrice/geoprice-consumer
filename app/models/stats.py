@@ -753,11 +753,11 @@ class Stats(object):
     @staticmethod
     def save_stats(data):
         session = g._db
-        try:
-            for index, row in data.iterrows():
+        for index, row in data.iterrows():
+            try:
                 session.execute(
                     """
-                    INSERT INTO price(
+                    INSERT INTO stats_by_product(
                         product_uuid, date, avg_price, datapoints, max_price, min_price, mode_price, std_price
                     )
                     VALUES(
@@ -775,8 +775,7 @@ class Stats(object):
                         "std_price": row.std_price
                     }
                 )
-            logger.debug("OK save_price")
-            return True
-        except Exception as e:
-            logger.error("Could not save price")
-            logger.error(e)
+            except Exception as e:
+                logger.erro("Error while inserting stats: {}".format(e))
+        logger.debug("OK save_price")
+        return True

@@ -19,8 +19,9 @@ from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 
 # Logger
-#applogger.create_logger()
+# applogger.create_logger()
 logger = applogger.get_logger()
+
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -31,7 +32,7 @@ def cassandra_args():
         conf : dict
             Configuration parameters to migrate from
     """
-    parser = argparse\
+    parser = argparse \
         .ArgumentParser(description='Configures C* params to read from.')
     parser.add_argument('--cassandra_hosts', help='Cassandra Contact points')
     parser.add_argument('--cassandra_port', help='Cassandra Port', type=int)
@@ -59,20 +60,22 @@ def cassandra_args():
     if not args.get('cassandra_keyspace2'):
         args['cassandra_keyspace2'] = 'stats'
     # Catalogue
-    pg_default = {'pg_host': 'localhost', 'pg_port':5432,
-        'pg_db':'catalogue', 'pg_user':'postgres',
-        'pg_password': 'postgres'}
+    pg_default = {'pg_host': 'localhost', 'pg_port': 5432,
+                  'pg_db': 'catalogue', 'pg_user': 'postgres',
+                  'pg_password': 'postgres'}
     for k in pg_default:
         if not args[k]:
             args[k] = pg_default[k]
+
     def date_from_str(strdate):
         """ Parse Date from Str (YYYY-MM-DD)
         """
-        return datetime.datetime\
-                .strptime(str(strdate), '%Y-%m-%d')\
-                .date()
+        return datetime.datetime \
+            .strptime(str(strdate), '%Y-%m-%d') \
+            .date()
+
     args['historic_on'] = True \
-        if (args['from'] and args['until'])\
+        if (args['from'] and args['until']) \
         else False
     # Date
     date_fields = ['date', 'from', 'until']
@@ -81,8 +84,8 @@ def cassandra_args():
             try:
                 args[df] = date_from_str(args[df])
             except:
-                logger.error("Wrong arg: {} must be in format [YYYY-MM-DD]"\
-                    .format(df.capitalize()))
+                logger.error("Wrong arg: {} must be in format [YYYY-MM-DD]" \
+                             .format(df.capitalize()))
                 sys.exit()
         else:
             args[df] = datetime.date.today()
@@ -105,8 +108,8 @@ def fetch_all_prods(conf, limit):
             Product info
     """
     # Connect to Catalogue PSQL DB
-    psqlconf = {x.replace('pg', 'SQL').upper() : y \
-        for x,y in conf.items() if 'pg' in x}
+    psqlconf = {x.replace('pg', 'SQL').upper(): y \
+                for x, y in conf.items() if 'pg' in x}
     catdb = Pygres(psqlconf)
     logger.info("Connected to Catalogue DB!")
     # Query to get all items 
@@ -121,7 +124,7 @@ def fetch_all_prods(conf, limit):
         logger.error(e)
         logger.error("Did not found any products!")
         sys.exit()
-    # Close connection
+    # Close conneon
     prods['product_uuid'] = prods['product_uuid'].astype(str)
     prods['item_uuid'] = prods['item_uuid'].astype(str)
     prods.fillna('', inplace=True)
@@ -130,6 +133,7 @@ def fetch_all_prods(conf, limit):
         logger.error("Did not found any products!")
         sys.exit()
     return prods
+
 
 def fetch_day_prices(_prods, ret, day, limit, conf):
     """ Query data from passed keyspace
@@ -171,11 +175,11 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     # For each item query prices
     try:
         # Format vars
-        day = int(day.isoformat().replace('-',''))
+        day = int(day.isoformat().replace('-', ''))
         r = cdb.query(cql_query,
-            (ret, day),
-            timeout=200,
-            consistency=ConsistencyLevel.ONE)
+                      (ret, day),
+                      timeout=200,
+                      consistency=ConsistencyLevel.ONE)
     except Exception as e:
         r = []
         logger.error(e)
@@ -192,7 +196,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     data['store_uuid'] = data.store_uuid.astype(str)
     data.rename(columns={'retailer': 'source'}, inplace=True)
     return pd.merge(data, _prods,
-        on=['item_uuid', 'source'], how='left')
+                    on=['item_uuid', 'source'], how='left')
 
 
 def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
@@ -241,8 +245,8 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         cql_query = cql_query.format(str(item_uuids).replace("'", "").replace(",", ""))
     try:
         r = cdb.query(cql_query, (retailer, date1, date2),
-            timeout=200,
-            consistency=ConsistencyLevel.ONE)
+                      timeout=200,
+                      consistency=ConsistencyLevel.ONE)
     except Exception as e:
         r = []
         logger.error(e)
@@ -256,10 +260,11 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     del r
     if not data.empty:
         data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
-        del(data["item_uuid"])
+        del (data["item_uuid"])
         return data
     else:
         return pd.DataFrame()
+
 
 def format_price(val):
     """ Format price to convert into scraper-like
@@ -280,7 +285,7 @@ def format_price(val):
         'currency': 'MXN',
         'date': str(val['time']),
         'location': {
-            'store':[
+            'store': [
                 val['store_uuid']
             ],
             'zip': [val['zip']],
@@ -288,10 +293,10 @@ def format_price(val):
             'state': [val['state']],
             'country': 'Mexico',
             'geohash': val['geohash'],
-            "coords" : [
+            "coords": [
                 {
-                    "lat" : float(val['lat']) if val['lat'] else 19.432609,
-                    "lng" : float(val['lng']) if val['lng'] else -99.133203
+                    "lat": float(val['lat']) if val['lat'] else 19.432609,
+                    "lng": float(val['lng']) if val['lng'] else -99.133203
                 }
             ]
         }
@@ -308,7 +313,7 @@ def populate_geoprice_tables(val):
         val : dict
             Price value to insert
     """
-    price_val = format_price(val)    
+    price_val = format_price(val)
     price = Price(price_val)
     logger.debug("Formatted price info..")
     try:
@@ -319,11 +324,11 @@ def populate_geoprice_tables(val):
         # logger.warning(val)
         # log missing items
         with open('missing_items.csv', 'a') as _file:
-            _file.write('{},{}\n'\
-                .format(price_val['item_uuid'],
-                        price_val['retailer']))
+            _file.write('{},{}\n' \
+                        .format(price_val['item_uuid'],
+                                price_val['retailer']))
         return False
-    #logger.info("[2] Saving All...")
+    # logger.info("[2] Saving All...")
     if price.save_all_batch():
         logger.debug("Loaded tables for: {}".format(val['product_uuid']))
 
@@ -355,21 +360,22 @@ def day_migration(*args):
         logger.debug("No prices to migrate in {}-{}!".format(ret, day))
         return
     data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
-    data_aux["lat"] =[lat if lat else 19.432609 for lat in data_aux.lat]
+    data_aux["lat"] = [lat if lat else 19.432609 for lat in data_aux.lat]
     data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
     data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
-    del(data_aux["lat"])
+    del (data_aux["lat"])
     del (data_aux["lng"])
     data = data.merge(data_aux, on="store_uuid", how="left")
     logger.info("Found {} prices".format(len(data)))
 
     for j, d in tqdm.tqdm(data.iterrows()):
         # Populate each table in new KS
-        #logger.info("[1] Populating...")
+        # logger.info("[1] Populating...")
         populate_geoprice_tables(d.to_dict())
-        logger.debug("{}%  Populated"\
-            .format(round(100.0 * j / len(data), 2)))
+        logger.debug("{}%  Populated" \
+                     .format(round(100.0 * j / len(data), 2)))
     logger.info("Finished populating tables")
+
 
 @with_context
 def stats_migration(*args):
@@ -399,7 +405,8 @@ def stats_migration(*args):
         del (df_retailer["index"])
         for aux in range(0, len(df_retailer), 50):
             logger.debug("Getting items from {} to {}".format(aux, aux + 50))
-            item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid if item_uuid and item_uuid != "None")
+            item_uuids = tuple(item_uuid for item_uuid in df_retailer.iloc[aux: aux + 50].item_uuid if
+                               item_uuid and item_uuid != "None")
             logger.debug("Appending items from {} to {}".format(aux, aux + 50))
             df_stats_list.append(fetch_day_stats(day, conf, df_retailer, item_uuids, retailer))
     df_stats = pd.concat(df_stats_list)
@@ -446,21 +453,22 @@ if __name__ == '__main__':
     if cassconf['historic_on']:
         # Format vars
         daterange = get_daterange(cassconf['from'], cassconf['until'])
-        logger.info("Executing Historic migration from {} to {} with {} workers"\
-            .format(cassconf['from'], cassconf['until'], _workers))
+        logger.info("Executing Historic migration from {} to {} with {} workers" \
+                    .format(cassconf['from'], cassconf['until'], _workers))
     else:
         # Format vars
         daterange = [cassconf['date']]
         # Now call to migrate day's data
-        logger.info("Executing Alone migration for {} with {} workers"\
-            .format(daterange, _workers))
+        logger.info("Executing Alone migration for {} with {} workers" \
+                    .format(daterange, _workers))
     # Call Multiprocessing for async queries
     with Pool(_workers) as pool:
         # Call to run migration over all dates
         pool.map(day_migration,
-            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+                 itertools.product(daterange, retailers, [None], [cassconf], [prods]))
 
     prods = prods.drop_duplicates("product_uuid")
     with Pool(_workers) as pool:
-        pool.map(stats_migration, itertools.product(daterange, [cassconf], [prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
+        pool.map(stats_migration, itertools.product(daterange, [cassconf], [
+            prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
     logger.info("Finished executing ({}) migration".format(daterange))
