@@ -321,15 +321,12 @@ def populate_geoprice_tables(val):
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
     except Exception as e:
-        # logger.error("Product invalid: {}".format(e))
-        # logger.warning(val)
-        # log missing items
+        logger.error(e)
         with open('missing_items.csv', 'a') as _file:
             _file.write('{},{}\n' \
                         .format(price_val['item_uuid'],
                                 price_val['retailer']))
         return False
-    # logger.info("[2] Saving All...")
     if price.save_all_batch():
         logger.debug("Loaded tables for: {}".format(val['product_uuid']))
 
@@ -354,7 +351,7 @@ def day_migration(*args):
             List of Products info
     """
     day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
-    logger.debug("Retrieving info for migration on ({}-{})".format(day, ret))
+    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
@@ -370,8 +367,6 @@ def day_migration(*args):
         logger.info("Found {} prices".format(len(data)))
 
         for j, d in tqdm.tqdm(data.iterrows()):
-            # Populate each table in new KS
-            # logger.info("[1] Populating...")
             populate_geoprice_tables(d.to_dict())
             logger.debug("{}%  Populated" \
                          .format(round(100.0 * j / len(data), 2)))
@@ -398,7 +393,7 @@ def stats_migration(*args):
             List of Products info
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
-    logger.debug("Retrieving stats on ({})".format(day))
+    logger.info("Retrieving stats on {}".format(day))
     df_stats_list = []
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
@@ -411,7 +406,13 @@ def stats_migration(*args):
             logger.debug("Appending items from {} to {}".format(aux, aux + 50))
             df_stats_list.append(fetch_day_stats(day, conf, df_retailer, item_uuids, retailer))
     df_stats = pd.concat(df_stats_list)
-    Stats.save_stats(df_stats.drop_duplicates())
+    if df_stats:
+        if Stats.save_stats(df_stats.drop_duplicates()):
+            logger.info("Finished stats on {}".format(day))
+        else:
+            logger.warning("Stats on {} coundnt be finished".format(day))
+    else:
+        logger.warning("No stats on {}".format(day))
 
 
 def get_daterange(_from, _until):

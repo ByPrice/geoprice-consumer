@@ -598,7 +598,3 @@ class Price(object):
         except Exception as e:
             logger.error(e)
             return False
-
-
-    def save_batch(self):
-        elem = list(self.loc_generator())[0]

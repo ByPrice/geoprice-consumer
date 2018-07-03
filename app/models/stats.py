@@ -751,8 +751,9 @@ class Stats(object):
         return ccat
 
     @staticmethod
-    def save_stats(data):
+    def save_stats(data, retailer):
         session = g._db
+        logger.info("Inserting to cassandra {}".format(retailer))
         for index, row in data.iterrows():
             try:
                 session.execute(
@@ -776,6 +777,7 @@ class Stats(object):
                     }
                 )
             except Exception as e:
-                logger.erro("Error while inserting stats: {}".format(e))
-        logger.debug("OK save_price")
+                logger.erro("Error while inserting {} stats: {}".format(retailer, e))
+                return False
+        logger.info("All inserts ({}) from {} have finished ".format(len(data), retailer))
         return True
