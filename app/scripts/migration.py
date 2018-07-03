@@ -259,6 +259,7 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
     data = pd.DataFrame(r)
     del r
     if not data.empty:
+        data['item_uuid'] = data['item_uuid'].astype(str)
         data = df_aux.merge(data, on=["item_uuid", "retailer"], how="inner")
         del (data["item_uuid"])
         return data
@@ -468,6 +469,7 @@ if __name__ == '__main__':
                  itertools.product(daterange, retailers, [None], [cassconf], [prods]))
 
     prods = prods.drop_duplicates("product_uuid")
+    prods["item_uuid"] = prods["item_uuid"].astype(str)
     with Pool(_workers) as pool:
         pool.map(stats_migration, itertools.product(daterange, [cassconf], [
             prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
