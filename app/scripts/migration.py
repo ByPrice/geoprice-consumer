@@ -359,23 +359,23 @@ def day_migration(*args):
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
         logger.debug("No prices to migrate in {}-{}!".format(ret, day))
-        return
-    data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
-    data_aux["lat"] = [lat if lat else 19.432609 for lat in data_aux.lat]
-    data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
-    data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
-    del (data_aux["lat"])
-    del (data_aux["lng"])
-    data = data.merge(data_aux, on="store_uuid", how="left")
-    logger.info("Found {} prices".format(len(data)))
+    else:
+        data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
+        data_aux["lat"] = [lat if lat else 19.432609 for lat in data_aux.lat]
+        data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
+        data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
+        del (data_aux["lat"])
+        del (data_aux["lng"])
+        data = data.merge(data_aux, on="store_uuid", how="left")
+        logger.info("Found {} prices".format(len(data)))
 
-    for j, d in tqdm.tqdm(data.iterrows()):
-        # Populate each table in new KS
-        # logger.info("[1] Populating...")
-        populate_geoprice_tables(d.to_dict())
-        logger.debug("{}%  Populated" \
-                     .format(round(100.0 * j / len(data), 2)))
-    logger.info("Finished populating tables")
+        for j, d in tqdm.tqdm(data.iterrows()):
+            # Populate each table in new KS
+            # logger.info("[1] Populating...")
+            populate_geoprice_tables(d.to_dict())
+            logger.debug("{}%  Populated" \
+                         .format(round(100.0 * j / len(data), 2)))
+        logger.info("Finished populating tables")
 
 
 @with_context
