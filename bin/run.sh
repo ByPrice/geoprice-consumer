@@ -1,41 +1,42 @@
 #!/bin/bash
 
 # if app dir not set, set to app name
-if [ -z "$APP_DIR" ]
+if [[ -z $variable ]]
     then
-    APP_DIR="/"$APP_NAME
+    APP_DIR="/$APP_NAME"
 fi
 
+echo "Starting $APP_NAME in $MODE mode"
 echo "Root app dir: $APP_DIR"
 cd $APP_DIR
-/bin/bash $APP_DIR/env/bin/activate
+/bin/bash env/bin/activate
 
 # Init the database
-$APP_DIR/env/bin/flask initdb
+env/bin/flask initdb
 
 # Evaluate the mode of execution and the 
 if [[ $MODE == "SERVICE" ]]
     then
     # Run celery
     echo "Starting Cekery..."
-    $APP_DIR/env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
+    env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
     # Run gunicorn
     echo "Starting $APP_NAME in SERVICE mode"
-    $APP_DIR/env/bin/gunicorn --workers 3 --bind unix:geoprice.sock -m 000 wsgi:app &
+    env/bin/gunicorn --workers 3 --bind unix:geoprice.sock -m 000 wsgi:app &
     nginx -g "daemon off;"
 
 elif [[ $MODE == "CONSUMER" ]]
     then
     # Run as consumer
     echo "Starting $APP_NAME in CONSUMER mode"
-    $APP_DIR/env/bin/flask consumer &
+    env/bin/flask consumer &
 
 elif [[ $MODE == "TASK" ]]
     then
     # Run as task
     echo "Starting $APP_NAME in TASK mode"
     # Get argument of script name...
-    $APP_DIR/env/bin/flask script --name=$SCRIPT
+    env/bin/flask script --name=$SCRIPT
     
 fi
 
