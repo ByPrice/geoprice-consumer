@@ -61,10 +61,6 @@ QUEUE_ROUTING = "bp_routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_rou
 QUEUE_GEOPRICE = 'bp_geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'bp_geoprice'
 QUEUE_CACHE = "bp_cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_cache"
 
-# Cassandra seeds
-if ENV.upper() == 'DEV':
-    CASSANDRA_CONTACT_POINTS = os.getenv('CASSANDRA_CONTACT_POINTS_DEV', '0.0.0.0')
-
 # Split contact points
 CASSANDRA_CONTACT_POINTS = CASSANDRA_CONTACT_POINTS.split(",")
 
