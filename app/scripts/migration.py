@@ -413,7 +413,7 @@ def stats_migration(*args):
             logger.debug("Appending items from {} to {}".format(aux, aux + 50))
             df_stats_list.append(fetch_day_stats(day, conf, df_retailer, item_uuids, retailer))
     df_stats = pd.concat(df_stats_list)
-    if df_stats:
+    if not df_stats.empty:
         if Stats.save_stats(df_stats.drop_duplicates()):
             logger.info("Finished stats on {}".format(day))
         else:
