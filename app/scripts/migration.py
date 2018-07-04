@@ -157,12 +157,17 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
             Prices data
     """
     # Connect to C*
-    cdb = SimpleCassandra({
-        'CONTACT_POINTS': conf['cassandra_hosts'],
-        'KEYSPACE': conf['cassandra_keyspace'],
-        'PORT': conf['cassandra_port']
-    })
-    logger.info("Connected to C*!")
+    try:
+        cdb = SimpleCassandra({
+            'CONTACT_POINTS': conf['cassandra_hosts'],
+            'KEYSPACE': conf['cassandra_keyspace'],
+            'PORT': conf['cassandra_port']
+        })
+        logger.info("Connected to C*!")
+    except Exception as e:
+        logger.error("Error", e)
+        return pd.DataFrame()
+
     # Define CQL query
     cql_query = """SELECT * 
         FROM price_retailer
@@ -184,6 +189,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         r = []
         logger.error(e)
         logger.warning("Could not retrieve {}".format(day))
+        return pd.DataFrame()
     # Drop connection with C*
     cdb.close()
     logger.info("""Got {} prices prices from {} in {}""".format(len(r), ret, day))
