@@ -306,7 +306,7 @@ def format_price(val):
     return val
 
 
-def populate_geoprice_tables(val):
+def populate_geoprice_tables(val, day):
     """ Populate all tables in GeoPrice KS
         
         Params:
@@ -322,10 +322,11 @@ def populate_geoprice_tables(val):
             raise Exception("Product UUID needs to be generated!")
     except Exception as e:
         logger.error(e)
-        with open('missing_items.csv', 'a') as _file:
-            _file.write('{},{}\n' \
+        with open('missing_items/{}.csv'.format(str(day)), 'a') as _file:
+            _file.write('{},{},{}\n' \
                         .format(price_val['item_uuid'],
-                                price_val['retailer']))
+                                price_val['retailer'],
+                                day))
         return False
     if price.save_all_batch():
         logger.debug("Loaded tables for: {}".format(val['product_uuid']))
@@ -366,8 +367,8 @@ def day_migration(*args):
         data = data.merge(data_aux, on="store_uuid", how="left")
         logger.info("Found {} prices".format(len(data)))
 
-        for j, d in tqdm.tqdm(data.iterrows()):
-            populate_geoprice_tables(d.to_dict())
+        for j, d in data.iterrows():
+            populate_geoprice_tables(d.to_dict(), day)
             logger.debug("{}%  Populated" \
                          .format(round(100.0 * j / len(data), 2)))
         logger.info("Finished populating tables")
@@ -464,11 +465,13 @@ if __name__ == '__main__':
         logger.info("Executing Alone migration for {} with {} workers" \
                     .format(daterange, _workers))
     # Call Multiprocessing for async queries
+    logger.info("Calling pool day_migration")
     with Pool(_workers) as pool:
         # Call to run migration over all dates
         pool.map(day_migration,
                  itertools.product(daterange, retailers, [None], [cassconf], [prods]))
 
+    logger.info("Calling pool stats_migration")
     prods = prods.drop_duplicates("product_uuid")
     prods["item_uuid"] = prods["item_uuid"].astype(str)
     with Pool(_workers) as pool:
