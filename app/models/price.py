@@ -608,7 +608,6 @@ class Price(object):
             return False
 
 
-<<<<<<< HEAD
     @staticmethod
     def query_by_product_store(products=[], stores=[], dates=[]):
         """ Query cassandra by prod_uuid, store_uuid and dates
@@ -637,7 +636,7 @@ class Price(object):
                     result.append(rows)
                     
         return result     
-=======
+
+    ### Verify this method
     def save_batch(self):
         elem = list(self.loc_generator())[0]
->>>>>>> 586b3ee34bf3cd91ee87dfc0134bbdf34c9b29cc
