@@ -21,20 +21,20 @@ if [[ $MODE == "SERVICE" ]]
     echo "Starting Cekery..."
     env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
     # Run gunicorn
-    echo "Starting $APP_NAME in SERVICE mode"
+    echo "Starting Web Service"
     env/bin/gunicorn --workers 3 --bind unix:geoprice.sock -m 000 wsgi:app &
     nginx -g "daemon off;"
 
 elif [[ $MODE == "CONSUMER" ]]
     then
     # Run as consumer
-    echo "Starting $APP_NAME in CONSUMER mode"
-    env/bin/flask consumer &
+    echo "Starting Consumer"
+    env/bin/flask consumer 
 
 elif [[ $MODE == "TASK" ]]
     then
     # Run as task
-    echo "Starting $APP_NAME in TASK mode"
+    echo "Starting Script $SCRIPT"
     # Get argument of script name...
     env/bin/flask script --name=$SCRIPT
     

@@ -19,7 +19,7 @@ def initdb():
 
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
-        PORT=config.CASSANDRA_PORT,
+        CONSISTENCY_LEVEL="LOCAL_ONE",
         USER=config.CASSANDRA_USER,
         PASSWORD=config.CASSANDRA_PASSWORD
     ))
@@ -89,7 +89,7 @@ def connectdb():
         PORT=config.CASSANDRA_PORT,
         CONSISTENCY_LEVEL="LOCAL_ONE",
         USER=config.CASSANDRA_USER,
-        PASSWORD=CASSANDRA_PASSWORD
+        PASSWORD=config.CASSANDRA_PASSWORD
     ))
     return cass.session
 

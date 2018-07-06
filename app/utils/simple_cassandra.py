@@ -58,6 +58,7 @@ class SimpleCassandra(object):
                 self.set_keyspace()
         except Exception as e:
             logger.error("Something happened in SimpleCassandra connection")
+            logger.error(self.config)
             logger.error(e)
             sys.exit()
 
