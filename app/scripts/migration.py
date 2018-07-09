@@ -405,11 +405,11 @@ def stats_migration(*args):
             List of Products info
     """
     day, conf, df_aux = args[0][0], args[0][1], args[0][2]
-    logger.info("Retrieving stats on {}".format(day))
+    logger.info("----------------- Stats on {} -----------------".format(day))
     df_stats_list = []
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
-        logger.info("Getting items from retailer: {}".format(retailer))
+        logger.info("Getting items from retailer: {} on {}".format(retailer, day))
         df_retailer = df_retailer.reset_index()
         del (df_retailer["index"])
         for aux in range(0, len(df_retailer), 50):
