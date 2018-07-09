@@ -227,11 +227,17 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
             Prices data
     """
     # Connect to C*
-    cdb = SimpleCassandra({
+    try:
+        cdb = SimpleCassandra({
         'CONTACT_POINTS': conf['cassandra_hosts'],
         'KEYSPACE': conf['cassandra_keyspace2'],
         'PORT': conf['cassandra_port']
     })
+    except Exception as e:
+        logger.warning("Could not retrieve {}".format(day))
+        logger.error("Error while connecting to cassandra on stats: {}".format(e))
+        return fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
+
     timestamp1 = calendar.timegm(day.timetuple())
     day_aux = datetime.datetime.utcfromtimestamp(timestamp1)
     date1 = str(day_aux)
@@ -254,10 +260,9 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
                       timeout=200,
                       consistency=ConsistencyLevel.ONE)
     except Exception as e:
-        r = []
-        logger.error(e)
-        logger.error(item_uuids)
         logger.warning("Could not retrieve {}".format(day))
+        logger.error("Error while exectuting query on stats: {}".format(e))
+        return pd.DataFrame()
 
     # Drop connection with C*
     cdb.close()
@@ -404,6 +409,7 @@ def stats_migration(*args):
     df_stats_list = []
     for index, df_retailer in df_aux.groupby("retailer"):
         retailer = list(df_retailer.retailer.drop_duplicates())[0]
+        logger.info("Getting items from retailer: {}".format(retailer))
         df_retailer = df_retailer.reset_index()
         del (df_retailer["index"])
         for aux in range(0, len(df_retailer), 50):
