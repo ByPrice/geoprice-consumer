@@ -332,7 +332,7 @@ def populate_geoprice_tables(val, day):
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
     except Exception as e:
-        logger.error(e)
+        logger.debug(e)
         with open('missing_items/{}.csv'.format(str(day)), 'a') as _file:
             _file.write('{},{},{}\n' \
                         .format(price_val['item_uuid'],
