@@ -754,7 +754,7 @@ class Stats(object):
     @staticmethod
     def save_stats(data):
         session = g._db
-        if session:
+        if not isinstance(session, bool):
             logger.info("Inserting to cassandra")
             for index, row in data.iterrows():
                 try:
