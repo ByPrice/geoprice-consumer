@@ -25,7 +25,7 @@ class SimpleCassandra(object):
             "CONTACT_POINTS" : config["CONTACT_POINTS"],
             "KEYSPACE" : None if "KEYSPACE" not in config else config['KEYSPACE'],
             "PORT" : "9042" if "PORT" not in config else config['PORT'],
-            "TIMEOUT" : 30 if "TIMEOUT" not in config else config['TIMEOUT'],
+            "TIMEOUT" : 100 if "TIMEOUT" not in config else config['TIMEOUT'],
             "CONSISTENCY_LEVEL" : "QUORUM" if "CONSISTENCY_LEVEL" not in config else config['CONSISTENCY_LEVEL'],
         }     
         # Auth
@@ -59,7 +59,7 @@ class SimpleCassandra(object):
         except Exception as e:
             logger.error("Something happened in SimpleCassandra connection")
             logger.error(e)
-            sys.exit()
+            self.session = False
 
 
     def set_keyspace(self):

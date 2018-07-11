@@ -89,7 +89,7 @@ def connectdb():
         PORT=config.CASSANDRA_PORT,
         CONSISTENCY_LEVEL="LOCAL_ONE",
         USER=config.CASSANDRA_USER,
-        PASSWORD=CASSANDRA_PASSWORD
+        PASSWORD=config.CASSANDRA_PASSWORD
     ))
     return cass.session
 

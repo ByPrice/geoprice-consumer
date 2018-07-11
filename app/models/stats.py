@@ -14,6 +14,7 @@ from app import errors, logger
 from config import *
 from app.models.item import Item
 from app.utils.helpers import *
+import time
 
 class Stats(object):
     """ Class perform query methods 
@@ -753,31 +754,36 @@ class Stats(object):
     @staticmethod
     def save_stats(data):
         session = g._db
-        logger.info("Inserting to cassandra")
-        for index, row in data.iterrows():
-            try:
-                session.execute(
-                    """
-                    INSERT INTO stats_by_product(
-                        product_uuid, date, avg_price, datapoints, max_price, min_price, mode_price, std_price
+        if session:
+            logger.info("Inserting to cassandra")
+            for index, row in data.iterrows():
+                try:
+                    session.execute(
+                        """
+                        INSERT INTO stats_by_product(
+                            product_uuid, date, avg_price, datapoints, max_price, min_price, mode_price, std_price
+                        )
+                        VALUES(
+                            %(product_uuid)s, %(date)s, %(avg_price)s, %(datapoints)s, %(max_price)s, %(min_price)s, %(mode_price)s, %(std_price)s
+                        )
+                        """,
+                        {
+                            "product_uuid": uuid.UUID(row.product_uuid),
+                            "date": int(str(row.date).replace("-", "")),
+                            "avg_price": row.avg_price,
+                            "datapoints": row.datapoints,
+                            "max_price": row.max_price,
+                            "min_price": row.min_price,
+                            "mode_price": row.mode_price,
+                            "std_price": row.std_price
+                        }
                     )
-                    VALUES(
-                        %(product_uuid)s, %(date)s, %(avg_price)s, %(datapoints)s, %(max_price)s, %(min_price)s, %(mode_price)s, %(std_price)s
-                    )
-                    """,
-                    {
-                        "product_uuid": uuid.UUID(row.product_uuid),
-                        "date": int(str(row.date).replace("-", "")),
-                        "avg_price": row.avg_price,
-                        "datapoints": row.datapoints,
-                        "max_price": row.max_price,
-                        "min_price": row.min_price,
-                        "mode_price": row.mode_price,
-                        "std_price": row.std_price
-                    }
-                )
-            except Exception as e:
-                logger.erro("Error while inserting stats: {}".format(e))
-                return False
-        logger.info("All inserts ({}) have finished ".format(len(data)))
-        return True
+                except Exception as e:
+                    logger.erro("Error while inserting stats: {}".format(e))
+                    return False
+            logger.info("All inserts ({}) have finished ".format(len(data)))
+            return True
+        else:
+            logger.error("Error with session... waiting until it's solved")
+            time.sleep(1000)
+            return Stats.save_stats(data)
