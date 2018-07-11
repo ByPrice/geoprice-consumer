@@ -199,19 +199,15 @@ class Price(object):
             - execue_async() en caso de que se haga cuello de botella
         '''
         #logger.info("[3] Saving price in all tables...")
-        # self.save_price()
-        # self.save_price_by_product_date()
-        # self.save_price_by_date()
-        # self.save_price_by_product_store()
+        self.save_price()
+        self.save_price_by_product_date()
+        self.save_price_by_date()
+        self.save_price_by_product_store()
         self.save_price_by_geohash()
-        # self.save_price_by_source()
-        # self.save_price_by_store()
-        # self.save_promo()
-        # self.save_promo_by_store()
-        #
-        #self.save_batch()
-
-        #logger.info("[4] Finish saving...")
+        self.save_price_by_source()
+        self.save_price_by_store()
+        self.save_promo()
+        self.save_promo_by_store()
         return True
 
     # Save as raw price in json format
@@ -431,9 +427,9 @@ class Price(object):
             logger.debug("OK save_promo")
             return True
         except Exception as e:
-            # logger.error("Could not save promo")
+            logger.debug("Could not save promo")
             # logger.error(self.as_dict)
-            # logger.error(e)
+            logger.error(e)
             return []
 
     def save_promo_by_store(self):
