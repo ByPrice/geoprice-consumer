@@ -41,14 +41,14 @@ class SimpleCassandra(object):
             self.cluster = Cluster(
                 self.config['CONTACT_POINTS'],
                 port=self.config['PORT'],
-                connect_timeout=30,
+                connect_timeout=100,
                 auth_provider=auth_provider
             )
         else:
             self.cluster = Cluster(
                 self.config['CONTACT_POINTS'],
                 port=self.config['PORT'],
-                connect_timeout=30
+                connect_timeout=100
             )
         # Set session
         try:
