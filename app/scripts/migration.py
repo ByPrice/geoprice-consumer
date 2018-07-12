@@ -375,7 +375,7 @@ def day_migration(*args):
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
-        logger.debug("No prices to migrate in {}-{}!".format(ret, day))
+        logger.warning("No prices to migrate in {}-{}!".format(ret, day))
     else:
         data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
         data_aux["lat"] = [lat if lat else 19.432609 for lat in data_aux.lat]
