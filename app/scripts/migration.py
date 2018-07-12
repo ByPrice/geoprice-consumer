@@ -17,6 +17,7 @@ from app.models.price import Price
 from app.models.stats import Stats
 from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
+import time
 
 # Logger
 # applogger.create_logger()
@@ -234,8 +235,15 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         'PORT': conf['cassandra_port']
     })
     except Exception as e:
-        logger.warning("Could not retrieve {}".format(day))
+        logger.warning("Error with simple cassandra {} {}".format(retailer, day))
         logger.error("Error while connecting to cassandra on stats: {}".format(e))
+        time.sleep(50)
+        return fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
+
+    if isinstance(cdb, bool):
+        logger.error("Error with {} on {}".format(retailer, day))
+        logger.error("Cannot conect to cassandra!!! Trying again in 50 secs")
+        time.sleep(50)
         return fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
 
     timestamp1 = calendar.timegm(day.timetuple())
