@@ -240,7 +240,7 @@ def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
         time.sleep(50)
         return fetch_day_stats(day, conf, df_aux, item_uuids, retailer)
 
-    if isinstance(cdb, bool):
+    if isinstance(cdb.session, bool) and cdb.session is False:
         logger.error("Error with {} on {}".format(retailer, day))
         logger.error("Cannot conect to cassandra!!! Trying again in 50 secs")
         time.sleep(50)
