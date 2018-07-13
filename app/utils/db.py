@@ -102,6 +102,7 @@ def getdb():
     logger.info("Connecting to {}...".format(config.CASSANDRA_KEYSPACE))
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
+        PORT=config.CASSANDRA_PORT,
         KEYSPACE=config.CASSANDRA_KEYSPACE,
         CONSISTENCY_LEVEL="LOCAL_ONE",
         USER=config.CASSANDRA_USER,

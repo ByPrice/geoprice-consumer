@@ -748,3 +748,84 @@ class Stats(object):
             ccat[i]['x'] = xc['x']*(10**(digs))    
         logger.info('Got Category counts')
         return ccat
+
+
+    @staticmethod
+    def stats_by_uuid(uuid, stats):
+        """ Retrieve the stats requested from an specific uuid
+
+            Params:
+            ----
+            uuid: <str> item_uuid or product_uuid of an item
+            stats: <str> stats that are going to be in the cassandra query
+
+            Returns:
+            -----
+            stats dict
+        """
+        logger.debug("Retrieving stats by uuid..")
+        # Retailers from service
+        try:
+            items = requests.get(
+                SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                    uuid=uuid)).json()
+            dates = [
+                str(datetime.date.today()). replace("-", ""),
+                str(datetime.date.today() + datetime.timedelta(days=-1)).replace("-", ""),
+                str(datetime.date.today() + datetime.timedelta(days=-2)).replace("-", "")
+            ]
+            product_uuids = [item.get("product_uuid") for item in items.get("products")]
+            if not product_uuids:
+                logger.debug("product_uuid found")
+                product_uuids = [uuid]
+            else:
+                logger.debug("item_uuid found")
+        except Exception as e:
+            logger.error("Stats by uuid is not working correctly! : {}".format(e))
+            logger.error("Url: {}".format(SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                    uuid=uuid)))
+            product_uuids = []
+
+        stats_json = {}
+
+        if product_uuids:
+            logger.debug("Finding prices...")
+            stats_script = [stat + "_price as " + stat for stat in stats]
+            aux = """ 
+                SELECT {stats} 
+                    FROM stats_by_product 
+                    WHERE product_uuid IN ({items}) 
+                        AND date IN ({dates})  
+            """.format(
+                stats=",".join(stats_script),
+                items=",".join(product_uuids),
+                dates=",".join(dates)
+            )
+            cass = g._db
+            rows = cass.execute(aux)
+            df = pd.DataFrame(list(rows))
+            if not df.empty:
+                if "max" in stats:
+                    stats_json["max"] = max(df["max"])
+                if "min" in stats:
+                    stats_json["min"] = min(df["min"])
+                if "avg" in stats:
+                    stats_json["avg"] = sum(df["avg"]) / len(df["avg"])
+            else:
+                if "max" in stats:
+                    stats_json["max"] = None
+                if "min" in stats:
+                    stats_json["min"] = None
+                if "avg" in stats:
+                    stats_json["avg"] = None
+            return stats_json
+        else:
+            if "max" in stats:
+                stats_json["max"] = None
+            if "min" in stats:
+                stats_json["min"] = None
+            if "avg" in stats:
+                stats_json["avg"] = None
+            logger.error("Something is going wrong with stats_by_uuid in geoprice, FIX IT!!")
+
+        return stats_json
