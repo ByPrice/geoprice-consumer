@@ -107,3 +107,22 @@ def get_category_count():
         raise errors.AppError(80004, "Filters params missing")
     cat_count = Stats.get_count_by_cat(params['filters'])
     return jsonfier(cat_count)
+
+
+@mod.route('/stats/<uuid>', methods=['GET'])
+def get_stats_by_uuid(uuid):
+    """ Today's max, min & avg price
+        from an specific item_uuid  or product_uuid
+    """
+    logger.info("Fetching stats by uuid")
+    if 'stats' in request.args:
+        stats = request.args.get('stats').split(",")
+        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg"]]
+        if not stats:
+            logger.warning("Wrong Stats parameters!")
+            stats = ["avg"]
+    else:
+        stats = ["avg"]
+    # Call function to fetch prices
+    json_ = Stats.stats_by_uuid(uuid, stats)
+    return jsonify(json_)
