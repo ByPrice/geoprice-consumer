@@ -534,22 +534,23 @@ Today's max, min & avg price from an specific item_uuid or product_uuid of the d
 
 **Method**:  GET
 
-**Endpoint**: `/product/stats?item_uuid=<item_uuid | required>&prod_uuid=<product_uuid | conditional_required>`
+**Endpoint**: `/stats/stats/<uuid | required>?stats=<type_stats | not_required>`
 
 **Query Params:**
 
 | Param | Description | Condition |
 | ----- | ----------- | --------- |
-| item_uuid  | Item UUID | required |
-| prod_uuid  | Product UUID | required if `item_uuid` not set
+| uuid  | Item or Product UUID | required |
+| type_stats  | "min", "max" or "avg" | not required, if more than one separate by ","
+
 
 **Response:**
 
 ```json
 {
-  "avg_price": 64.42,
-  "max_price": 67.0,
-  "min_price": 62.0
+  "avg": 64.42,
+  "max": 67.0,
+  "min": 62.0
 }
 ```
 
