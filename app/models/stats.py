@@ -806,11 +806,11 @@ class Stats(object):
             df = pd.DataFrame(list(rows))
             if not df.empty:
                 if "max" in stats:
-                    stats_json["max"] = max(df["max"])
+                    stats_json["max"] = round(max(df["max"]), 2)
                 if "min" in stats:
-                    stats_json["min"] = min(df["min"])
+                    stats_json["min"] = round(min(df["min"]), 2)
                 if "avg" in stats:
-                    stats_json["avg"] = sum(df["avg"]) / len(df["avg"])
+                    stats_json["avg"] = round(sum(df["avg"]) / len(df["avg"]), 2)
             else:
                 if "max" in stats:
                     stats_json["max"] = None
