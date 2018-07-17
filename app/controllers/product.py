@@ -296,6 +296,8 @@ def get_stats_by_item():
     """ Today's max, min & avg price 
         from an specific item_uuid  or product_uuid
     """
+    return jsonify({"status": "DEPRECATED",
+                    "msg": "Use: /stats/stats"})
     logger.info("Fetching product stats by item")
     # Validate UUIDs
     item_uuid, product_uuid = None, None
