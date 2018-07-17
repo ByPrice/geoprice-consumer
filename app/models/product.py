@@ -236,7 +236,7 @@ class Product(object):
         _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-            SELECT price 
+            SELECT price, time
             FROM price_by_product_date
             WHERE product_uuid = %s
             AND date = %s
