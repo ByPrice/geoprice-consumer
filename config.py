@@ -32,8 +32,7 @@ REDIS_DB = 0 if ENV != 'DEV' else 1
 
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')
-CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','prices')
-CASSANDRA_KEYSPACE2 = os.getenv('CASSANDRA_KEYSPACE','stats')
+CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','geoprice_us')
 CASSANDRA_PORT = os.getenv('CASSANDRA_PORT','9042')
 CASSANDRA_USER = os.getenv('CASSANDRA_USER','')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
@@ -57,9 +56,9 @@ STREAMER_EXCHANGE = os.getenv('STREAMER_EXCHANGE', 'data')
 STREAMER_EXCHANGE_TYPE = os.getenv('STREAMER_EXCHANGE_TYPE', 'direct')
 
 # Rabbit queues
-QUEUE_ROUTING = "bp_routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_routing"
-QUEUE_GEOPRICE = 'bp_geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'bp_geoprice'
-QUEUE_CACHE = "bp_cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_cache"
+QUEUE_ROUTING = "bp_routing_us_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_routing_us"
+QUEUE_GEOPRICE = 'bp_geoprice_us_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'bp_geoprice_us'
+QUEUE_CACHE = "bp_cache_us_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_cache_us"
 
 # Split contact points
 CASSANDRA_CONTACT_POINTS = CASSANDRA_CONTACT_POINTS.split(",")
