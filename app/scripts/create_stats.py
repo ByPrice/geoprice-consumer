@@ -10,6 +10,7 @@ import argparse
 import datetime
 from uuid import UUID
 import pandas as pd
+import numpy as np
 from scipy import stats
 from flask import g
 from config import *
@@ -17,6 +18,7 @@ from app.utils import applogger
 from app.consumer import with_context
 from app.models.price import Price
 
+np.random.randint
 # Logger
 applogger.create_logger('stats-'+APP_NAME)
 logger = applogger.get_logger()
@@ -90,6 +92,11 @@ def aggregate_daily(daily):
         max_batch : int
             Max batch size to load into C*
     """
+    def _mode(x):
+        try:
+            return stats.mode(x)[0][0]
+        except:
+            return np.median(x)
     # Aggregate data to compute mean, std, max, min, etc.
     aggr_stats = daily.groupby(['product_uuid', 'date']).price\
         .agg([('max_price', 'max'),
@@ -97,7 +104,7 @@ def aggregate_daily(daily):
             ('min_price', 'min'),
             ('datapoints', 'count'),
             ('std_price', 'std'),
-            ('mode_price', lambda x: stats.mode(x)[0])
+            ('mode_price', lambda x: _mode(x))
         ])
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
