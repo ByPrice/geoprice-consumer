@@ -109,8 +109,9 @@ def aggregate_daily(daily):
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
     # Load each element into C*
-    for elem in aggr_stats.to_dict(orient='records'):
-        Price.save_stats_by_product(elem)        
+    from tqdm import tqdm 
+    for elem in tqdm(aggr_stats.to_dict(orient='records')):
+        Price.save_stats_by_product(elem)
     # Disply metrics
     logger.info("Stored {} daily prices".format(len(aggr_stats)))
     logger.info("Prices had the following distribution:\n{}"\
