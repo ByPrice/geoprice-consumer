@@ -18,7 +18,6 @@ from app.utils import applogger
 from app.consumer import with_context
 from app.models.price import Price
 
-np.random.randint
 # Logger
 applogger.create_logger('stats-'+APP_NAME)
 logger = applogger.get_logger()
