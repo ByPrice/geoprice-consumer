@@ -91,6 +91,7 @@ Error codes with respective description.
 - 80009 : "No prices available in {table}"
 - 80010 : "Wrong params format"
 - 80011 : "No {results} found!"
+- 80012 : "Incorrect data format, should be {format}"
 - 89999 : "Internal error."
 
 ## License
