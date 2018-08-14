@@ -937,3 +937,57 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 ]
 }
 ```
+
+-----
+
+## Promos
+
+### Get applying promos for the specified day
+
+**Method**: GET
+
+**Endpoint**: `/promos/daily?day=<day | required>&ip=<int | optional>&ipp=<int | optional>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| day | Date lo look for promos date (YYYY-MM-DD)  | required |
+| ip | Number of page to look for UUID's int  | optional, default:1 |
+| ipp | Number of products to look for int  | optional, default:500 |
+
+
+**Response:**
+
+```json
+{
+  "promos": [
+    {
+      "currency": "MXN", 
+      "date": 20180812, 
+      "lat": 19.335500717163086, 
+      "lng": -99.19889831542969, 
+      "price": 47.5, 
+      "price_original": 47.5, 
+      "product_uuid": "730c5f9b-611e-45c2-b410-4afb3f40070e", 
+      "promo": "4X$155", 
+      "store_uuid": "d07da812-4f8c-11e7-9e21-0242ac110003", 
+      "time": "Sun, 12 Aug 2018 00:35:25 GMT", 
+      "url": "https://www.superama.com.mx/catalogo/d-farmacia/f-cuidados-salud/l-multivitaminicosm/suplemento-alimenticio-pediasure-bebible-sabor-vainilla-237-ml/0750103395629"
+    }, 
+    {
+      "currency": "MXN", 
+      "date": 20180812, 
+      "lat": 19.335500717163086, 
+      "lng": -99.19889831542969, 
+      "price": 37.0, 
+      "price_original": 37.0, 
+      "product_uuid": "202313cd-84fd-48be-a051-64b2c07af875", 
+      "promo": "2X$49", 
+      "store_uuid": "d07da812-4f8c-11e7-9e21-0242ac110003", 
+      "time": "Sun, 12 Aug 2018 00:35:25 GMT", 
+      "url": "https://www.superama.com.mx/catalogo/d-farmacia/f-cuidados-salud/l-multivitaminicosm/acido-ascorbico-medi-mart-1-g-10-comprimidos-efervescentes-sabor-naranja/0750125820668"
+    }
+  ]
+}
+```
