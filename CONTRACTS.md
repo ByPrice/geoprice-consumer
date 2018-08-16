@@ -942,19 +942,18 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 
 ## Promos
 
-### Get applying promos for the specified day
+### Get applying promos for the specified day, streaming
 
 **Method**: GET
 
-**Endpoint**: `/promos/daily?day=<day | required>&ip=<int | optional>&ipp=<int | optional>`
+**Endpoint**: `/promos/daily?day=<day | required>&num_promos=<int | optional>`
 
 **Request Params:**
 
 | Param | Description | Condition |
 | ----- | ----------- | --------- |
 | day | Date lo look for promos date (YYYY-MM-DD)  | required |
-| ip | Number of page to look for UUID's int  | optional, default:1 |
-| ipp | Number of products to look for int  | optional, default:500 |
+| num_promos | Number of promos to look for int  | optional, default:0 (all promos) |
 
 
 **Response:**
