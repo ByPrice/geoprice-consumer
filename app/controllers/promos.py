@@ -2,7 +2,6 @@
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 from app.models.promos import Promos
 from app import errors, logger
-from app.models.item import Item
 import datetime
 
 mod = Blueprint('promos',__name__)

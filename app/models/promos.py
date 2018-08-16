@@ -1,7 +1,7 @@
 import datetime
 from uuid import UUID
 from io import StringIO
-from flask import g, jsonify
+from flask import g
 import pandas as pd
 from app import errors, logger
 from config import *
