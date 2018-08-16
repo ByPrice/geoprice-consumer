@@ -503,7 +503,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """ Test Promos By Day
         """ 
         print("Test Promos By Day")
-        _r = self.app.get("/promos/daily?day={}"\
+        _r = self.app.get("/promos/daily?day={}&num_promos=5"\
             .format(_test_start_date))
         print('Status code', _r.status_code)
         try:
