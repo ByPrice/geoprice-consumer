@@ -22,7 +22,7 @@ if [[ $MODE == "SERVICE" ]]
     env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
     # Run gunicorn
     echo "Starting Web Service"
-    env/bin/gunicorn --workers 3 --bind unix:geoprice.sock -m 000 wsgi:app &
+    env/bin/gunicorn --workers 3 --bind unix:geoprice.sock -t 200 -m 000 wsgi:app &
     nginx -g "daemon off;"
 
 elif [[ $MODE == "CONSUMER" ]]
