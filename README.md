@@ -71,6 +71,27 @@ celery worker -A app.celery -n "$APP_NAME""_""$RANDOM" --loglevel=INFO --concurr
 python wsgi.py
 ```
 
+## Build
+
+Build Docker image from file.
+
+```bash
+docker build -t geoprice --no-cache .
+```
+
+Tag the image with the AWS prefix, and environment tag (`dev` or `production`)
+
+```bash
+docker tag geoprice <aws_prefix>/geoprice:dev
+```
+
+Push Image to ECS
+
+```bash
+docker push <aws_prefix>/geoprice:dev
+```
+
+
 ## Contracts
 
 [See details](../CONTRACTS.md)
