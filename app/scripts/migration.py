@@ -1,14 +1,10 @@
 import sys
 import argparse
 from app.utils import geohash
-import datetime
 import calendar
 import itertools
 from multiprocessing import Pool
-import pandas as pd
 import numpy as np
-from pygres import Pygres
-from cassandra import ConsistencyLevel
 import tqdm
 import uuid
 from config import *
@@ -18,13 +14,30 @@ from app.models.stats import Stats
 from app.utils import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 import time
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import SQLContext, Row, SparkSession
+from pyspark.sql.types import *
+from pyspark.sql import functions as F
+import datetime
+import time_uuid as tid
+from uuid import uuid1, uuid4
+import requests
+import pandas as pd
+from cassandra.cluster import Cluster
+from cassandra import ConsistencyLevel
+from cassandra.query import SimpleStatement
+from cassandra import ReadTimeout
+from pygres import Pygres
+import gtin
+
+
 
 # Logger
 # applogger.create_logger()
 logger = applogger.get_logger()
 
 
-def cassandra_args():
+def getting_args():
     """ Parse Cassandra related arguments
         to migrate from.
 
@@ -202,8 +215,7 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     data['item_uuid'] = data.item_uuid.astype(str)
     data['store_uuid'] = data.store_uuid.astype(str)
     data.rename(columns={'retailer': 'source'}, inplace=True)
-    return pd.merge(data, _prods,
-                    on=['item_uuid', 'source'], how='left')
+    return pd.merge(data, _prods, on=['item_uuid', 'source'], how='left')
 
 
 def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
@@ -352,7 +364,7 @@ def populate_geoprice_tables(val, day):
 
 
 @with_context
-def day_migration(*args):
+def day_migration(day, ret, limit, conf, prods):
     """ Retrieves all data available requested day
         from Prices KS and inserts it into 
         GeoPrice KS.
@@ -370,8 +382,7 @@ def day_migration(*args):
         prods : list
             List of Products info
     """
-    day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
-    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
+    logger.info("Day migration {} {}...".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
     if data.empty:
@@ -467,34 +478,32 @@ def get_daterange(_from, _until):
 if __name__ == '__main__':
     logger.info("Starting Migration script (Prices KS -> GeoPrice KS)")
     # Parse C* and PSQL args
-    cassconf = cassandra_args()
+    args_ = getting_args()
     # Retrieve products from Catalogue, retailers and workers
-    prods = fetch_all_prods(cassconf, None)
+    prods = fetch_all_prods(args_, None)
     retailers = list(set(prods['source'].tolist()))
-    _workers = cassconf['workers'] if cassconf['workers'] else 3
+
+
     # Verify if historic is applicable
-    if cassconf['historic_on']:
+    if args_['historic_on']:
         # Format vars
-        daterange = get_daterange(cassconf['from'], cassconf['until'])
-        logger.info("Executing Historic migration from {} to {} with {} workers" \
-                    .format(cassconf['from'], cassconf['until'], _workers))
+        daterange = get_daterange(args_['from'], args_['until'])
+        logger.info("Executing Historic migration from {} to {}" \
+                    .format(args_['from'], args_['until']))
     else:
         # Format vars
-        daterange = [cassconf['date']]
+        daterange = [args_['date']]
         # Now call to migrate day's data
-        logger.info("Executing Alone migration for {} with {} workers" \
-                    .format(daterange, _workers))
+        logger.info("Executing migration for date {}s" \
+                    .format(daterange))
+
+
     # Call Multiprocessing for async queries
-    logger.info("Calling pool day_migration")
-    with Pool(_workers) as pool:
-        # Call to run migration over all dates
-        pool.map(day_migration,
-                 itertools.product(daterange, retailers, [None], [cassconf], [prods]))
+    logger.info("Calling day_migration ...")
+    day_migration(daterange, retailers, None, args_, prods)
 
     logger.info("Calling pool stats_migration")
     prods = prods.drop_duplicates("product_uuid")
     prods["item_uuid"] = prods["item_uuid"].astype(str)
-    with Pool(_workers) as pool:
-        pool.map(stats_migration, itertools.product(daterange, [cassconf], [
-            prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"})]))
+    stats_migration(daterange, args_,prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"}))
     logger.info("Finished executing ({}) migration".format(daterange))
