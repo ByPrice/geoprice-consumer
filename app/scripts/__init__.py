@@ -1,7 +1,8 @@
 from flask import g
-from app.utils import applogger 
+from app.utils import applogger
 
 logger = applogger.get_logger()
+
 
 def start_script(script):
     """ Evaluate the task to be executed and start 
@@ -9,9 +10,12 @@ def start_script(script):
     """
     try:
         module = __import__(script)
+        logger.info("Running script:")
+        logger.info(script)
+        logger.info("Elements:")
+        logger.info(dir(script))
         module.start()
     except ImportError as e:
         logger.error("Could not find the specified module...")
     except Exception as e:
         logger.error(e)
-        
