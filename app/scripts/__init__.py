@@ -8,10 +8,13 @@ def start_script(script):
     """ Evaluate the task to be executed and start 
         execution.
     """
-    try:
-        module = __import__(script)
+
+    if script == 'create_stats':
+        module = import create_stats
         module.start()
-    except ImportError as e:
+    elif script == 'create_dumps':
+        module = import create_dumps
+        module.start()
+    else:
+        # raise
         logger.error("Could not find the specified module...")
-    except Exception as e:
-        logger.error(e)
