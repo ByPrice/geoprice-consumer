@@ -10,10 +10,10 @@ def start_script(script):
     """
 
     if script == 'create_stats':
-        module = import create_stats
+        from app.scripts import create_stats as module
         module.start()
     elif script == 'create_dumps':
-        module = import create_dumps
+        from app.scripts import create_dumps as module
         module.start()
     else:
         # raise
