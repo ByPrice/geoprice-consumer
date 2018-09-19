@@ -9,11 +9,12 @@ def start_script(script):
         execution.
     """
     try:
-        module = __import__(script)
+        #module = __import__(script)
+        exec("from app.scripts import {} as m_script".format(script))
         logger.info("Running script:")
-        logger.info(script)
+        logger.info(m_script)
         logger.info("Elements:")
-        logger.info(dir(script))
+        logger.info(dir(m_script))
         module.start()
     except ImportError as e:
         logger.error("Could not find the specified module...")
