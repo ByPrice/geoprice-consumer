@@ -10,12 +10,13 @@ def start_script(script):
     """
     try:
         #module = __import__(script)
+        scr = None
         exec("from app.scripts import {} as scr".format('create_stats'))
         logger.info("Running script:")
         logger.info(scr)
         logger.info("Elements:")
         logger.info(dir(scr))
-        module.start()
+        scr.start()
     except ImportError as e:
         logger.error("Could not find the specified module...")
     except Exception as e:
