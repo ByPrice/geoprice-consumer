@@ -136,7 +136,7 @@ def daily_stats(_day):
     aggregate_daily(daily)
 
 
-def start(source):
+def start():
     logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
                 .format(CASSANDRA_KEYSPACE))
 
