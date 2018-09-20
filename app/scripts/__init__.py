@@ -10,7 +10,9 @@ def start_script(script):
     """
 
     if script == 'create_stats':
+        logger.info("trying to import create_stats")
         from app.scripts import create_stats as module
+        logger.info("create_stats imported")
         module.start()
     elif script == 'create_dumps':
         from app.scripts import create_dumps as module
