@@ -29,12 +29,28 @@ from cassandra.query import SimpleStatement
 from cassandra import ReadTimeout
 from pygres import Pygres
 import gtin
+import os
 
+
+SPARK_POSTGRESQL_JAR = os.getenv("SPARK_POSTGRESQL_JAR", "/opt/spark/jars/postgresql-42.1.1.jar")
+CASSANDRA_SEEDS = os.getenv('CASSANDRA_SEEDS')
+SPARK_MASTER_IP = os.getenv('SPARK_MASTER_IP')
+APP_NAME = os.getenv('APP_NAME')
+CASSANDRA_PRICES_KEYSPACE = os.getenv('CASSANDRA_PRICES_KEYSPACE')
 
 
 # Logger
 # applogger.create_logger()
 logger = applogger.get_logger()
+
+conf = SparkConf().setAppName(APP_NAME) \
+    .set("spark.cassandra.connection.host", CASSANDRA_SEEDS) \
+    .set("spark.executor.memory", "3g") \
+    .setMaster(SPARK_MASTER_IP)
+
+sc = SparkContext(conf=conf).getOrCreate()
+
+sql = SQLContext(sc)
 
 
 def getting_args():
@@ -106,7 +122,7 @@ def getting_args():
     return args
 
 
-def fetch_all_prods(conf, limit):
+def fetch_all_prods(conf):
     """ Retrieve all products from Catalogue DB
 
         Params:
@@ -121,35 +137,18 @@ def fetch_all_prods(conf, limit):
         prods : pd.DataFrame
             Product info
     """
-    # Connect to Catalogue PSQL DB
-    psqlconf = {x.replace('pg', 'SQL').upper(): y \
-                for x, y in conf.items() if 'pg' in x}
-    catdb = Pygres(psqlconf)
-    logger.info("Connected to Catalogue DB!")
-    # Query to get all items 
-    try:
-        qry = """ SELECT product_uuid, item_uuid, source,
-        gtin FROM product WHERE source NOT IN ('gs1', 'mara', 'nielsen')
-        """
-        if limit:
-            qry += ' LIMIT {}'.format(limit)
-        prods = pd.read_sql(qry, catdb.conn)
-    except Exception as e:
-        logger.error(e)
-        logger.error("Did not found any products!")
-        sys.exit()
-    # Close conneon
-    prods['product_uuid'] = prods['product_uuid'].astype(str)
-    prods['item_uuid'] = prods['item_uuid'].astype(str)
-    prods.fillna('', inplace=True)
-    logger.info("Finished retrieving product info: {}".format(len(prods)))
-    if prods.empty:
-        logger.error("Did not found any products!")
-        sys.exit()
-    return prods
+    psqlconf = {x.replace('pg', 'SQL').upper() : y \
+        for x,y in conf.items() if 'pg' in x}
+    db = Pygres(psqlconf)
+    qry = """ 
+    	SELECT product_uuid, item_uuid, source,gtin 
+    	FROM product WHERE source NOT IN ('gs1', 'mara', 'nielsen')
+    """
+    _prods = pd.read_sql(qry, db.conn)
+    return _prods
 
 
-def fetch_day_prices(_prods, ret, day, limit, conf):
+def fetch_day_prices(prods_pandas, ret, day, limit, conf):
     """ Query data from passed keyspace
 
         Params:
@@ -170,52 +169,29 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
         data : pd.DataFrame
             Prices data
     """
-    # Connect to C*
-    try:
-        cdb = SimpleCassandra({
-            'CONTACT_POINTS': conf['cassandra_hosts'],
-            'KEYSPACE': conf['cassandra_keyspace'],
-            'PORT': conf['cassandra_port']
-        })
-        logger.info("Connected to C*!")
-    except Exception as e:
-        logger.error("Error", e)
-        return pd.DataFrame()
-
     # Define CQL query
-    cql_query = """SELECT * 
-        FROM price_retailer
-        WHERE retailer = %s
-        AND date = %s
-    """
-    # Limit statement
-    if limit:
-        cql_query += ' LIMIT {}'.format(limit)
-    # For each item query prices
+
+
     try:
-        # Format vars
+        _prods = sql.createDataFrame(prods_pandas)
+        pr_ret = sql.read.format("org.apache.spark.sql.cassandra") \
+            .options(keyspace=CASSANDRA_PRICES_KEYSPACE, table="price_retailer").load()
+
         day = int(day.isoformat().replace('-', ''))
-        r = cdb.query(cql_query,
-                      (ret, day),
-                      timeout=200,
-                      consistency=ConsistencyLevel.ONE)
+        data = pr_ret.filter((pr_ret['retailer'] == ret) & (pr_ret['date'] == day))
+
     except Exception as e:
-        r = []
-        logger.error(e)
-        logger.warning("Could not retrieve {}".format(day))
-        return pd.DataFrame()
+        logger.error("Error while fetching {} [{}] prices: {}".format(day, ret, e))
+        return False
+
     # Drop connection with C*
-    cdb.close()
-    logger.info("""Got {} prices prices from {} in {}""".format(len(r), ret, day))
-    # Generate DFs
-    data = pd.DataFrame(r)
-    del r
-    if data.empty:
-        return pd.DataFrame()
-    data['item_uuid'] = data.item_uuid.astype(str)
-    data['store_uuid'] = data.store_uuid.astype(str)
-    data.rename(columns={'retailer': 'source'}, inplace=True)
-    return pd.merge(data, _prods, on=['item_uuid', 'source'], how='left')
+    if len(data.head(1)) == 0:
+        logger.warning("Prices weren't found on {} [{}]".format(day, ret))
+        return False
+
+    data = data.withColumnRenamed('retailer', 'source')
+
+    return data.join(_prods, ['item_uuid', 'source'], how='left')
 
 
 def fetch_day_stats(day, conf, df_aux, item_uuids, retailer):
@@ -385,16 +361,19 @@ def day_migration(day, ret, limit, conf, prods):
     logger.info("Day migration {} {}...".format(day, ret))
     # Retrieve data from Prices KS (prices.price_item)
     data = fetch_day_prices(prods, ret, day, limit, conf)
-    if data.empty:
+    if len(data.head(1)) == 0:
         logger.warning("No prices to migrate in {}-{}!".format(ret, day))
     else:
-        data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
-        data_aux["lat"] = [lat if lat else 19.432609 for lat in data_aux.lat]
-        data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
-        data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
-        del (data_aux["lat"])
-        del (data_aux["lng"])
-        data = data.merge(data_aux, on="store_uuid", how="left")
+        data_aux = data.select(["store_uuid", "lat", "lng"]).dropDuplicates(['store_uuid'])
+        data_aux = data_aux.na.fill(19.432609, subset=['lat'])
+        data_aux = data_aux.na.fill(-99.133203, subset=['lng'])
+        geohash_encode = F.udf(geohash.encode, StringType())
+        data_aux = data_aux.withColumn('geohash', geohash_encode(data_aux.lat, data_aux.lng))
+
+        columns_to_drop = ['lat', 'lng']
+        data_aux = data_aux.drop(*columns_to_drop)
+
+        data = data.join(data_aux, ["store_uuid"], how="left")
         logger.info("Found {} prices".format(len(data)))
 
         for j, d in data.iterrows():
@@ -480,9 +459,8 @@ if __name__ == '__main__':
     # Parse C* and PSQL args
     args_ = getting_args()
     # Retrieve products from Catalogue, retailers and workers
-    prods = fetch_all_prods(args_, None)
-    retailers = list(set(prods['source'].tolist()))
-
+    prods_pandas = fetch_all_prods(args_)
+    retailers = list(set(prods_pandas['source'].tolist()))
 
     # Verify if historic is applicable
     if args_['historic_on']:
@@ -497,13 +475,12 @@ if __name__ == '__main__':
         logger.info("Executing migration for date {}s" \
                     .format(daterange))
 
-
     # Call Multiprocessing for async queries
     logger.info("Calling day_migration ...")
-    day_migration(daterange, retailers, None, args_, prods)
+    day_migration(daterange, retailers, None, args_, prods_pandas)
 
     logger.info("Calling pool stats_migration")
-    prods = prods.drop_duplicates("product_uuid")
+    prods = prods_pandas.drop_duplicates("product_uuid")
     prods["item_uuid"] = prods["item_uuid"].astype(str)
     stats_migration(daterange, args_,prods[["item_uuid", "product_uuid", "source"]].rename(columns={"source": "retailer"}))
     logger.info("Finished executing ({}) migration".format(daterange))
