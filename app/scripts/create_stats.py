@@ -10,6 +10,7 @@ import argparse
 import datetime
 from uuid import UUID
 import pandas as pd
+import numpy as np
 from scipy import stats
 from flask import g
 from config import *
@@ -90,6 +91,11 @@ def aggregate_daily(daily):
         max_batch : int
             Max batch size to load into C*
     """
+    def _mode(x):
+        try:
+            return stats.mode(x)[0][0]
+        except:
+            return np.median(x)
     # Aggregate data to compute mean, std, max, min, etc.
     aggr_stats = daily.groupby(['product_uuid', 'date']).price\
         .agg([('max_price', 'max'),
@@ -97,13 +103,14 @@ def aggregate_daily(daily):
             ('min_price', 'min'),
             ('datapoints', 'count'),
             ('std_price', 'std'),
-            ('mode_price', lambda x: stats.mode(x)[0])
+            ('mode_price', lambda x: _mode(x))
         ])
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
     # Load each element into C*
-    for elem in aggr_stats.to_dict(orient='records'):
-        Price.save_stats_by_product(elem)        
+    from tqdm import tqdm 
+    for elem in tqdm(aggr_stats.to_dict(orient='records')):
+        Price.save_stats_by_product(elem)
     # Disply metrics
     logger.info("Stored {} daily prices".format(len(aggr_stats)))
     logger.info("Prices had the following distribution:\n{}"\

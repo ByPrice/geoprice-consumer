@@ -21,13 +21,14 @@ applogger.create_logger()
 logger = applogger.get_logger()
 
 # Flask controllers imports
-from app.controllers import product, stats, alarm, dump
+from app.controllers import product, stats, alarm, dump, promos
 
 # Flask blueprint registration
 app.register_blueprint(product.mod, url_prefix='/product')
 app.register_blueprint(stats.mod, url_prefix='/stats')
 app.register_blueprint(alarm.mod, url_prefix='/alarm')
 app.register_blueprint(dump.mod, url_prefix='/dump')
+app.register_blueprint(promos.mod, url_prefix='/promos')
 #app.register_blueprint(mapa.mod, url_prefix='/mapa')
 #app.register_blueprint(historia.mod, url_prefix='/historia')
 #app.register_blueprint(check.mod, url_prefix='/check')

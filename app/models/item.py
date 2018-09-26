@@ -122,3 +122,42 @@ class Item(object):
             logger.error(e)
             g.error = {'code': 10001,'message':'Issues fetching info...'}
             return False
+            
+    
+    @staticmethod
+    def get_all_items(ip=1, _ipp=500):
+        """ Get the number of items from the catalogue
+
+            Params:
+            -----
+            ip :  int
+                page number
+            ipp : int
+                number of results
+            
+            Returns: 
+            -----
+            items : list
+                List of product with respective cols
+        """
+        
+        items = []
+        
+        url = SRV_CATALOGUE + \
+            '/product/by/puuid?keys=''&p={p}&ipp={ipp}&orderby=name'\
+            .format(p=ip,
+                    ipp=_ipp)
+        logger.debug(url)
+        try:
+            r = requests.get(url)
+            logger.debug(r.status_code)
+            # In case of error
+            if r.status_code != 200:
+                raise Exception('Issues requesting Catalogue')
+            items = r.json()['products']
+        except Exception as e:
+            logger.error(e)
+            
+        logger.info("Found {} products from Catalogue"\
+            .format(len(items)))
+        return items
