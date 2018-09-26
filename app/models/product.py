@@ -236,7 +236,7 @@ class Product(object):
         _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-            SELECT price 
+            SELECT price, time
             FROM price_by_product_date
             WHERE product_uuid = %s
             AND date = %s
@@ -266,13 +266,13 @@ class Product(object):
             .agg(['min', 'max', 'mean'])
         # Format response
         stats_hist =  {
-            'Máximo': aggs['max'].reset_index()\
+            'Máximo': _aggs['max'].reset_index()\
                 .rename(columns={'max': 'price'})\
                 .to_dict(orient='records'),
-            'Mínimo': aggs['min'].reset_index()\
+            'Mínimo': _aggs['min'].reset_index()\
                 .rename(columns={'min': 'price'})\
                 .to_dict(orient='records'),
-            'Promedio': aggs['mean'].reset_index()\
+            'Promedio': _aggs['mean'].reset_index()\
                 .rename(columns={'max': 'price'})\
                 .to_dict(orient='records')
         }

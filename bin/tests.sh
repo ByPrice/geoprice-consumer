@@ -5,14 +5,14 @@
 . .envvars
 
 # Init the database
-export TESTING=1
+#export TESTING=1
 
 # Evaluate the mode of execution and the 
 if [[ $MODE == "SERVICE" ]]
     then
     # Run gunicorn tests
     echo "Starting $APP_NAME in SERVICE testing.."
-    ./env/bin/python -m app.tests.tests_task
+    ./env/bin/python -m app.tests.tests_service
 elif [[ $MODE == "CONSUMER" ]]
     then
     # Run celery worker
