@@ -135,11 +135,9 @@ def daily_stats(_day):
     # Aggregate data and load into C* table
     aggregate_daily(daily)
 
-
 def start():
     logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
                 .format(CASSANDRA_KEYSPACE))
-
     date = datetime.date.today()
     logger.debug(date)
     # Call to perform stats
