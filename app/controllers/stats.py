@@ -117,7 +117,7 @@ def get_stats_by_uuid(uuid):
     logger.info("Fetching stats by uuid")
     if 'stats' in request.args:
         stats = request.args.get('stats').split(",")
-        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg", "exists"]]
+        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg"]]
         if not stats:
             logger.warning("Wrong Stats parameters!")
             stats = ["avg"]
