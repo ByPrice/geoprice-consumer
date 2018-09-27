@@ -870,6 +870,50 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 ]
 ```
 
+### Get Today's Statistics from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/stats/<uuid>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| stats | Needed statistics (max, avg, min, exists) | optional, default=avg |
+
+**Response:**
+
+```json
+{
+  "avg": 134.09,
+  "max": 153,
+  "min": 113
+}
+```
+
+### Get Today's Statistics from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/stats/<uuid>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| stats | Needed statistics (max, avg, min, exists) | optional, default=avg |
+
+**Response:**
+
+```json
+{
+  "avg": 134.09,
+  "max": 153,
+  "min": 113
+}
+```
+
 -----
 
 ## Alarm

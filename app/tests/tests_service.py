@@ -51,7 +51,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     # ----------- PRODUCT TESTS -----------------
     ##
 
-    @unittest.skip('Already tested')
+    #@unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
         """ Testing GeoPrice DB connection
         """ 
@@ -64,7 +64,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    @unittest.skip('Already tested')
+    #@unittest.skip('Already tested')
     def test_01_by_store_with_item(self):
         """ Test By Store endpoint with Item UUID
         """ 
@@ -108,7 +108,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print("Test By Store History endpoint with Product UUID")
         pass
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_05_ticket_with_item(self):
         """ Test Ticket endpoint with Item UUIDs
         """ 
@@ -134,7 +134,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print("Test Ticket endpoint with Product UUIDs")
         pass
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_07_store_catalogue(self):
         """ Test store prices catalogue endpoint
         """ 
@@ -149,7 +149,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_08_count_by_store(self):
         """ Test Count by Store
         """ 
@@ -166,7 +166,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_09_count_by_store_hours(self):
         """ Test Count by Store over last X hours
         """ 
@@ -182,7 +182,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_10_byfile(self):
         """ Test Store by File
         """ 
@@ -198,7 +198,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
 
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_11_retailer_with_item(self):
         """ Test Retailer prices by Item
         """ 
@@ -219,7 +219,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """ 
         print("Test Retailer prices by Product")
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_13_compare_retailer_item(self):
         """ -Test Compare retailer-price pairs
         """ 
@@ -253,7 +253,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_13_compare_store_item(self):
         """ Test Compare retailer-price pairs
         """ 
@@ -295,7 +295,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_14_stats(self):
         """ Test Stats per product
         """ 
@@ -311,7 +311,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_15_count_engine(self):
         """ Test Count by retailer (Engine)
         """ 
@@ -330,7 +330,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     ##
     # ----------- STATS TESTS ------------
     ##
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_16_stats_blueprint(self):
         """ Test stats blueprint
         """ 
@@ -344,7 +344,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_17_stats_current(self):
         """ Test stats current
         """ 
@@ -370,7 +370,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_18_stats_compare(self):
         """ Test stats compare
         """ 
@@ -405,7 +405,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_19_stats_history(self):
         """ Test stats history
         """ 
@@ -434,7 +434,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_20_stats_category(self):
         """ Test stats category
         """ 
@@ -461,7 +461,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     ##
     # ----------- ALARM TESTS ------------
     ##
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_21_alarm_blueprint(self):
         """ Test alarm blueprint
         """ 
@@ -475,7 +475,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_17_alarm_prices(self):
         """ Test Alarm prices
         """ 
@@ -498,7 +498,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         self.assertEqual(_r.status_code, 200)
     
         
-    #@unittest.skip('Tested already')
+    @unittest.skip('Tested already')
     def test_22_promos_by_day(self):
         """ Test Promos By Day
         """ 
