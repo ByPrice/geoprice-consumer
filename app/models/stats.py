@@ -801,6 +801,7 @@ class Stats(object):
                 items=",".join(product_uuids),
                 dates=",".join(dates)
             )
+            logger.debug(aux)
             cass = g._db
             rows = cass.execute(aux)
             df = pd.DataFrame(list(rows))

@@ -51,7 +51,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
     # ----------- PRODUCT TESTS -----------------
     ##
 
-    #@unittest.skip('Already tested')
+    @unittest.skip('Already tested')
     def test_00_geoprice_connection(self):
         """ Testing GeoPrice DB connection
         """ 
@@ -64,7 +64,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
             pass
         self.assertEqual(_r.status_code, 200)
     
-    #@unittest.skip('Already tested')
+    @unittest.skip('Already tested')
     def test_01_by_store_with_item(self):
         """ Test By Store endpoint with Item UUID
         """ 
@@ -450,6 +450,34 @@ class GeoPriceServiceTestCase(unittest.TestCase):
                 ]
             })
         )
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_21_stats_stats(self):
+        """ Test stats (avg, min, max)
+        """ 
+        print(" Test stats (avg, min, max)")
+        _r = self.app.get("/stats/stats/decd74df-6a9d-4614-a0e3-e02fe13d1542")
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    #@unittest.skip('Tested already')
+    def test_22_stats_exists(self):
+        """ Test stats exists
+        """ 
+        print("Test stats exists")
+        _r = self.app.get("/stats/exists/decd74df-6a9d-4614-a0e3-e02fe13d1542")
         print('Status code', _r.status_code)
         try:
             _jr = _r.data

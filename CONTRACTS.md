@@ -902,7 +902,7 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 
 | Param | Description | Condition |
 | ----- | ----------- | --------- |
-| stats | Needed statistics (max, avg, min, exists) | optional, default=avg |
+| stats | Needed statistics (max, avg, min) | optional, default=avg |
 
 **Response:**
 
@@ -911,6 +911,21 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
   "avg": 134.09,
   "max": 153,
   "min": 113
+}
+```
+
+### Get Today's Existance from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/exists/<uuid>`
+
+**Response:**
+  
+```json
+{
+  "exists": true,
+  "uuid": "245g45-5y45-455y45g4-f43f"
 }
 ```
 

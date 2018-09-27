@@ -117,7 +117,7 @@ def get_stats_by_uuid(uuid):
     logger.info("Fetching stats by uuid")
     if 'stats' in request.args:
         stats = request.args.get('stats').split(",")
-        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg", "exists"]]
+        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg"]]
         if not stats:
             logger.warning("Wrong Stats parameters!")
             stats = ["avg"]
@@ -129,8 +129,7 @@ def get_stats_by_uuid(uuid):
 
 @mod.route('/exists/<uuid>', methods=['GET'])
 def get_exists_by_uuid(uuid):
-    """ Today's max, min & avg price
-        from an specific item_uuid  or product_uuid
+    """ Exists or not Price for specific item_uuid  or product_uuid
     """
     # Call function to fetch prices
     exists = Stats.exists_by_uuid(uuid)
