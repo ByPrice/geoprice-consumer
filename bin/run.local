@@ -21,7 +21,8 @@ elif [[ $APP_MODE == "CONSUMER" ]]
 elif [[ $APP_MODE == "TASK" ]]
     then
     # Run as task
-    echo "Starting $APP_NAME in TASK mode"
-    # Call to execute script : $TASK_NAME
+    echo "Starting Script $SCRIPT"
+    # Get argument of script name...
+    env/bin/flask script --name=$SCRIPT
 fi
 
