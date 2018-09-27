@@ -32,8 +32,8 @@ def stats_args():
             Configuration parameters to migrate from
     """
     parser = argparse\
-        .ArgumentParser(description='Aggregates Daily data in C* ({}.stats_by_product)'\
-                .format(CASSANDRA_KEYSPACE))
+        .ArgumentParser(description='Aggregates Daily data in C* ({}.stats_by_product)'
+                        .format(CASSANDRA_KEYSPACE))
     parser.add_argument('--date', help='Migration date')
     args = dict(parser.parse_args()._get_kwargs())
     # Validation of variables
@@ -50,6 +50,7 @@ def stats_args():
         args['date'] = datetime.date.today()
     return args
 
+
 def get_daily_data(_day):
     """ Query for a certain date data 
         from `price_by_date` (PUUID, price, date)
@@ -58,7 +59,7 @@ def get_daily_data(_day):
         -----
         _day : datetime.date
             Querying date
-        
+
         Returns:
         -----
         daily : pd.DataFrame
@@ -69,7 +70,7 @@ def get_daily_data(_day):
     cass_qry = """SELECT product_uuid, price, date
     FROM price_by_date WHERE date = %s
     """
-    _day = int(_day.isoformat().replace('-',''))
+    _day = int(_day.isoformat().replace('-', ''))
     daily = g._db.query(cass_qry, (_day,), timeout=20)
     # Format Data
     if not daily:
@@ -79,6 +80,7 @@ def get_daily_data(_day):
     logger.info("Found {} daily prices".format(len(daily)))
     # Return
     return daily
+
 
 def aggregate_daily(daily):
     """ Aggregate data to compute statistics
@@ -99,22 +101,23 @@ def aggregate_daily(daily):
     # Aggregate data to compute mean, std, max, min, etc.
     aggr_stats = daily.groupby(['product_uuid', 'date']).price\
         .agg([('max_price', 'max'),
-            ('avg_price', 'mean'),
-            ('min_price', 'min'),
-            ('datapoints', 'count'),
-            ('std_price', 'std'),
-            ('mode_price', lambda x: _mode(x))
-        ])
+              ('avg_price', 'mean'),
+              ('min_price', 'min'),
+              ('datapoints', 'count'),
+              ('std_price', 'std'),
+              ('mode_price', lambda x: _mode(x))
+              ])
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
     # Load each element into C*
-    from tqdm import tqdm 
+    from tqdm import tqdm
     for elem in tqdm(aggr_stats.to_dict(orient='records')):
         Price.save_stats_by_product(elem)
     # Disply metrics
     logger.info("Stored {} daily prices".format(len(aggr_stats)))
-    logger.info("Prices had the following distribution:\n{}"\
-        .format(aggr_stats.datapoints.describe()))
+    logger.info("Prices had the following distribution:\n{}"
+                .format(aggr_stats.datapoints.describe()))
+
 
 @with_context
 def daily_stats(_day):
@@ -132,13 +135,11 @@ def daily_stats(_day):
     # Aggregate data and load into C* table
     aggregate_daily(daily)
 
-
-if __name__ == '__main__':
-    logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"\
-        .format(CASSANDRA_KEYSPACE))
-    # Execution args
-    conf = stats_args()
-    logger.debug(conf)
+def start():
+    logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
+                .format(CASSANDRA_KEYSPACE))
+    date = datetime.date.today()
+    logger.debug(date)
     # Call to perform stats
-    daily_stats(conf['date'])
-    logger.info("Finished creating daily stats ({})".format(conf['date']))
+    daily_stats(date)
+    logger.info("Finished creating daily stats ({})".format(date))
