@@ -159,7 +159,7 @@ def df_to_s3(df, source):
         return False
 
 
-
+@with_context
 def start(source):
     """ Build the dataframe
         - Get retailers
