@@ -829,3 +829,62 @@ class Stats(object):
             logger.error("Something is going wrong with stats_by_uuid in geoprice, FIX IT!!")
 
         return stats_json
+
+
+    @staticmethod
+    def exists_by_uuid(uuid):
+        """ Retrieve the stats requested from an specific uuid
+
+            Params:
+            ----
+            uuid: <str> item_uuid or product_uuid of an item
+            stats: <str> stats that are going to be in the cassandra query
+
+            Returns:
+            -----
+            stats dict
+        """
+        logger.debug("Retrieving stats by uuid..")
+        # Retailers from service
+        try:
+            items = requests.get(
+                SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                    uuid=uuid)).json()
+            dates = [
+                str(datetime.date.today()). replace("-", ""),
+                str(datetime.date.today() + datetime.timedelta(days=-1)).replace("-", ""),
+                str(datetime.date.today() + datetime.timedelta(days=-2)).replace("-", "")
+            ]
+            product_uuids = [item.get("product_uuid") for item in items.get("products")]
+            if not product_uuids:
+                logger.debug("product_uuid found")
+                product_uuids = [uuid]
+            else:
+                logger.debug("item_uuid found")
+        except Exception as e:
+            logger.error("Exists by uuid is not working correctly! : {}".format(e))
+            logger.error("Url: {}".format(SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                    uuid=uuid)))
+            product_uuids = []
+
+        if product_uuids:
+            logger.debug("Finding prices...")
+            aux = """ 
+                SELECT avg_price
+                    FROM stats_by_product
+                    WHERE product_uuid IN ({items}) 
+                        AND date IN ({dates})
+                    LIMIT 1  
+            """.format(
+                items=",".join(product_uuids),
+                dates=",".join(dates)
+            )
+            cass = g._db
+            rows = cass.execute(aux)
+            df = pd.DataFrame(list(rows))
+            if not df.empty:
+                return True
+            else:
+                return False
+        else:
+            return False
