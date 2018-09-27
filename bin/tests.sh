@@ -6,6 +6,7 @@
 
 # Init the database
 #export TESTING=1
+echo "TESTING"
 
 # Evaluate the mode of execution and the 
 if [[ $MODE == "SERVICE" ]]
