@@ -40,6 +40,7 @@ class Price(object):
     lats = []
     lngs = []
     location = {}
+    _part = None
 
     def __init__(self, *initial_data, **kwargs):
         # Db session init
@@ -128,6 +129,19 @@ class Price(object):
             'lng' : [ coords['lng'] for coords in self.location['coords'] ],
         }
 
+    @property
+    def part(self):
+        """ Partition property
+        """
+        return self._part
+
+    @part.setter
+    def part(self, val):
+        """ Partition property
+        """
+        assert isinstance(val, int)
+        self._part = val
+
 
     @staticmethod
     def validate(elem):
@@ -189,6 +203,7 @@ class Price(object):
                 'coords' : self.coords[i],
                 'lat' : self.lats[i],
                 'lng' : self.lngs[i],
+                'part': self.part
             }
 
 
@@ -283,11 +298,11 @@ class Price(object):
             for elem in self.loc_generator():
                 self.session.execute(
                     """
-                    INSERT INTO price_by_date(
-                        date, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
+                    INSERT INTO price_by_date_parted(
+                        date, part, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
@@ -366,11 +381,11 @@ class Price(object):
             for elem in self.loc_generator():
                 self.session.execute(
                     """
-                    INSERT INTO price_by_source (
-                         source, date, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                    INSERT INTO price_by_source_parted (
+                         source, date, part, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(source)s, %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(source)s, %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
