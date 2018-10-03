@@ -18,7 +18,7 @@ class SimpleCassandra(object):
         # Kwargs
         self.autocommit = kwargs.get('autocommit', False)
         if not self.config:
-            raise Pygres("Configuration variables missing",'Missing vars in config')
+            raise Exception("Configuration variables missing",'Missing vars in config')
 
         # Essential config variables
         self.config = {
