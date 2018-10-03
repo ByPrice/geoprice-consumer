@@ -68,7 +68,7 @@ def get_daily_data(_day):
     logger.info('Successfully connected to C*')
     # Query data
     cass_qry = """SELECT product_uuid, price, date
-    FROM price_by_date WHERE date = %s
+    FROM price_by_date WHERE date = %s 
     """
     _day = int(_day.isoformat().replace('-', ''))
     daily = g._db.query(cass_qry, (_day,), timeout=20)
