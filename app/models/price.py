@@ -307,12 +307,12 @@ class Price(object):
                     """,
                     elem
                 )
-            logger.debug("OK save_price_by_date")
+            logger.debug("OK save_price_by_date_parted")
             return True
         except Exception as e:
-            # logger.error("Could not save price_by_date")
+            logger.error("Could not save price_by_date_parted")
             # logger.error(self.as_dict)
-            # logger.error(e)
+            logger.error(e)
             return []
 
     def save_price_by_product_store(self):
@@ -382,20 +382,20 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_source_parted (
-                         source, date, part, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                         source, date, part, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(source)s, %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(source)s, %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     """,
                     elem
                 )
-            logger.debug("OK save_price_by_source")
+            logger.debug("OK save_price_by_source_parted")
             return True
         except Exception as e:
-            # logger.error("Could not save price_by_source")
+            logger.error("Could not save price_by_source_parted")
             # logger.error(self.as_dict)
-            # logger.error(e)
+            logger.error(e)
             return []
 
     def save_price_by_store(self):
@@ -567,11 +567,11 @@ class Price(object):
                         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     );
 
-                INSERT INTO price_by_date(
-                        date, time, product_uuid, store_uuid, price, price_original, promo, url, currency
+                INSERT INTO price_by_date_parted(
+                        date, time, part, product_uuid, store_uuid, price, price_original, promo, url, currency
                     )
                     VALUES(
-                        %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(date)s, %(time)s, %(part)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     );
 
                 INSERT INTO price_by_product_store(
@@ -581,11 +581,11 @@ class Price(object):
                         %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     );
 
-                INSERT INTO price_by_source (
-                     source, date, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency
+                INSERT INTO price_by_source_parted (
+                     source, date, part, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(source)s, %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(source)s, %(date)s, %(part)s,%(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 );
 
                 INSERT INTO price_by_store (

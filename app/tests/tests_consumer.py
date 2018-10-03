@@ -95,6 +95,7 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         print("Validating save price success")
         global new_price
         pr = Price(new_price)
+        pr.part = 1
         result = pr.save_all()
         self.assertEqual(result, True)
 
