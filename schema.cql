@@ -53,8 +53,8 @@ AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /* command end */
 
-/* command start */
-/* Prices by date */
+/* Prices by date [DEPRECATED]*/
+/*
 CREATE TABLE price_by_date (
     date            int,
     time            timestamp,
@@ -66,6 +66,28 @@ CREATE TABLE price_by_date (
     url             text,
     currency        text,
     PRIMARY KEY     (date, time, product_uuid)
+) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
+*/
+
+/* command start */
+/* Prices by date partitioned to 20*/
+CREATE TABLE price_by_date_parted (
+    date            int,
+    part            int,
+    time            timestamp,
+    product_uuid    uuid,
+    store_uuid      uuid,
+    price           float,
+    price_original  float,
+    promo           text,
+    url             text,
+    currency        text,
+    PRIMARY KEY     ((date, part), time, product_uuid)
 ) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
 AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
                      'compaction_window_unit': 'DAYS',
@@ -130,8 +152,8 @@ OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
 /* command end */
 
-/* command start */
-/* Prices by source */
+/* Prices by source [DEPRECATED]*/
+/*
 CREATE TABLE price_by_source (
     source          text,
     date            int,
@@ -152,10 +174,35 @@ AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
                      'compaction_window_size': 1}
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
+*/
+
+
+/* command start */
+/* Prices by source partitioned */
+CREATE TABLE price_by_source_parted (
+    source          text,
+    date            int,
+    part            int,
+    time            timestamp,
+    product_uuid    uuid,
+    store_uuid      uuid,
+    price           float,
+    price_original  float,
+    promo           text,
+    url             text,
+    currency        text,
+    PRIMARY KEY     ((source, date, part), time, product_uuid, store_uuid)
+) WITH CLUSTERING ORDER BY (time DESC, product_uuid ASC)
+AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
+                     'compaction_window_unit': 'DAYS',
+                     'compaction_window_size': 1}
+AND read_repair_chance = 0.1
+AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
 OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
 /* command end */
+
 
 /* command start */
 /* Prices by store */
