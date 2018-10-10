@@ -1,3 +1,4 @@
+import app
 from app import g
 from app import errors, applogger
 from config import *
@@ -10,6 +11,7 @@ from pandas import DataFrame, Series
 from collections import OrderedDict
 import boto3
 from io import StringIO
+from uuid import UUID
 
 dd=lambda:defaultdict(dd)
 logger = applogger.get_logger()
@@ -19,7 +21,7 @@ DATA_DIR = BASE_DIR+"/data/"
 ROWS_SAVE = 5000
 now = datetime.datetime.utcnow()
 then = now - datetime.timedelta(hours=32)
-SOURCES = [] if not config.TASK_ARG_CREATE_DUMPS else config.TASK_ARG_CREATE_DUMPS.split(",")
+SOURCES = [] if not TASK_ARG_CREATE_DUMPS else TASK_ARG_CREATE_DUMPS.split(",")
 BUCKET='geoprice'
 
 template = {
@@ -33,27 +35,29 @@ template = {
 
 def get_retailers():
     # Get all retailers
-    resp = requests.get("http://"+SRV_GEOLOCATION+"/retailer/all")
+    resp = requests.get(SRV_GEOLOCATION+"/retailer/all")
     print(resp.text)
     retailers = resp.json()
     rets = { r['key'] : r['name'] for r in retailers }
     return rets
 
-def get_catalogue(ret):
-    # Query all catalogue of retailer to items
-    resp = requests.get("http://"+SRV_CATALOGUE+"/item/source/"+ret)
-    catalogue = resp.json()
-    return catalogue
 
-
-def get_total_items(source=SOURCE):
+def get_total_items(src):
     # Get the items of ims
-    resp = requests.get("http://"+SRV_ITEM+"/item/source/"+source)
-    catalogue_source = resp.json()
-    return catalogue_provider
+    prods = g._catalogue.get_source_products(src)
+    # Get products for every item
+    for p in prods:
+        resp = requests.get(SRV_CACHE+"/item/products/{}".format(p['item_uuid']))
+        if resp.status_code == 200:
+            rel = resp.json()
+            if rel['items'][p['item_uuid']]:
+                prods['products'] = rel['items'][p['item_uuid']]
+
+        prods['products'] = rel
+    return prods
 
 
-def get_prices(item_uuid, retailers):
+def get_prices(product_uuid, retailers):
     """ Get the prices per retailer,
         aggregate the prices per branch 
         obj[<ret>] = {
@@ -63,7 +67,16 @@ def get_prices(item_uuid, retailers):
         }
     """
     result = {}
-    qry = "select * from price_item where item_uuid = {} and time > '{}' and time < '{}'".format(item_uuid, then.strftime("%Y-%m-%d %I:%M:%S"), now.strftime("%Y-%m-%d %I:%M:%S"))
+    
+    qry = """
+        select * from price_item 
+        where product_uuid = {} and date = {}
+    """.format(
+        item_uuid, 
+        int(then.strftime("%Y%m%d"))
+        then.strftime("%Y-%m-%d %I:%M:%S"), 
+        now.strftime("%Y-%m-%d %I:%M:%S")
+    )
     rows = g._db.query(
         qry,
         size=2000,
@@ -98,10 +111,12 @@ def get_stats(items=None, retailers=None):
 
     # Get stats for every item and every retailer
     for it in items:
-        try:
+        #try:
+        if True:
 
             # Get stats per retailer
             prices = get_prices(it['item_uuid'], retailers.keys())
+            print(prices)
 
             # Aggregate
             item = OrderedDict()
@@ -114,10 +129,10 @@ def get_stats(items=None, retailers=None):
 
             result.append(item)
 
-        except Exception as e:
-            print(e)
-            print("An error occured in item: " + str(it))
-            continue
+        #except Exception as e:
+        #    print(e)
+        #    print("An error occured in item: " + str(it))
+        #    continue
 
         # Save the dataframe
         i+=1
@@ -140,6 +155,7 @@ def save_df(result):
 def df_to_s3(df, source):
     """ Save dataframe directly to s3
     """
+    print("Saving to AWS")
     filename = now.strftime("%Y")+"/"+now.strftime("%Y%m")+"/"+now.strftime("%Y%m%d")+"/"+source
     bucket = BUCKET
     try:
@@ -147,8 +163,8 @@ def df_to_s3(df, source):
         df.to_csv(csv_buffer)
         s3 = boto3.client(
             's3',
-            aws_access_key_id=config.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
         )
         s3.put_object(Bucket=bucket,Key=filename, Body=csv_buffer.getvalue())
         return True
@@ -160,7 +176,7 @@ def df_to_s3(df, source):
 
 
 
-def start(source):
+def start():
     """ Build the dataframe
         - Get retailers
         - Get general catalogue
@@ -168,10 +184,11 @@ def start(source):
         - Get prices for every item
     """
     logger.info("Starting dump script, saving file to: "+BUCKET)
+    logger.info("Sources: "+str(SOURCES))
     logger.info("Getting retailers")
     retailers = get_retailers()
     logger.info(len(retailers))
-    
+
     # Loop the sources of data we want as base for the table
     for src in SOURCES:
 
@@ -182,12 +199,15 @@ def start(source):
         # Build stats
         logger.info("Building stats")
         stats = get_stats(total_items, retailers)
+        print(stats)
 
         # Build dataframe and save to s3
         dframe = DataFrame(stats)
+        print(dframe)
         df_to_s3(dframe, src)
 
-        dframe.to_csv(DATA_DIR+"stats_aggregate.csv", encoding="utf-8")
+        print(DATA_DIR+"{}_stats_aggregate.csv".format(src))
+        dframe.to_csv(DATA_DIR+"{}_stats_aggregate.csv".format(src), encoding="utf-8")
           
 
 if __name__=='__main__':

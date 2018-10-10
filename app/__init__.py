@@ -158,6 +158,7 @@ def consumer_cmd():
 def dump_cmd(name):
     """ Execute script by it's name
     """
+    build_context(services=['geolocation','catalogue'])
     if not name:
         logger.error("You must define the name of the script to be executed")
         return False

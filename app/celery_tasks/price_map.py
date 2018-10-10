@@ -239,7 +239,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
             "price_original" : round(prod_interval.price_original.min(),2)
         }
 
-    task.progress = 70
+    task.progress = 80
     logger.info("Built table result: ")
     print(result['table'])
 
@@ -281,6 +281,7 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
         ])
 
     # Nested grouping for retailer info by interval
+    task.progress = 90
     grouped_by_retailer = df.groupby(['retailer'])
     for key, prod_retailer in grouped_retailer:
         prod_retailer.sort_values(by=['retailer'], ascending=True, inplace=True)
@@ -307,7 +308,6 @@ def grouped_by_store(task_id, filters, rets, date_start, date_end, interval):
 
 
     result['history'] = history
-    result['history'][]
 
     # Save task result
     task.progress = 100
