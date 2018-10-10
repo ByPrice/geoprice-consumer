@@ -1,4 +1,7 @@
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Catalogue(object):
 
@@ -7,7 +10,8 @@ class Catalogue(object):
         """
         self.uri = uri or "geolocation"
         self.protocol = protocol or "http"
-        self.base_url = "{}://{}".format(self.protocol, self.uri)
+        self.base_url = "http://local.catalogue.byprice.com"
+        #self.base_url = "{}://{}".format(self.protocol, self.uri)
         self.auth = None
     
     def get_item_details(
@@ -99,10 +103,10 @@ class Catalogue(object):
         if 'cols' in kwargs:
             cols = kwargs['cols'].join(",")
         else:
-            cols = 'product_uuid,retailer'
+            cols = 'product_uuid,source'
 
         # Build the query
-        q_arr = [ "{}={}".format(k, ",".join(vals) for k,vals in kwargs ) ]
+        q_arr = [ "{}={}".format(k, (",".join(vals) for k,vals in kwargs) ) ]
         q =  "&".join(q_arr)
         q = "?"+q
 
@@ -129,3 +133,40 @@ class Catalogue(object):
         return products
 
     
+    def get_source_products(self, source=None, cols=None):
+        """ Get list of items by source
+        """
+
+        if not cols:
+            cols = 'source,p.name'
+
+        prods=[]
+        p=1
+        ipp=1000
+
+        try:
+            nxt = True
+            while nxt:  
+                print("Getting page {}".format(p))
+                r = requests.get(
+                        self.base_url+"""/source/products/{source}?cols={cols}&p={p}&ipp={ipp}
+                        """.format(
+                            source=source,
+                            cols=cols,
+                            p=p,
+                            ipp=ipp)
+                    )
+                if r.status_code != 200:
+                    raise Exception("Could not fetch source")
+                page_prods = r.json()['products'] 
+                if not page_prods:
+                    nxt = False
+                prods += page_prods
+                p+=1
+                break
+                
+        except Exception as e:
+            logger.error(e)
+            return False
+
+        return prods
