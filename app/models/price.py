@@ -514,7 +514,8 @@ class Price(object):
         '''
         self.save_batch_geohash()
         self.save_batch()
-        self.save_stats()
+        # Method not defined
+        ### self.save_stats()
         return True
 
 
@@ -631,12 +632,12 @@ class Price(object):
                 }]
         """
         # Order dates
-        dates = date.sort()
-        
+        dates = dates.sort()
+        result = []
         # Nested loops
         for d in dates:
             for s in stores:
-                for p in prods:
+                for p in products:
                     rows = g._db.query("""
                         select * from 
                         price_by_product_store 
@@ -649,5 +650,5 @@ class Price(object):
         return result     
 
     ### Verify this method
-    def save_batch(self):
-        elem = list(self.loc_generator())[0]
+    #def save_batch(self):
+    #    elem = list(self.loc_generator())[0]
