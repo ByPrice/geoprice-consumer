@@ -75,7 +75,7 @@ AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 */
 
 /* command start */
-/* Prices by date partitioned to 20*/
+/* Prices by date partitioned to 20 */
 CREATE TABLE price_by_date_parted (
     date            int,
     part            int,

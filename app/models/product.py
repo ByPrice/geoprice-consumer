@@ -14,6 +14,7 @@ from config import *
 from app.models.item import Item
 from app.utils.helpers import *
 
+
 class Product(object):
     """ Class perform Query methods on Cassandra items
     """
@@ -372,7 +373,7 @@ class Product(object):
         df['store_uuid'] = df['store_uuid'].astype(str)
         df['source'] = source
         _ius = pd.DataFrame(
-            Item.get_by_products(
+            Item.get_by_product(
                 df['product_uuid'].tolist(),
                 ['name', 'item_uuid', 'gtin']
             )
@@ -1063,25 +1064,28 @@ class Product(object):
         _days = tupleize_date(_time.date(), 2)
         cass_query = """
             SELECT COUNT(1) as count
-            FROM price_by_source
+            FROM price_by_source_parted
             WHERE source=%s
             AND date=%s
+            AND part=%s
             AND time>%s
             AND time<%s
             """
         qs = []
         # Iterate for each product-date combination
         for _d in _days:
-            try:
-                q = g._db.query(cass_query, 
-                    (retailer, _d, _time, _time_plus),
-                    timeout=100)
-                if not q:
+            # Need to iterate over all the 20 partitions
+            for _part in range(1,21):
+                try:
+                    q = g._db.query(cass_query, 
+                        (retailer, _d, _part, _time, _time_plus),
+                        timeout=30)
+                    if not q:
+                        continue
+                    qs += list(q)
+                except Exception as e:
+                    logger.error("Cassandra Connection error: " + str(e))
                     continue
-                qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue
         if len(qs) == 0:
             return {'count' : 0}
         # Fetch agg values:        
