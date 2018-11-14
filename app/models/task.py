@@ -87,7 +87,7 @@ class Task(object):
                 raise Exception
         except Exception as e:
             logger.error("Incorrect value format")
-            return false
+            return False
 
         # Case 0: STARTING
         if value == 0:

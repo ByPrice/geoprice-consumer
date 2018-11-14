@@ -8,6 +8,7 @@
 """
 import argparse
 import datetime
+import sys
 from uuid import UUID
 import pandas as pd
 import numpy as np
