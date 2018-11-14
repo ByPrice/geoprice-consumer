@@ -240,7 +240,7 @@ class Price(object):
                 """, {
                     "date" : self.date,
                     "product_uuid" : self.product_uuid,
-                    "raw" : json.dump(self.as_dict)
+                    "raw" : json.dumps(self.as_dict)
                 })
         except Exception as e:
             logger.error("Could not save price raw data")
