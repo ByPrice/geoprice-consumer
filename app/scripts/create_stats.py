@@ -53,7 +53,7 @@ def stats_args():
 
 def get_daily_data(_day):
     """ Query for a certain date data 
-        from `price_by_date` (PUUID, price, date)
+        from `price_by_date_parted` (PUUID, price, date)
 
         Params:
         -----
@@ -66,12 +66,21 @@ def get_daily_data(_day):
             Table of daily prices data 
     """
     logger.info('Successfully connected to C*')
-    # Query data
+    daily = []
     cass_qry = """SELECT product_uuid, price, date
-    FROM price_by_date WHERE date = %s 
+        FROM price_by_date_parted WHERE date = %s AND part = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
-    daily = g._db.query(cass_qry, (_day,), timeout=20)
+    # Query data, need to iterate over all the 20 partitions
+    for _part in range(1,21):
+        try:
+            q = g._db.query(cass_qry, (_day, _part), timeout=20)
+            if not q:
+                continue
+            daily += list(q)
+        except Exception as e:
+            logger.error("Cassandra Connection error: " + str(e))
+            continue
     # Format Data
     if not daily:
         return pd.DataFrame()

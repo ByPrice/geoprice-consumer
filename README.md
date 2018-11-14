@@ -91,10 +91,14 @@ Push Image to ECS
 docker push <aws_prefix>/geoprice:dev
 ```
 
+## Schema 
+
+[See details](./schema.cql)
+
 
 ## Contracts
 
-[See details](../CONTRACTS.md)
+[See details](./CONTRACTS.md)
 
 ## Errors
 

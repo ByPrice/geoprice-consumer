@@ -5,7 +5,6 @@ from app import logger
 from config import SRV_CATALOGUE
 
 
-
 class Item(object):
     """ Class to get the equivalences between 
         the products and the items
@@ -111,7 +110,7 @@ class Item(object):
         """
         # Fetch uuids from filters in ITEM
         payload  = json.dumps(filters)
-        url = 'http://'+config.SRV_CATALOUGUE+'/item/filtered'
+        url = 'http://'+SRV_CATALOGUE+'/item/filtered'
         headers = {'content-type':'application/json'}
         logger.debug(url)
         try:
