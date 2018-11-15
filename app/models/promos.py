@@ -85,7 +85,7 @@ class Promos(object):
                     yield ', '+json.dumps(d)
                 else:
                     yield json.dumps(d)
-                has_printed = True
+                    has_printed = True
 
             ip += 1
         yield '], "message": "finished"}'
