@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
 from app.models.stats import Stats
-from app.utils import errors, logger
+from app import errors, logger
 import datetime
 
 mod = Blueprint('stats',__name__)
