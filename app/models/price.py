@@ -5,7 +5,7 @@ import json
 import uuid
 import math
 from ..utils import geohash
-from .. import applogger
+from ByHelpers import applogger
 
 # Database connection:  db.session
 logger = applogger.get_logger()
