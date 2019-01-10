@@ -2,7 +2,7 @@
 import sys
 from cassandra import AlreadyExists
 from app.utils.simple_cassandra import SimpleCassandra
-import app.utils.applogger as applogger
+from ByHelpers import applogger 
 from app.utils.errors import AppError
 import config
 
