@@ -46,7 +46,7 @@ def initdb():
         try:
             session_init.execute("""
                 CREATE KEYSPACE %s 
-                WITH replication = {'class': 'NetworkTopologyStrategy', 'Core': '1', 'Analytics': '1'}  
+                WITH replication = {'class': 'NetworkTopologyStrategy', 'us-west1': '2'}  
                 AND durable_writes = true
             """ % config.CASSANDRA_KEYSPACE ) 
         except AlreadyExists:
