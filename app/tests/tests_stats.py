@@ -7,7 +7,7 @@ import threading
 import time
 import sys
 from pprint import pprint
-from app.scripts.create_stats import daily_stats
+from app.scripts.create_stats import get_daily_data
 import datetime
 
 # Vars
@@ -17,6 +17,8 @@ test_date = datetime.date(2018,5,10)
 class GeopriceStatsTestCase(unittest.TestCase):
     """ Test Case for Geoprice Stats
     """ 
+
+    daily_data = None
 
     @classmethod
     def setUpClass(cls):
@@ -48,8 +50,8 @@ class GeopriceStatsTestCase(unittest.TestCase):
     def test_01_stats_generation(self):
         """ Testing Stats generation
         """ 
-        daily_stats(test_date)
-        self.assertTrue(True)
+        self.daily_data = get_daily_data(test_date)
+        self.assertGreater(len(self.daily_data), 0)
 
 
 if __name__ == '__main__':
