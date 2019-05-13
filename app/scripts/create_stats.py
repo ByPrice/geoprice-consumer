@@ -76,8 +76,7 @@ def get_daily_data(_day):
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
-    # Query data, need to iterate over all the 20 partitions
-    for _st in tqdm(stores.store_uuid.tolist(), desc='Query'):
+    for _st in stores.store_uuid.tolist():
         try:
             q = g._db.query(cass_qry, (_day, UUID(_st)), timeout=200)
             if not q:

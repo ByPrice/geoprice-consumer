@@ -24,8 +24,8 @@ new_price = {
     "url" : "https://super.walmart.com.mx/Leche/Leche-Alpura-deslactosada-1-l/00750105590142",
     "location" : {
         "store" : [
-            "3b005588-be71-11e7-bb47-0242ac110002",
-            "39fd55b4-be71-11e7-bb47-0242ac110002"
+            "62dd3a78-4bdd-11e7-a958-0242ac110002",
+            "6319dea6-4bdd-11e7-a958-0242ac110002"
         ],
         "zip" : ["14140","01900"],
         "city" : ["México","México"],

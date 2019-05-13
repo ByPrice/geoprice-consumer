@@ -6,7 +6,7 @@ import json
 import time
 import sys
 from pprint import pprint
-from app.scripts.create_stats import get_daily_data
+from app.scripts.create_stats import get_daily_data, aggregate_daily
 import datetime
 
 # Vars
@@ -46,13 +46,24 @@ class GeopriceStatsTestCase(unittest.TestCase):
         self.ctx.pop()
         #pass
 
-    def test_01_stats_generation(self):
-        """ Testing Stats generation
+    def test_01_stats_query(self):
+        """ Testing Stats query
         """ 
         self.daily_data = get_daily_data(test_date)
         print(self.daily_data)
         self.assertGreater(len(self.daily_data), 0)
 
+    def test_02_stats_generation(self):
+        """ Testing Stats generation
+        """ 
+        if self.daily_data is None:
+            self.daily_data = get_daily_data(test_date)
+        try:
+            aggregate_daily(self.daily_data )
+            self.assertTrue(True)
+        except Exception as e:
+            print(e)
+            self.assertTrue(False)
 
 if __name__ == '__main__':
     unittest.main()
