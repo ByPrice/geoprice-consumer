@@ -46,7 +46,7 @@ new_price = {
 
 class GeopriceConsumerTestCase(unittest.TestCase):
     """ Test Case for Geoprice Consumer
-    """
+    """ 
 
     @classmethod
     def setUpClass(cls):
@@ -54,20 +54,18 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """
         # Define test database
         print("Setting up tests")
-        return
-        if config.TESTING:
-            with app.app.app_context():
-                app.initdb_cmd()
+        # if config.TESTING:
+        #    with app.app.app_context():
+        #        app.initdb_cmd()
 
     @classmethod
     def tearDownClass(cls):
         """ Drops database
         """
         print("Teardown class")
-        return
-        if config.TESTING:
-            with app.app.app_context():
-                app.dropdb_cmd()
+        # if config.TESTING:
+        #     with app.app.app_context():
+        #         app.dropdb_cmd()
 
     def setUp(self):
         """ Set up

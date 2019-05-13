@@ -1,6 +1,5 @@
 import sys
 import argparse
-from app.utils import geohash
 import datetime
 import calendar
 import itertools
@@ -13,7 +12,7 @@ import tqdm
 from config import *
 from app.consumer import with_context
 from app.models.price import Price
-from app.utils import applogger
+from ByHelpers import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 
 # Logger
@@ -289,7 +288,6 @@ def format_price(val):
             'city': [val['city']],
             'state': [val['state']],
             'country': 'Mexico',
-            'geohash': val['geohash'],
             "coords" : [
                 {
                     "lat" : float(val['lat']) if val['lat'] else 19.432609,
@@ -359,7 +357,6 @@ def day_migration(*args):
     data_aux = data[["store_uuid", "lat", "lng"]].drop_duplicates(subset="store_uuid")
     data_aux["lat"] =[lat if lat else 19.432609 for lat in data_aux.lat]
     data_aux["lng"] = [lng if lng else -99.133203 for lng in data_aux.lng]
-    data_aux['geohash'] = [geohash.encode(float(row.lat), float(row.lng)) for index, row in data_aux.iterrows()]
     del(data_aux["lat"])
     del (data_aux["lng"])
     data = data.merge(data_aux, on="store_uuid", how="left")
