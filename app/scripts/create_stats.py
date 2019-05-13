@@ -18,6 +18,7 @@ from config import *
 from ByHelpers import applogger
 from app.consumer import with_context
 from app.models.price import Price
+from app.utils.helpers import get_all_stores
 
 # Logger
 applogger.create_logger('stats-'+APP_NAME)
@@ -68,14 +69,15 @@ def get_daily_data(_day):
     """
     logger.info('Successfully connected to C*')
     daily = []
+    stores = get_all_stores()
     cass_qry = """SELECT product_uuid, price, date
-        FROM price_by_date_parted WHERE date = %s AND part = %s
+        FROM price_by_store WHERE date = %s AND store = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
     # Query data, need to iterate over all the 20 partitions
-    for _part in range(1,21):
+    for _st in stores:
         try:
-            q = g._db.query(cass_qry, (_day, _part), timeout=20)
+            q = g._db.query(cass_qry, (_day, _st), timeout=200)
             if not q:
                 continue
             daily += list(q)
