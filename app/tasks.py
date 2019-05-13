@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from . import applogger
+from ByHelpers import applogger
 from .models.mapa import Mapa
 from .models.historia import Historia
 import config

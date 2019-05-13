@@ -15,7 +15,7 @@ import numpy as np
 from scipy import stats
 from flask import g
 from config import *
-from app.utils import applogger
+from ByHelpers import applogger
 from app.consumer import with_context
 from app.models.price import Price
 
