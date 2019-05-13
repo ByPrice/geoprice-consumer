@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 from flask import g
+from config import CASSANDRA_TTL
 import datetime
 import json
 import uuid
@@ -43,6 +44,7 @@ class Price(object):
     lngs = []
     location = {}
     _part = None
+    insert_ttl = CASSANDRA_TTL
 
     def __init__(self, *initial_data, **kwargs):
         # Db session init
@@ -205,7 +207,8 @@ class Price(object):
                 'coords' : self.coords[i],
                 'lat' : self.lats[i],
                 'lng' : self.lngs[i],
-                'part': self.part
+                'part': self.part,
+                'insert_ttl': self.insert_ttl
             }
 
 
@@ -294,6 +297,7 @@ class Price(object):
                     VALUES(
                         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -345,6 +349,7 @@ class Price(object):
                     VALUES(
                         %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -436,6 +441,7 @@ class Price(object):
                     VALUES(
                         %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -463,6 +469,7 @@ class Price(object):
                     VALUES(
                         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -490,6 +497,7 @@ class Price(object):
                     VALUES(
                         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -511,6 +519,8 @@ class Price(object):
                 Product aggregated values
         """    
         try:
+            if not hasattr(elem, 'insert_ttl'):
+                elem['insert_ttl'] = CASSANDRA_TTL
             g._db.execute(
                 """
                 INSERT INTO stats_by_product (
@@ -522,6 +532,7 @@ class Price(object):
                     %(datapoints)s, %(max_price)s, %(min_price)s,
                     %(mode_price)s, %(std_price)s
                 )
+                USING TTL %(insert_ttl)s
                 """,
                 elem
             )
@@ -561,35 +572,35 @@ class Price(object):
                     )
                     VALUES(
                         %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
-                    );
+                    ) USING TTL %(insert_ttl)s ;
 
                 INSERT INTO price_by_product_store(
                         product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency
                     )
                     VALUES(
                         %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                    );
+                    ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO price_by_store (
                     store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
                     %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
+                ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO promo (
                     product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
                     %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
+                ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO promo_by_store (
                     product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
                     %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                );
+                ) USING TTL %(insert_ttl)s;
 
                 APPLY BATCH;
                 """,
