@@ -3,7 +3,6 @@ import app
 import config
 import unittest
 import json
-import threading
 import time
 import sys
 from pprint import pprint
@@ -37,20 +36,21 @@ class GeopriceStatsTestCase(unittest.TestCase):
         """ Set up
         """
         # Init Flask ctx
-        #self.ctx = app.app.app_context()
-        #self.ctx.push()
-        #app.get_db()
-        pass
+        self.ctx = app.app.app_context()
+        self.ctx.push()
+        app.get_db()
+        #pass
 
     def tearDown(self):
         # Dropping flask ctx
-        #self.ctx.pop()
-        pass
+        self.ctx.pop()
+        #pass
 
     def test_01_stats_generation(self):
         """ Testing Stats generation
         """ 
         self.daily_data = get_daily_data(test_date)
+        print(self.daily_data)
         self.assertGreater(len(self.daily_data), 0)
 
 

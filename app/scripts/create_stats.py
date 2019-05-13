@@ -19,6 +19,8 @@ from ByHelpers import applogger
 from app.consumer import with_context
 from app.models.price import Price
 from app.utils.helpers import get_all_stores
+from uuid import UUID
+from tqdm import tqdm
 
 # Logger
 applogger.create_logger('stats-'+APP_NAME)
@@ -71,13 +73,13 @@ def get_daily_data(_day):
     daily = []
     stores = get_all_stores()
     cass_qry = """SELECT product_uuid, price, date
-        FROM price_by_store WHERE date = %s AND store = %s
+        FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
     # Query data, need to iterate over all the 20 partitions
-    for _st in stores:
+    for _st in tqdm(stores.store_uuid.tolist(), desc='Query'):
         try:
-            q = g._db.query(cass_qry, (_day, _st), timeout=200)
+            q = g._db.query(cass_qry, (_day, UUID(_st)), timeout=200)
             if not q:
                 continue
             daily += list(q)
@@ -122,7 +124,6 @@ def aggregate_daily(daily):
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
     # Load each element into C*
-    from tqdm import tqdm
     for elem in tqdm(aggr_stats.to_dict(orient='records')):
         Price.save_stats_by_product(elem)
     # Disply metrics
