@@ -37,6 +37,9 @@ CASSANDRA_KEYSPACE2 = os.getenv('CASSANDRA_KEYSPACE','stats')
 CASSANDRA_PORT = os.getenv('CASSANDRA_PORT','9042')
 CASSANDRA_USER = os.getenv('CASSANDRA_USER','')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
+CASSANDRA_TTL = int(os.getenv('CASSANDRA_TTL', 60*60*24*31*2)) # Default TTL : 2 months
+if int(CASSANDRA_TTL) < (60*60*24*10):
+    raise Exception("TTL too short, minimum valid TTL is 2 weeks")
 
 # Env-dependent variables
 if not TESTING:
