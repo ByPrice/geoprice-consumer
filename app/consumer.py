@@ -62,7 +62,7 @@ def callback(ch, method, properties, body):
             logger.info('Saved price for ' + price.retailer + ' ' + str(price.product_uuid))
             # Publish message to price-cache
             if q_cache in g._producer and  g._producer[q_cache]:
-                g._producer[q_cache].publish_message(q_cache, new_price)
+                g._producer[q_cache].send(new_price)
                 # Modify partition to distribute
                 if gcounter >= 20:
                     gcounter = 1
