@@ -152,6 +152,9 @@ def daily_stats(_day):
     # Retrieve daily data
     daily = get_daily_data(_day)
     # Aggregate data and load into C* table
+    if daily.empty:
+        logger.warning("No prices available!!")
+        return
     aggregate_daily(daily)
 
 def start():
