@@ -13,6 +13,7 @@ CREATE TABLE price_by_product_date (
     date            int,
     time            timestamp,
     store_uuid      uuid,
+    source          text,
     price           float,
     price_original  float,
     url             text,
@@ -50,7 +51,7 @@ AND COMPACTION = {'class': 'TimeWindowCompactionStrategy',
 AND read_repair_chance = 0.1
 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'};
 /*
-OR COMPACTION = {'class': 'LevelCompactionStrategy'}
+OR COMPACTION = {'class': 'LeveledCompactionStrategy'}
 */
 /* command end */
 

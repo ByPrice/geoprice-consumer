@@ -53,13 +53,16 @@ class GeopriceStatsTestCase(unittest.TestCase):
         print(self.daily_data)
         self.assertGreater(len(self.daily_data), 0)
 
+    #@unittest.skip('To review')
     def test_02_stats_generation(self):
         """ Testing Stats generation
         """ 
         if self.daily_data is None:
             self.daily_data = get_daily_data(test_date)
         try:
-            aggregate_daily(self.daily_data )
+            if self.daily_data.empty:
+                raise Exception("Missing prices!!")
+            aggregate_daily(self.daily_data)
             self.assertTrue(True)
         except Exception as e:
             print(e)
