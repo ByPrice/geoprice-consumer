@@ -150,7 +150,7 @@ def daily_stats(_day):
 def start():
     logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
                 .format(CASSANDRA_KEYSPACE))
-    date = datetime.date.today()
+    date = datetime.date.today() 
     logger.debug(date)
     # Call to perform stats
     daily_stats(date)
