@@ -25,13 +25,23 @@ new_price = {
     "location" : {
         "store" : [
             "17128984-7ace-11e7-9b9f-0242ac110003",
-            "244023aa-7ace-11e7-9b9f-0242ac110003"
+            "244023aa-7ace-11e7-9b9f-0242ac110003",
+            "62dd3a78-4bdd-11e7-a958-0242ac110002",
+            "6221c95a-4bdd-11e7-a958-0242ac110002"
         ],
-        "zip" : ["14140","01900"],
-        "city" : ["México","México"],
-        "state" : ["México","México"],
-        "country" : ["México","México"],
+        "zip" : ["14140","01900","14140","01900"],
+        "city" : ["México","México","México","México"],
+        "state" : ["México","México","México","México"],
+        "country" : ["México","México","México","México"],
         "coords" : [
+            {
+                "lat" : 19.4968732,
+                "lng" : -99.72326729999999
+            },
+            {
+                "lat" : 18.9732,
+                "lng" : -97.772999
+            },
             {
                 "lat" : 19.4968732,
                 "lng" : -99.72326729999999
