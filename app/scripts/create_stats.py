@@ -72,7 +72,7 @@ def get_daily_data(_day):
     logger.info('Successfully connected to C*')
     daily = []
     stores = get_all_stores()
-    cass_qry = """SELECT product_uuid, price, date
+    cass_qry = """SELECT product_uuid, price, date, source
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
@@ -122,6 +122,13 @@ def aggregate_daily(daily):
               ])
     aggr_stats.fillna(0.0, inplace=True)
     aggr_stats.reset_index(inplace=True)
+    # Add retailer
+    aggr_stats = pd.merge(
+        aggr_stats,
+        daily[['product_uuid', 'source']].drop_duplicates('product_uuid'),
+        on='product_uuid',
+        how='left'
+    )
     # Load each element into C*
     for elem in tqdm(aggr_stats.to_dict(orient='records')):
         Price.save_stats_by_product(elem)

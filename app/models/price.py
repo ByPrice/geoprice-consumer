@@ -291,10 +291,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_date(
-                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
+                        product_uuid, date, time, store_uuid, source, price, price_original, promo, currency, url
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     )
                     USING TTL %(insert_ttl)s
                     """,
@@ -343,10 +343,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_store(
-                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, store_uuid, time, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     USING TTL %(insert_ttl)s
                     """,
@@ -435,10 +435,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO price_by_store (
-                        store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency 
+                        store_uuid, date, time, product_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     USING TTL %(insert_ttl)s
                     """,
@@ -463,10 +463,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo (
-                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s,%(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     USING TTL %(insert_ttl)s
                     """,
@@ -491,10 +491,10 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo_by_store (
-                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
                     USING TTL %(insert_ttl)s
                     """,
@@ -523,11 +523,11 @@ class Price(object):
             g._db.execute(
                 """
                 INSERT INTO stats_by_product (
-                    product_uuid, date, avg_price, datapoints,
+                    product_uuid, date, avg_price, source, datapoints,
                     max_price, min_price, mode_price, std_price
                 )
                 VALUES(
-                    %(product_uuid)s, %(date)s, %(avg_price)s,
+                    %(product_uuid)s, %(date)s, %(avg_price)s, %(source)s,
                     %(datapoints)s, %(max_price)s, %(min_price)s,
                     %(mode_price)s, %(std_price)s
                 )
@@ -567,38 +567,38 @@ class Price(object):
                 BEGIN BATCH
 
                 INSERT INTO price_by_product_date(
-                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
+                        product_uuid, date, time, store_uuid, source, price, price_original, promo, currency, url
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     ) USING TTL %(insert_ttl)s ;
 
                 INSERT INTO price_by_product_store(
-                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency
+                        product_uuid, date, store_uuid, source,  time, lat, lng, price, price_original, promo, url, currency
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(source)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO price_by_store (
-                    store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency
+                    store_uuid, date, time, product_uuid, source, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO promo (
-                    product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
+                    product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 ) USING TTL %(insert_ttl)s;
 
                 INSERT INTO promo_by_store (
-                    product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency
+                    product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency
                 )
                 VALUES(
-                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                 ) USING TTL %(insert_ttl)s;
 
                 APPLY BATCH;
