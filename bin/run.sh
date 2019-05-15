@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # if app dir not set, set to app name
-if [[ -z $variable ]]
+if [[ -z $APP_DIR ]]
     then
     APP_DIR="/$APP_NAME"
 fi
