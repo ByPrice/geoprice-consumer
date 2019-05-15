@@ -1,12 +1,10 @@
-geoprice-srv-dev-{node_num}:
+geoprice-dev-{node_num}:
   image: "geoprice"
   environment:
-    APP_MODE: "SERVICE"
-    APP_DIR: "geoprice"
+    APP_MODE: "CONSUMER"
     MODE: $APP_MODE
-    APP_HOST: '0.0.0.0'
-    APP_PORT: 8600
     APP_NAME: "geoprice-$APP_MODE"
+    APP_DIR: "geoprice"
     FLASK_APP: "app/__init__.py"
     SCRIPT: "create_stats"
     CASSANDRA_CONTACT_POINTS: "$CASSANDRA_CONTACT_POINTS"
