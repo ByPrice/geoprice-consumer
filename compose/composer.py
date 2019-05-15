@@ -17,6 +17,7 @@ def validate():
     if len(sys.argv) < 2:
         raise Exception("Missing Deployment parameters")
 
+
 def get_deploy_args():
     # Validate params
     validate()
