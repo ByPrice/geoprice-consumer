@@ -1,4 +1,4 @@
-geoprice-dev-{node_num}:
+geoprice-$ENV-{node_num}:
   image: "geoprice"
   environment:
     APP_MODE: "CONSUMER"
@@ -21,7 +21,7 @@ geoprice-dev-{node_num}:
     STREAMER_ROUTING_KEY: "bp_routing"
     LOG_HOST: "localhost"
     LOG_LEVEL: "DEBUG"
-    ENV: "DEV"
+    ENV: "$ENV"
     SRV_CATALOGUE: "gate.byprice.com/bpcatalogue"
     SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
   entrypoint: 
