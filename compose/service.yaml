@@ -31,7 +31,7 @@ services:
         - /bin/bash
         - bin/run.sh
       deploy:
-        replicas: 1
+        replicas: 2
       #   update_config:
       #     parallelism: 1
       #     delay: 10s
