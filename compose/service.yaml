@@ -28,7 +28,7 @@ services:
         SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
       entrypoint: 
         - /bin/bash
-        - bin/run.local
+        - bin/run.sh
       # deploy:
       #   replicas: 1
       #   update_config:
@@ -65,7 +65,7 @@ services:
   #       SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
   #     entrypoint: 
   #       - /bin/bash
-  #       - bin/run.local
+  #       - bin/run.sh
   #     deploy:
   #       replicas: 1
   #       update_config:
