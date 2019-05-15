@@ -1,0 +1,75 @@
+version: "3"
+
+services:
+  geoprice-dev:
+      image: "geoprice"
+      environment:
+        APP_MODE: "CONSUMER"
+        MODE: $APP_MODE
+        APP_NAME: "geoprice-$APP_MODE"
+        FLASK_APP: "app/__init__.py"
+        SCRIPT: "create_stats"
+        CASSANDRA_CONTACT_POINTS: "$CASSANDRA_CONTACT_POINTS"
+        CASSANDRA_KEYSPACE: "geoprice"
+        CASSANDRA_PORT: 9042
+        CASSANDRA_USER: "byprice"
+        CASSANDRA_PASSWORD: "$CASSANDRA_PASSWORD"
+        STREAMER_HOST: "$STREAMER_HOST"
+        STREAMER_EXCHANGE: "data"
+        STREAMER_EXCHANGE_TYPE: "direct"
+        STREAMER_VIRTUAL_HOST: ""
+        STREAMER_PORT: 5672
+        STREAMER_QUEUE: "bp_routing"
+        STREAMER_ROUTING_KEY: "bp_routing"
+        LOG_HOST: "localhost"
+        LOG_LEVEL: "DEBUG"
+        ENV: "DEV"
+        SRV_CATALOGUE: "gate.byprice.com/bpcatalogue"
+        SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
+      entrypoint: 
+        - /bin/bash
+        - bin/run.local
+      # deploy:
+      #   replicas: 1
+      #   update_config:
+      #     parallelism: 1
+      #     delay: 10s
+      #   restart_policy:
+      #     condition: on-failure
+  # geoprice-srv-dev:
+  #     image: "geoprice"
+  #     environment:
+  #       APP_MODE: "SERVICE"
+  #       MODE: $APP_MODE
+  #       APP_HOST: '0.0.0.0'
+  #       APP_PORT: 8600
+  #       APP_NAME: "geoprice-$APP_MODE"
+  #       FLASK_APP: "app/__init__.py"
+  #       SCRIPT: "create_stats"
+  #       CASSANDRA_CONTACT_POINTS: "$CASSANDRA_CONTACT_POINTS"
+  #       CASSANDRA_KEYSPACE: "geoprice"
+  #       CASSANDRA_PORT: 9042
+  #       CASSANDRA_USER: "byprice"
+  #       CASSANDRA_PASSWORD: "$CASSANDRA_PASSWORD"
+  #       STREAMER_HOST: "$STREAMER_HOST"
+  #       STREAMER_EXCHANGE: "data"
+  #       STREAMER_EXCHANGE_TYPE: "direct"
+  #       STREAMER_VIRTUAL_HOST: ""
+  #       STREAMER_PORT: 5672
+  #       STREAMER_QUEUE: "bp_routing"
+  #       STREAMER_ROUTING_KEY: "bp_routing"
+  #       LOG_HOST: "localhost"
+  #       LOG_LEVEL: "DEBUG"
+  #       ENV: "DEV"
+  #       SRV_CATALOGUE: "gate.byprice.com/bpcatalogue"
+  #       SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
+  #     entrypoint: 
+  #       - /bin/bash
+  #       - bin/run.local
+  #     deploy:
+  #       replicas: 1
+  #       update_config:
+  #         parallelism: 1
+  #         delay: 10s
+  #       restart_policy:
+  #         condition: on-failure
