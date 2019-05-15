@@ -30,8 +30,8 @@ services:
       entrypoint: 
         - /bin/bash
         - bin/run.sh
-      # deploy:
-      #   replicas: 1
+      deploy:
+        replicas: 1
       #   update_config:
       #     parallelism: 1
       #     delay: 10s
