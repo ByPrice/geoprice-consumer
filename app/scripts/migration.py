@@ -114,6 +114,7 @@ def fetch_day_prices(day, _part, limit, conf, stores):
             dtr = pd.merge(dtr, 
                 stores[['store_uuid', 'source', 'zip', 'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
+            dtr['source'] = dtr['source'].fillna('')
         logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
     except Exception as e:
         logger.error(e)
