@@ -17,7 +17,7 @@ from app.utils.helpers import get_all_stores
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
-LIMIT = 100
+LIMIT = None
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -120,7 +120,6 @@ def fetch_day_prices(day, _part, limit, conf, stores):
         logger.warning("Could not retrieve {} - {}".format(day, _part))
     # Drop connection with C*
     cdb.close()
-    logger.info("""Got {} prices  in {}- {}""".format(len(dtr), day, _part))
     return dtr
 
 
