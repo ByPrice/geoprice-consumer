@@ -96,7 +96,7 @@ def get_all_stores(rets=[]):
     """
     # Verify rets
     if not rets:
-        rets = requests.get(geo_rets_url).json()
+        rets = requests.get(geo_rets_url+'&active=all').json()
     stores = []
     for r in rets:
         tmp = fetch_store(r['key'])
