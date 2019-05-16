@@ -20,7 +20,7 @@ geoprice-$ENV-{node_num}:
     STREAMER_QUEUE: "bp_routing"
     STREAMER_ROUTING_KEY: "bp_routing"
     LOG_HOST: "localhost"
-    LOG_LEVEL: "DEBUG"
+    LOG_LEVEL: "$LOG_LEVEL"
     ENV: "$ENV"
     SRV_CATALOGUE: "gate.byprice.com/bpcatalogue"
     SRV_GEOLOCATION: "gate.byprice.com/bpgeolocation"
