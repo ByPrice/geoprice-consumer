@@ -17,7 +17,7 @@ from app.utils.helpers import get_all_stores
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
-LIMIT = 100
+LIMIT = None
 
 def cassandra_args():
     """ Parse Cassandra related arguments
