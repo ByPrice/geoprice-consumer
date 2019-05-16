@@ -35,11 +35,6 @@ def cassandra_args():
     parser.add_argument('--from_cassandra_keyspace', help='Source Cassandra Keyspace')
     parser.add_argument('--from_cassandra_user', help='Source Cassandra User')
     parser.add_argument('--from_cassandra_password', help='Source Cassandra Password')
-    parser.add_argument('--to_cassandra_hosts', help='Destination Cassandra Contact points')
-    parser.add_argument('--to_cassandra_port', help='Destination Cassandra Port', type=int)
-    parser.add_argument('--to_cassandra_keyspace', help='Destination Cassandra Keyspace')
-    parser.add_argument('--to_cassandra_user', help='Destination Cassandra User')
-    parser.add_argument('--to_cassandra_password', help='Destination Cassandra Password')
     parser.add_argument('--date', help='Migration date  (YYYY-MM-DD)')
     args = dict(parser.parse_args()._get_kwargs())
     # Validation of variables
@@ -61,15 +56,6 @@ def cassandra_args():
     if not args['date']:
         raise Exception("Missing Date to apply migration!")
     args['date'] = date_from_str(args['date'])
-    # Cassandra To
-    if not args['to_cassandra_hosts']:
-        args['to_cassandra_hosts'] = ['0.0.0.0']
-    else:
-        args['to_cassandra_hosts'] = args['to_cassandra_hosts'].split(',')
-    if not args['to_cassandra_port']:
-        args['to_cassandra_port'] = 9042
-    if not args['to_cassandra_keyspace']:
-        raise Exception("Missing Destination Keyspace to start migration")
     return args
 
 
@@ -128,6 +114,10 @@ def fetch_day_prices(day, limit, conf, stores):
             dtr = pd.merge(dtr, 
                 stores[['store_uuid', 'source', 'zip', 'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
+            if not dtr[dtr.source.isnull()].empty:
+                # If there are empty sources
+                print('Missing Sources:')
+                print(set(dtr[dtr.source.isnull()].store_uuid.tolist()))
             r.append(dtr)
             logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
         except Exception as e:
@@ -194,13 +184,13 @@ def populate_geoprice_tables(val):
     """
     price_val = format_price(val)    
     price = Price(price_val)
-    logger.debug("Formatted price info..")
+    #logger.debug("Formatted price info..")
     try:
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
     except Exception as e:
         return False
-    logger.info("Saving All...")
+    #logger.info("Saving All...")
     if price.save_all_batch():
         #logger.debug("Loaded tables for: {}".format(val['product_uuid']))
         pass
