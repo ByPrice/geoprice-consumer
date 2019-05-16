@@ -7,7 +7,7 @@
     with docker-compose up.
 
     Execution:
-    python compose/composer.py '{"consumer": 2, "service": 2}' 
+    python -m compose.composer '{"consumer": 2, "service": 2}' 
 """
 import sys
 import json
