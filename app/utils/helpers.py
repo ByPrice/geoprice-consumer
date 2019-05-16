@@ -71,7 +71,7 @@ def fetch_store(rkey):
     """
     try:
         logger.debug('Querying %s' %(geo_stores_url % rkey))
-        xr = requests.get(geo_stores_url % rkey).json()
+        xr = requests.get((geo_stores_url % rkey) +'&active=all').json()
         for i, x in enumerate(xr):
             xr[i].update({'source': rkey})
         return xr
@@ -96,7 +96,7 @@ def get_all_stores(rets=[]):
     """
     # Verify rets
     if not rets:
-        rets = requests.get(geo_rets_url+'&active=all').json()
+        rets = requests.get(geo_rets_url).json()
     stores = []
     for r in rets:
         tmp = fetch_store(r['key'])
