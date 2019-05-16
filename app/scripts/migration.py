@@ -17,7 +17,7 @@ from app.utils.helpers import get_all_stores
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
-LIMIT = None
+LIMIT = 100
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -59,13 +59,15 @@ def cassandra_args():
     return args
 
 
-def fetch_day_prices(day, limit, conf, stores):
+def fetch_day_prices(day, _part, limit, conf, stores):
     """ Query data from passed keyspace
 
         Params:
         -----
         day : datetime.date
             Query Date 
+        _part: int
+            Partition 
         limit : int
             Limit of prices to retrieve
         conf: dict
@@ -98,15 +100,13 @@ def fetch_day_prices(day, limit, conf, stores):
         cql_query += ' LIMIT {}'.format(limit)
     # Format vars
     day = int(day.isoformat().replace('-',''))
-    r = []
-    for _part in range(1,21):
-        try:
-            tr = cdb.query(cql_query,
-                (day, _part),
-                timeout=200,
-                consistency=ConsistencyLevel.ONE)
-            if not tr:
-                continue
+    dtr = pd.DataFrame()
+    try:
+        tr = cdb.query(cql_query,
+            (day, _part),
+            timeout=200,
+            consistency=ConsistencyLevel.ONE)
+        if tr: 
             # Generate DFs
             dtr = pd.DataFrame(tr)
             dtr['product_uuid'] = dtr.product_uuid.astype(str)
@@ -114,24 +114,14 @@ def fetch_day_prices(day, limit, conf, stores):
             dtr = pd.merge(dtr, 
                 stores[['store_uuid', 'source', 'zip', 'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
-            if not dtr[dtr.source.isnull()].empty:
-                # If there are empty sources
-                print('Missing Sources:')
-                print(set(dtr[dtr.source.isnull()].store_uuid.tolist()))
-            r.append(dtr)
-            logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
-        except Exception as e:
-            logger.error(e)
-            logger.warning("Could not retrieve {} - {}".format(day, _part))
+        logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
+    except Exception as e:
+        logger.error(e)
+        logger.warning("Could not retrieve {} - {}".format(day, _part))
     # Drop connection with C*
     cdb.close()
-    # Concat DFs
-    if len(r) == 0:
-        return pd.DataFrame()
-    data = pd.concat(r)
-    logger.info("""Got {} prices  in {}""".format(len(data), day))
-    del r
-    return data
+    logger.info("""Got {} prices  in {}- {}""".format(len(dtr), day, _part))
+    return dtr
 
 
 def format_price(val):
@@ -214,13 +204,14 @@ def day_migration(day, limit, conf, stores):
     """
     logger.debug("Retrieving info for migration on ({})".format(day))
     # Retrieve data from AWS Geoprice KS (geoprice.price_by_date_parted)
-    data = fetch_day_prices(day, limit, conf, stores)
-    if data.empty:
-        logger.debug("No prices to migrate in {}!".format(day))
-        return
-    for j, d in tqdm.tqdm(data.iterrows()):
-        # Populate each table in new KS
-        populate_geoprice_tables(d.to_dict())
+    for _part in range(1, 21):
+        data = fetch_day_prices(day, _part, limit, conf, stores)
+        if data.empty:
+            logger.debug("No prices to migrate in {} - {}!".format(day, _part))
+            continue
+        for j, d in tqdm.tqdm(data.iterrows(), desc="{}-{}".format(day, _part)):
+            # Populate each table in new KS
+            populate_geoprice_tables(d.to_dict())
     logger.info("Finished populating tables")
 
 
