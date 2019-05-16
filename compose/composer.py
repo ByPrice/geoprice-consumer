@@ -11,7 +11,7 @@
 """
 import sys
 import json
-
+from config import ENV
 
 def validate():
     if len(sys.argv) < 2:
@@ -40,7 +40,7 @@ def create_consumer_yaml(c_num):
             for j, l in enumerate(cym_template.split("\n"))])
     c_yml = ""
     for i in range(c_num):
-        c_yml += cym_template.format(node_num=i)
+        c_yml += cym_template.format(node_num=i, ENV=ENV)
         c_yml +='\n  '
     return c_yml
 
@@ -53,7 +53,7 @@ def create_service_yaml(c_num):
             for j, l in enumerate(cym_template.split("\n"))])
     c_yml = ""
     for i in range(c_num):
-        c_yml += cym_template.format(node_num=i)
+        c_yml += cym_template.format(node_num=i, ENV=ENV)
         c_yml +='\n  '
     return c_yml
 

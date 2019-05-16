@@ -1,4 +1,4 @@
-geoprice-srv-$ENV-{node_num}:
+geoprice-srv-{ENV}-{node_num}:
   image: "geoprice"
   environment:
     APP_MODE: "SERVICE"
