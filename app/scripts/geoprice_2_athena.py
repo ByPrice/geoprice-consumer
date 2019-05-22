@@ -94,7 +94,7 @@ def fetch_day_prices(day, _part, limit, conf, stores):
         'USER': conf['from_cassandra_user'],
         'PASSWORD': conf['from_cassandra_password']
     })
-    logger.info("Connected to C*!")
+    logger.info("Connected to C* - {}!".format(cdb.session.keyspace))
     # Define CQL query
     cql_query = """SELECT * 
         FROM price_by_date_parted
@@ -118,7 +118,8 @@ def fetch_day_prices(day, _part, limit, conf, stores):
             dtr['product_uuid'] = dtr.product_uuid.astype(str)
             dtr['store_uuid'] = dtr.store_uuid.astype(str)
             dtr = pd.merge(dtr, 
-                stores[['store_uuid', 'source', 'zip', 'city','state', 'lat','lng']], 
+                stores[['store_uuid', 'source', 
+                        'zip', 'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
             dtr['source'] = dtr['source'].fillna('')
         logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
@@ -138,7 +139,7 @@ def send_prices_parquet(data):
         - data : pd.DataFrame
             All needed data to generate parquet
     """
-    for gk, gdf in data.groupby(['date', 'retailer']):
+    for gk, gdf in data.groupby(['date', 'source']):
         gdf.to_parquet("data/{}_{}.parquet".format(*gk))
 
 

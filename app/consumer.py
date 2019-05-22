@@ -10,7 +10,6 @@ from flask import g
 from functools import wraps
 from app.utils import db, errors
 from ByHelpers import applogger
-from ByHelpers.rabbit_engine import RabbitEngine
 from app.models.price import Price
 import sys
 

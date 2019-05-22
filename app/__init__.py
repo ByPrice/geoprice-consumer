@@ -11,7 +11,8 @@ import datetime
 from ByHelpers import applogger
 import app.utils.errors as errors
 import app.utils.db as db
-from ByHelpers.rabbit_engine import RabbitEngine
+if APP_MODE == 'CONSUMER':
+    from ByHelpers.rabbit_engine import RabbitEngine
 from redis import Redis
 
 # Flask app declaration
@@ -45,8 +46,9 @@ def build_context(
     get_db()
     get_redis()
     get_sdks(services)
-    get_consumer(queue=queue_consumer)
-    get_producer(queue=queue_producer)
+    if APP_MODE == 'CONSUMER':
+        get_consumer(queue=queue_consumer)
+        get_producer(queue=queue_producer)
 
 
 def get_db():
