@@ -15,15 +15,18 @@ from cassandra import ConsistencyLevel
 import tqdm
 from config import *
 from app.consumer import with_context
+import numpy as np
 from app.models.price import Price
 from ByHelpers import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 from app.utils.helpers import get_all_stores
+import boto3
 
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
 LIMIT = 100
+BUCKET_DIR= 'dev/price_retailer'
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -131,16 +134,69 @@ def fetch_day_prices(day, _part, limit, conf, stores):
     return dtr
 
 
-def send_prices_parquet(data):
+def send_prices_parquet(data, _part):
     """ Generate local parquet and send it to AWS S3
 
         Params:
         -----
-        - data : pd.DataFrame
+        data : pd.DataFrame
             All needed data to generate parquet
+        _part : int
+            Partition number
     """
-    for gk, gdf in data.groupby(['date', 'source']):
-        gdf.to_parquet("data/{}_{}.parquet".format(*gk))
+    # Format data
+    data['date'] = data.date.astype(dtype=np.int32)
+    def compute_discount(x):
+        _disc = 100.0 * (x['price_original'] - x['price']) / x['price_original'] if x['price_original'] > 0.0 else 0.0
+        return _disc
+    if 'discount' not in data.columns:
+        data['discount'] = data.apply(compute_discount, 1)
+    data['discount'] = data.discount.astype(dtype=np.float32)
+    data['lat'] = data.lat.astype(dtype=np.float32)
+    data['lng'] = data.lng.astype(dtype=np.float32)
+    data['price'] = data.price.astype(dtype=np.float32)
+    data['price_original'] = data.price_original.astype(dtype=np.float32)
+    data['promo'] = data['promo'].fillna('')
+    data['retailer'] = data['source']
+    data['item_uuid'] = ''
+    data = data.drop(['part', 'source', 'url', 'currency'], axis=1)
+    # Iterate by source
+    for gk, gdf in data.groupby(['date', 'retailer']):
+        parq_fname = "data/{}_{}_{}.parquet".format(*gk, _part)
+        # write local parquet file
+        gdf.to_parquet(parq_fname)
+        # Send to S3
+        write_pandas_parquet_to_s3(parq_fname, 'byprice-prices', gk[1], gk[0], _part)
+        
+
+def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date, _part):
+    """ Send to AWS S3 given a parquet local file
+
+        Params:
+        -----
+        parq_file: str
+            Name of the Parquet file
+        bucket_name: str
+            Name of S3 Bucket
+        retailer: str
+            Retailer key
+        _date: int
+            Date in (YYYYMMDD) format
+        _part: int
+            Partition number
+    """
+    # init S3
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
+    key_name = "{}/retailer={}/date={}/geop_{}_{}_{}.parquet".format(BUCKET_DIR,retailer, _date, retailer, _date, _part)
+    with open(parq_file, 'rb') as f:
+       object_data = f.read()
+       s3.put_object(Body=object_data, Bucket=bucket_name, Key=key_name)
+       logger.info("Correctly uploaded {} {} - {} ".format(retailer, _date, _part))
+    os.remove(parq_file)
 
 
 def day_migration(day, limit, conf, stores):
@@ -166,7 +222,7 @@ def day_migration(day, limit, conf, stores):
         if data.empty:
             logger.debug("No prices to migrate in {} - {}!".format(day, _part))
             continue
-        send_prices_parquet(data)
+        send_prices_parquet(data, _part)
     logger.info("Finished populating tables")
 
 
