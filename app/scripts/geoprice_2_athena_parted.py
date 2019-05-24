@@ -2,7 +2,7 @@
     and insert them into S3 for Athena Usage.
 
     Execution help:
-    python -m app.scripts.geoprice_2_athena --help
+    python -m app.scripts.geoprice_2_athena_parted --help
 """
 import sys
 import argparse
