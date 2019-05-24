@@ -27,13 +27,6 @@ import boto3
 logger = applogger.get_logger()
 LIMIT = 100
 BUCKET_DIR= 'dev/price_retailer'
-RETAILERS = [
-    'superama', 'amazon', 'farmasmart', 'farmalisto', 'walmart', 
-    'f_ahorro', 'cornershop', 'farmacias_similares', 'la_europea', 'bestbuy', 
-    'mercadolibre', 'soriana_online', 'doto', 'sanborns_online', 'sanborns', 
-    'fresko', 'la_comer', 'city_market', 'chedraui', 'san_pablo', 'walmart_online', 
-    'comercial_mexicana', 'farmatodo', 'heb', 'soriana', 
-]
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -75,15 +68,15 @@ def cassandra_args():
     return args
 
 
-def fetch_day_prices(day, _ret, limit, conf, stores):
+def fetch_day_prices(day, _part, limit, conf, stores):
     """ Query data from passed keyspace
 
         Params:
         -----
         day : datetime.date
             Query Date 
-        _ret : str
-            Retailer key
+        _part: int
+            Partition 
         limit : int
             Limit of prices to retrieve
         conf: dict
@@ -107,9 +100,9 @@ def fetch_day_prices(day, _ret, limit, conf, stores):
     logger.info("Connected to C* - {}!".format(cdb.session.keyspace))
     # Define CQL query
     cql_query = """SELECT * 
-        FROM price_by_source
+        FROM price_by_date_parted
         WHERE date = %s
-        AND source = %s
+        AND part = %s
     """
     # Limit statement
     if limit:
@@ -119,7 +112,7 @@ def fetch_day_prices(day, _ret, limit, conf, stores):
     dtr = pd.DataFrame()
     try:
         tr = cdb.query(cql_query,
-            (day, _ret),
+            (day, _part),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
         if tr: 
@@ -127,26 +120,29 @@ def fetch_day_prices(day, _ret, limit, conf, stores):
             dtr = pd.DataFrame(tr)
             dtr['product_uuid'] = dtr.product_uuid.astype(str)
             dtr['store_uuid'] = dtr.store_uuid.astype(str)
-            dtr = pd.merge(dtr.drop(['lat', 'lng'], 1), 
-                stores[['store_uuid', 
-                        'zip', 'city', 'state', 'lat','lng']], 
+            dtr = pd.merge(dtr, 
+                stores[['store_uuid', 'source', 
+                        'zip', 'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
-        logger.info("""Got {} prices in {} -{} """.format(len(dtr), day, _ret))
+            dtr['source'] = dtr['source'].fillna('')
+        logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
     except Exception as e:
         logger.error(e)
-        logger.warning("Could not retrieve {} ".format(day))
+        logger.warning("Could not retrieve {} - {}".format(day, _part))
     # Drop connection with C*
     cdb.close()
     return dtr
 
 
-def send_prices_parquet(data):
+def send_prices_parquet(data, _part):
     """ Generate local parquet and send it to AWS S3
 
         Params:
         -----
         data : pd.DataFrame
             All needed data to generate parquet
+        _part : int
+            Partition number
     """
     # Format data
     data['date'] = data.date.astype(dtype=np.int32)
@@ -163,17 +159,17 @@ def send_prices_parquet(data):
     data['promo'] = data['promo'].fillna('')
     data['retailer'] = data['source']
     data['item_uuid'] = ''
-    data = data.drop(['source', 'url', 'currency'], axis=1)
+    data = data.drop(['part', 'source', 'url', 'currency'], axis=1)
     # Iterate by source
     for gk, gdf in data.groupby(['date', 'retailer']):
-        parq_fname = "data/{}_{}_all.parquet".format(*gk)
+        parq_fname = "data/{}_{}_{}.parquet".format(*gk, _part)
         # write local parquet file
         gdf.to_parquet(parq_fname)
         # Send to S3
-        write_pandas_parquet_to_s3(parq_fname, 'byprice-prices', gk[1], gk[0])
+        write_pandas_parquet_to_s3(parq_fname, 'byprice-prices', gk[1], gk[0], _part)
         
 
-def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
+def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date, _part):
     """ Send to AWS S3 given a parquet local file
 
         Params:
@@ -186,6 +182,8 @@ def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
             Retailer key
         _date: int
             Date in (YYYYMMDD) format
+        _part: int
+            Partition number
     """
     # init S3
     s3 = boto3.client(
@@ -193,11 +191,11 @@ def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
         aws_access_key_id=AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY
     )
-    key_name = "{}/retailer={}/date={}/geop_{}_{}_all.parquet".format(BUCKET_DIR,retailer, _date, retailer, _date)
+    key_name = "{}/retailer={}/date={}/geop_{}_{}_{}.parquet".format(BUCKET_DIR,retailer, _date, retailer, _date, _part)
     with open(parq_file, 'rb') as f:
        object_data = f.read()
        s3.put_object(Body=object_data, Bucket=bucket_name, Key=key_name)
-       logger.info("Correctly uploaded {} {} ".format(retailer, _date))
+       logger.info("Correctly uploaded {} {} - {} ".format(retailer, _date, _part))
     os.remove(parq_file)
 
 
@@ -219,17 +217,17 @@ def day_migration(day, limit, conf, stores):
     """
     logger.debug("Retrieving info for migration on ({})".format(day))
     # Retrieve data from AWS Geoprice KS (geoprice.price_by_date_parted)
-    for _ret in RETAILERS:
-        data = fetch_day_prices(day, _ret, limit, conf, stores)
+    for _part in range(1, 21):
+        data = fetch_day_prices(day, _part, limit, conf, stores)
         if data.empty:
-            logger.debug("No prices to migrate in {} - {}!".format(day, _ret))
+            logger.debug("No prices to migrate in {} - {}!".format(day, _part))
             continue
-        send_prices_parquet(data)
+        send_prices_parquet(data, _part)
     logger.info("Finished populating tables")
 
 
 if __name__ == '__main__':
-    logger.info("Starting Migration script (AWS Geoprice KS -> GCP GeoPrice KS)")
+    logger.info("Starting Migration script [Parted table] (AWS Geoprice KS -> GCP GeoPrice KS)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
     # Retrieve products from Geolocation
