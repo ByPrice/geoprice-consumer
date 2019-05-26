@@ -55,6 +55,7 @@ def get_redis():
     try:
         if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis':
             g._redis = Redis(
+                db=config.REDIS_DB,
                 host=config.REDIS_HOST,
                 port=config.REDIS_PORT,
                 password=config.REDIS_PASSWORD or None

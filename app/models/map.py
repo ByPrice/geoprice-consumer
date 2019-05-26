@@ -7,7 +7,8 @@ import json
 import pandas as pd
 from app.models.task import Task
 from app.models.price import Price
-from app.utils import applogger, errors
+from app import errors
+from ByHelpers import applogger
 import calendar
 import math
 
@@ -112,11 +113,13 @@ class Map(object):
         #####
         ### JUST TESTING
         ####         
+        print("TASK COMPUTED:", task.task_id)
         task.progress = 100
         resp = {
-            'data' : result,
+            'data' : [],
             'msg' : 'Task completed in 2 seconds'
         }
+        print("Finisshed computing test elements!")
         return resp
         #####
         ### JUST TESTING
