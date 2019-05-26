@@ -73,9 +73,10 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """ Drops database
         """
         print("Teardown class")
-        # if config.TESTING:
-        #     with app.app.app_context():
-        #         app.dropdb_cmd()
+        if config.TESTING:
+            with app.app.app_context():
+                app.dropdb_cmd()
+                app.get_consumer(queue='test_queue')
 
     def setUp(self):
         """ Set up

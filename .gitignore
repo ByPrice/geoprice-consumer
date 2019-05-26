@@ -7,3 +7,4 @@ Dockerfile.local
 *.log
 *.local
 missing_items.csv
+data/

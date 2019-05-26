@@ -95,37 +95,61 @@ class Catalogue(object):
             products : list
                 List requested of products
         """
-
-        if 'cols' in kwargs:
-            cols = kwargs['cols'].join(",")
+        if 'fmt' in kwargs:
+            fmt = kwargs['fmt']
+            del kwargs['fmt']
         else:
-            cols = 'product_uuid,retailer'
+            fmt='list'
+
+        # Items
+        if 'item_uuid' in kwargs:
+            items = kwargs['item_uuid']
+            del kwargs['item_uuid']
 
         # Build the query
-        q_arr = [ "{}={}".format(k, ",".join(vals) for k,vals in kwargs ) ]
+        q_arr = [ "{}={}".format(k, ",".join(vals)) for k,vals in kwargs.items() ]
         q =  "&".join(q_arr)
         q = "?"+q
+
+        if len(items) > 0:
+            qries = []
+            for it in items:
+                qries.append(
+                    "?{}".format("&".join(q_arr + [ "item_uuid={}".format(it) ]))
+                )
+        else:
+            qries = [q]
 
         # Pagination
         p=1
         ipp=50
-
+        prods = []
         try:
-            nxt = True
-            while nxt:  
-                r = requests.get(self.base_url+q+"&p={}&ipp={}".format(p,ipp))
-                if r.status_code != 200:
-                    raise Exception("Could not fetch product intersection")
-                page_prods = r.json()['products'] 
-                if not page_prods:
-                    nxt = False
-                prods += page_prods
-                p+=1
+            for qry in qries:
+                nxt = True
+                p=1
+                while nxt:  
+                    url = "{}/product/intersection{}&p={}&ipp={}".format(
+                        self.base_url, qry, p, ipp
+                    )
+                    print(url)
+                    r = requests.get(url)
+                    if r.status_code != 200:
+                        raise Exception("Could not fetch product intersection")
+                    page_prods = r.json()['products'] 
+                    if not page_prods:
+                        nxt = False
+                    prods += page_prods
+                    p+=1
                 
         except Exception as e:
             logger.error(e)
             return False
 
-        return products
+        # Response format
+        if fmt == 'dict':
+            result = { i['item_uuid'] : i for i in prods }
+        else:
+            result = prods
 
-    
+        return result
