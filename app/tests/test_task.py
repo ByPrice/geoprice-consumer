@@ -39,6 +39,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         self.ctx = app.app.app_context()
         self.ctx.push()
         app.get_redis()
+        print("\n"+"_"*50+"\n")
 
     def tearDown(self):
         # Dropping flask ctx
@@ -169,6 +170,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
     def test_07_complete_task_price_map_decorator(self):
         """ Test price Map Decorator
         """
+        print(">>>>>", "Test price Map Decorator")
         # Import celery task
         from app.celery_app import main_task
         from app.models.map import Map
@@ -191,15 +193,18 @@ class GeopriceTaskTestCase(unittest.TestCase):
             "interval" : "day"
         }
 
-        celery_task = main_task.apply_async(args=(Map.start_task,params))        
-
+        celery_task = main_task.apply_async(args=(Map.start_task, params))        
+        print("Submitted Task: ", celery_task.id)
         # Get the task from the celery task
         time.sleep(2)
         task = Task(celery_task.id)
+        print('Created task instance!')
 
         # Check result of task
         while task.is_running():
             print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
             print(task.status)
             time.sleep(1)
 
@@ -209,9 +214,11 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
     
+    
     def test_08_fail_task_price_map_decorator(self):
         """ Test Map task without filters
         """
+        print(">>>>", "Test Map task without filters")
         # Import celery task
         from app.celery_app import main_task
         from app.models.map import Map
@@ -229,7 +236,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         celery_task = main_task.apply_async(args=(Map.start_task,params))        
         task = Task(celery_task.id)
-
+        print("Submitted Task: ", celery_task.id) 
         # Check result of task
         while task.is_running():
             time.sleep(1)

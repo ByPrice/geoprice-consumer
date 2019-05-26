@@ -23,7 +23,7 @@ def asynchronize(async_function):
             # Execute function asynchonously
             action = getattr(
                 importlib.import_module(
-                    "app.celery_tasks"
+                    "app.celery_app"
                 ), 
                 "main_task"
             )
@@ -226,7 +226,7 @@ class Task(object):
             variable as well
         """
         if self._backend == 'redis':
-            print("Getting result from redis" + "task:result:"+self._task_id)
+            print("Getting result from redis: " + "task:result:"+self._task_id)
             res = g._redis.get("task:result:"+self._task_id)
             if res:
                 self._result = json.loads(res.decode('utf-8'))
@@ -353,11 +353,11 @@ class Task(object):
             return False
 
     def is_running(self):
-    """ Check if task is still running
-        @Returns
-            : bool
-    """
-    return self.status['progress'] < 100 and self.status['progress'] >= 0
+        """ Check if task is still running
+            @Returns
+                : bool
+        """
+        return self.status['progress'] < 100 and self.status['progress'] >= 0
 
     def error(self, msg="Error"):
         """ Save error status in the running task
