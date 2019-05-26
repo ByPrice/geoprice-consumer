@@ -64,6 +64,7 @@ def with_context(original_function):
     return new_function
 
 
+
 @celery_app.task(bind=True)
 @with_context
 def test_task(self, params):
