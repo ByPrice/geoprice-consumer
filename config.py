@@ -28,7 +28,7 @@ TASK_BACKEND = os.getenv('TASK_BACKEND',None)
 REDIS_HOST = os.getenv('REDIS_HOST', None)
 REDIS_PORT = os.getenv('REDIS_PORT', None)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
-REDIS_DB = 0 if ENV != 'DEV' else 1
+REDIS_DB = 2 if ENV != 'DEV' else 3
 
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')
@@ -59,9 +59,20 @@ STREAMER_EXCHANGE = os.getenv('STREAMER_EXCHANGE', 'data')
 STREAMER_EXCHANGE_TYPE = os.getenv('STREAMER_EXCHANGE_TYPE', 'direct')
 
 # Rabbit queues
-QUEUE_ROUTING = "bp_routing_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_routing"
-QUEUE_GEOPRICE = 'bp_geoprice_dev' if ENV.upper() in ['DEV', 'LOCAL'] else 'bp_geoprice'
-QUEUE_CACHE = "bp_cache_dev" if ENV.upper() in ['DEV', 'LOCAL'] else "bp_cache"
+QUEUE_ROUTING = os.getenv('QUEUE_ROUTING', "routing")
+QUEUE_CACHE = os.getenv('QUEUE_CACHE', "cache")
+QUEUE_GEOPRICE = os.getenv('QUEUE_GEOPRICE', "geoprice")
+
+
+QUEUE_ROUTING = QUEUE_ROUTING + "_dev" \
+    if ENV.upper() in ['DEV','LOCAL'] else QUEUE_ROUTING
+
+QUEUE_GEOPRICE = QUEUE_GEOPRICE + '_dev' \
+    if ENV.upper() in ['DEV','LOCAL'] else QUEUE_GEOPRICE
+
+QUEUE_CACHE = QUEUE_CACHE + '_dev' \
+    if ENV.upper() in ['DEV','LOCAL'] else QUEUE_CACHE
+
 
 # Split contact points
 CASSANDRA_CONTACT_POINTS = CASSANDRA_CONTACT_POINTS.split(",")
