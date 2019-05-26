@@ -28,7 +28,7 @@ TASK_BACKEND = os.getenv('TASK_BACKEND',None)
 REDIS_HOST = os.getenv('REDIS_HOST', None)
 REDIS_PORT = os.getenv('REDIS_PORT', None)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
-REDIS_DB = 0 if ENV != 'DEV' else 1
+REDIS_DB = 2 if ENV != 'DEV' else 3
 
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')

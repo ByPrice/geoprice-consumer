@@ -68,6 +68,7 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         if config.TESTING:
             with app.app.app_context():
                 app.dropdb_cmd()
+                app.get_consumer(queue='test_queue')
 
     def setUp(self):
         """ Set up

@@ -21,19 +21,6 @@ CORS(app)
 applogger.create_logger()
 logger = applogger.get_logger()
 
-# Flask controllers imports
-from app.controllers import product, stats, alarm, dump, promos
-
-# Flask blueprint registration
-app.register_blueprint(product.mod, url_prefix='/product')
-app.register_blueprint(stats.mod, url_prefix='/stats')
-app.register_blueprint(alarm.mod, url_prefix='/alarm')
-app.register_blueprint(dump.mod, url_prefix='/dump')
-app.register_blueprint(promos.mod, url_prefix='/promos')
-#app.register_blueprint(mapa.mod, url_prefix='/mapa')
-#app.register_blueprint(historia.mod, url_prefix='/historia')
-#app.register_blueprint(check.mod, url_prefix='/check')
-
 
 def build_context(
     services=None,
@@ -99,6 +86,7 @@ def get_sdks(modules):
                 protocol=config.SRV_PROTOCOL
             )
 
+
 def get_consumer(queue=None):
     """ App method to connect to rabbit consumer
     """
@@ -132,6 +120,7 @@ def get_producer(queue=None):
         logger.error("Could not connect to rabbitmq producer!!")
         logger.error(e)
 
+
 @app.before_request
 def before_request():
     """ Before request method
@@ -155,6 +144,7 @@ def consumer_cmd():
     from app.consumer import start
     start()
     logger.info("Initialized database")
+
 
 @app.cli.command('script')
 @click.option('--name', default=None, help="Provide the task name with the option --name=<script>")
@@ -205,6 +195,23 @@ def handle_api_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+
+# Flask controllers imports
+#from app.controllers import product, stats, alarm, dump, promos
+from app.controllers import map_plot
+
+# Flask blueprint registration
+app.register_blueprint(map_plot.mod, url_prefix='/map')
+#app.register_blueprint(product.mod, url_prefix='/product')
+#app.register_blueprint(stats.mod, url_prefix='/stats')
+#app.register_blueprint(alarm.mod, url_prefix='/alarm')
+#app.register_blueprint(dump.mod, url_prefix='/dump')
+#app.register_blueprint(promos.mod, url_prefix='/promos')
+#app.register_blueprint(mapa.mod, url_prefix='/mapa')
+#app.register_blueprint(historia.mod, url_prefix='/historia')
+#app.register_blueprint(check.mod, url_prefix='/check')
+
 
 if __name__ == '__main__':
     app.run(

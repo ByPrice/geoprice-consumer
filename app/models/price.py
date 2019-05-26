@@ -640,11 +640,14 @@ class Price(object):
             for s in stores:
                 for p in products:
                     rows = g._db.query("""
-                        select * from 
-                        price_by_product_store 
-                        where product_uuid=%s 
-                        and store_uuid=%s
-                        and date=%s
+                        SELECT item_uuid, retailer,
+                        product_uuid, price_original,
+                        store_uuid, price, lat,
+                        lng, time, date, promo 
+                        FROM price_by_product_store 
+                        WHERE product_uuid=%s 
+                        AND store_uuid=%s
+                        AND date=%s
                     """, [p,s,d])
                     result.append(rows)
                     

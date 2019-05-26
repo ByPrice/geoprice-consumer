@@ -3,8 +3,50 @@ import uuid
 from ByHelpers import applogger
 import json
 import datetime
+from functools import wraps
+from enum import Enum
+import importlib
 
 logger = applogger.get_logger()
+
+
+def asynchronize(async_function):
+    """ Asynchronize Decorator
+    """
+    def wrap(f):
+        @wraps(f)
+        def wrapped_f(*args, **kwargs):
+            if request.method == 'POST':
+                params = request.get_json()
+            if request.method == 'GET':
+                params = request.args.to_dict()
+            # Execute function asynchonously
+            action = getattr(
+                importlib.import_module(
+                    "app.celery_tasks"
+                ), 
+                "main_task"
+            )
+            celery_task = action.apply_async(args=(async_function,params))
+            async_id = celery_task.id
+            # Setting initial status
+            task = Task(async_id)
+            task.progress = 0
+            # Set request id in the request global object
+            request.async_id = celery_task.id
+            return f(*args, **kwargs)
+        return wrapped_f
+    return wrap
+
+
+class TaskState(Enum):
+    NONE = 0
+    STARTING = 1
+    RUNNING = 2
+    COMPLETED = 3
+    CANCELLED = 4
+    ERROR = -1
+
 
 class Task(object):
     """ Class for managing asynchronous tasks.
@@ -31,7 +73,8 @@ class Task(object):
         1 : 'STARTING',
         2 : 'RUNNING',
         3 : 'COMPLETED',
-        0 : 'ERROR'
+        0 : 'ERROR',
+        4 : 'CANCELLED'
     }
 
 
@@ -83,7 +126,7 @@ class Task(object):
         """
         try:
             value = int(value)
-            if value < 0 or value > 100:
+            if value < -1 or value > 100:
                 raise Exception
         except Exception as e:
             logger.error("Incorrect value format")
@@ -108,8 +151,15 @@ class Task(object):
         # Case 100: COMPLETED
         elif value >= 100:
             status = {
-                "stage" : self.STAGE[2],
-                "msg" : "Task is executing...",
+                "stage" : self.STAGE[3],
+                "msg" : "Task completed",
+                "progress" : value
+            }
+        # Case -1: CANCELLED
+        elif value == -1:
+            status = {
+                "stage" : self.STAGE[4],
+                "msg" : "Task cancelled",
                 "progress" : value
             }
 
@@ -125,6 +175,12 @@ class Task(object):
             res = g._redis.get("task:status:"+self._task_id)
             if res:
                 self._status = json.loads(res.decode('utf-8'))
+            else:
+                self._status = {
+                    "stage" : self.STAGE[1],
+                    "msg" : "Task is pending to start",
+                    "progress" : 0
+                }
         elif self._backend == None:
             logger.error("Backend not defined to get result")
         return self._status
@@ -207,6 +263,60 @@ class Task(object):
         self._save_result()
         return self._result
 
+    @property
+    def name(self):
+        """ 
+            Getter for task name, get the value
+            from the given backend and set it to the
+            variable as well
+        """
+        if self._backend == 'redis':
+            print("Getting name from redis" + "task:name:"+self._task_id)
+            res = g._redis.get("task:name:"+self._task_id)
+            if res:
+                self._name = res.decode('utf-8')
+            else:
+                self._name = {}
+        elif self._backend == None:
+            logger.error("Backend not defined to get name")
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """ 
+            Setter for task result, save the value
+            in the given backend (redis)
+
+                @Params:
+                    :value (dict)
+                
+                @Returns:
+                    :name (name)
+        """
+        if type(name) != str:
+            logger.error("Malformed name")
+            return False
+        self._name = name
+        self._save_name()
+        return self._name
+
+    def _save_name(self):
+        """ Save status to redis or to file
+        """
+        try:
+            if self._backend == 'redis':
+                # Get status from redis
+                g._redis.set('task:name:'+self._task_id, self._name, ex=self._ttl )
+                logger.debug("Task name stored in "+ 'task:name:'+self._task_id )
+                return True
+            elif self._backend == None:
+                logger.error("No backend defined")
+                pass
+        except Exception as e:
+            logger.error("Could not persist task name, check configuration")
+            logger.error(e)
+            return False
+
     def _save_status(self):
         """ Save status to redis or to file
         """
@@ -242,6 +352,13 @@ class Task(object):
             logger.error(e)
             return False
 
+    def is_running(self):
+    """ Check if task is still running
+        @Returns
+            : bool
+    """
+    return self.status['progress'] < 100 and self.status['progress'] >= 0
+
     def error(self, msg="Error"):
         """ Save error status in the running task
         """
@@ -250,9 +367,9 @@ class Task(object):
             return False 
         # Set error status
         self.status = {
-            "stage" : 0,
+            "stage" : self.STAGE[4],
             "msg" : msg,
-            "progress" : 100
+            "progress" : -1
         }
         return True
         

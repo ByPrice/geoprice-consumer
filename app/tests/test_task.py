@@ -6,12 +6,12 @@ import config
 import uuid
 import sys
 import time
-
+ 
 task_id = None
 
 
 class GeopriceTaskTestCase(unittest.TestCase):
-    """ Test Case for Geoprice Consumer
+    """ Test Case for Geoprice Async Tasks
     """
 
     @classmethod
@@ -24,8 +24,6 @@ class GeopriceTaskTestCase(unittest.TestCase):
             with app.app.app_context():
                 app.get_redis()
                 print("Connected to Redis")
-                app.get_consumer(queue='test_queue')
-                print("Connected to RabbitMQ")
 
     @classmethod
     def tearDownClass(cls):
@@ -46,6 +44,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
+    @unittest.skip("To be tested later")
     def test_01_save_task_status(self):
         """ Testing DB prices i
         """ 
@@ -61,6 +60,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         task_id = task.task_id
         self.assertTrue(task_id)
 
+    @unittest.skip("To be tested later")
     def test_02_get_task_status(self):
         """ Get task's status 
         """
@@ -71,6 +71,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print(status)
         self.assertTrue(type(status) == dict)
     
+    @unittest.skip("To be tested later")
     def test_03_set_task_result(self):
         """ Delete task
         """
@@ -93,6 +94,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         task.result = result
         self.assertTrue(True)
 
+    @unittest.skip("To be tested later")
     def test_04_get_task_result(self):
         """ Change task status
         """
@@ -103,9 +105,11 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print("Size of queried result: {}".format(sys.getsizeof(str(result))))
         self.assertEqual(type(result), dict)
 
+    @unittest.skip("To be tested later")
     def test_05_complete_task_status(self):
         """ Testing task with celery
         """
+        print(">>>> Testing complete task result")
         # Import celery task
         from app.celery_tasks import test_task 
         params = {"test_param" : "Hello World!"}
@@ -126,9 +130,11 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
 
+    @unittest.skip("DEPRECATED")
     def test_06_complete_task_price_map(self):
         """ Test price
         """
+        raise Exception("DEPRECATED TEST!")
         # Import celery task
         from app.celery_tasks import test_task 
         # Filters for the task
@@ -160,6 +166,82 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
 
+    def test_07_complete_task_price_map_decorator(self):
+        """ Test price Map Decorator
+        """
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.map import Map
+
+        # Filters for the task
+        params = {
+            "filters" : [
+                {"item_uuid" : "b50a332c-9d54-4df7-83ce-f856db0c1f51"},
+                {"item_uuid" : "7f177768-cd76-45e4-92ac-9bab4ec8d8b3"},
+                {"item_uuid" : "63aa59b6-04a7-45ed-99df-8f6d1403c4de"},
+                {"item_uuid" : "facdc537-d80f-447e-9d6e-0266e0e9d082"},
+                {"retailer" : "walmart"}
+            ],
+            "retailers" : {
+                "walmart" : "Walmart",
+                "superama" : "Superama"
+            },
+            "date_start" : "2019-04-10",
+            "date_end" : "2019-04-13",
+            "interval" : "day"
+        }
+
+        celery_task = main_task.apply_async(args=(Map.start_task,params))        
+
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+
+        self.assertEqual(prog,100)
+    
+    def test_08_fail_task_price_map_decorator(self):
+        """ Test Map task without filters
+        """
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.map import Map
+
+        # Filters for the task -> missing filters
+        params = {
+            "retailers" : {
+                "walmart" : "Walmart",
+                "superama" : "Superama"
+            },
+            "date_start" : "2019-01-10",
+            "date_end" : "2019-01-13",
+            "interval" : "day"
+        }
+
+        celery_task = main_task.apply_async(args=(Map.start_task,params))        
+        task = Task(celery_task.id)
+
+        # Check result of task
+        while task.is_running():
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+        
+        self.assertEqual(prog,-1)
+
 
 if __name__ == '__main__':
     unittest.main()
+
+
