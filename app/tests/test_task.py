@@ -6,9 +6,11 @@ import config
 import uuid
 import sys
 import time
- 
-task_id = None
+import json
 
+task_id = None
+with open('app/tests/test_task_map_result.json', 'r') as ttp:
+    test_task_result = json.loads(ttp.read())
 
 class GeopriceTaskTestCase(unittest.TestCase):
     """ Test Case for Geoprice Async Tasks
@@ -167,6 +169,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
 
+    @unittest.skip("Already tested")
     def test_07_complete_task_price_map_decorator(self):
         """ Test price Map Decorator
         """
@@ -214,7 +217,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
     
-    
+    @unittest.skip("Already Tested")
     def test_08_fail_task_price_map_decorator(self):
         """ Test Map task without filters
         """
@@ -247,6 +250,17 @@ class GeopriceTaskTestCase(unittest.TestCase):
         
         self.assertEqual(prog,-1)
 
+    def test_09_write_result_redis(self):
+        """ Test Write Result redis
+        """
+        from uuid import uuid4
+        # Emulate Task
+        task = Task(uuid4())
+        # Write Progress 
+        task.progress = 100
+        # Write Progress
+        task.result = test_task_result
+        self.assertEqual(task._result, test_task_result)
 
 if __name__ == '__main__':
     unittest.main()

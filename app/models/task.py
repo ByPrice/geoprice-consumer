@@ -260,6 +260,7 @@ class Task(object):
             "data" : self._data,
             "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S")
         }
+        print(self._result)
         self._save_result()
         return self._result
 
@@ -341,8 +342,11 @@ class Task(object):
             logger.error("Can not save result without defining the task_id!")
             return False 
         try:
+            print("Storing Result", self._task_id)
             if self._backend == 'redis':
-                g._redis.set("task:result:"+self._task_id, json.dumps(self._result), ex=self._ttl )
+                g._redis.set("task:result:"+self._task_id, 
+                    json.dumps(self._result), 
+                    ex=self._ttl )
                 return True
             elif self._backend == None:
                 logger.error("No backend defined")

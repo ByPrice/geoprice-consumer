@@ -68,7 +68,7 @@ source env/bin/activate
 # Start Celery
 celery worker -A app.celery_app --loglevel="INFO" -c 1 -n "$APP_NAME""_""$RANDOM"
 # Only For Local
-python wsgi.py
+gunicorn --workers 1 --bind 0.0.0.0:8000 -t 200 -m 000 wsgi:app
 ```
 
 ## Build
