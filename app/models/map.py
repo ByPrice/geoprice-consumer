@@ -199,46 +199,25 @@ class Map(object):
         logger.info("Got prices from DB !")
 
         # Append data to create dataframe
-        row = {}
-        for pr in prices:
-            print(pr)
-            d = pr['time'].split(".")
-            date = datetime.datetime.strptime(d[0], '%Y-%m-%d %H:%M:%S')  
-            row = {
-                "item_uuid" : prods_by_uuid[pr['product_uuid']]['item_uuid'],
-                "product_uuid" : pr['product_uuid'],
-                "gtin" : it['gtin'],
-                "name" : prods_by_uuid[pr['product_uuid']]['name'],
-                "store_uuid" : pr['store_uuid'],
-                "store" : stores_by_uuid[pr['store_uuid']]['name'],
-                "retailer" : prods_by_uuid[pr['product_uuid']]['source'],
-                "retailer_name" : retailers_by_key[
-                    prods_by_uuid[
-                        pr['product_uuid']
-                    ]['source']
-                ],
-                "price" : pr['price'],
-                "price_original" : pr['price_original'],
-                "promo" : '' if math.isnan(pr['promo']) else pr['promo'],
-                "currency" : '',
-                "time" : pr['time'],
-                "lat" : pr['lat'],
-                "lng" : pr['lng'],
-                "product_uuid" : pr['product_uuid'],
-                "day" : date.day,
-                "month" : date.month,
-                "year" : date.year,
-                "week" : date.isocalendar()[1],
-                "date" :  date.date().isoformat()
-            }
-            table.append(row)
-                
-                
+        df = pd.DataFrame(prices)
+        df['product_uuid'] = df['product_uuid'].astype(str)
+        df['store_uuid'] = df['store_uuid'].astype(str)
+        df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuid[z]['item_uuid'])
+        df['gtin'] = df.item_uuid.apply(lambda z: items_by_uuid[z]['gtin'])
+        df['name'] = df.product_uuid.apply(lambda z: prods_by_uuid[z]['name'])
+        df['store'] = df.store_uuid.apply(lambda z: stores_by_uuid[z]['name'])
+        df['retailer_name'] = df.retailer.apply(lambda z: retailers_by_key[z])
+        df['promo'] = df.promo.fillna('')
+        df['currency'] = 'MXN'
+        df['day'] = df.time.apply(lambda z: z.day)
+        df['month'] = df.time.apply(lambda z: z.month)
+        df['year'] = df.time.apply(lambda z: z.year)
+        df['week'] = df.time.apply(lambda z: z.isocalendar()[1])
+        df['date'] = df.time.apply(lambda z: z.date().isoformat())
         task.progress = 60
-        logger.info("Got the info to build the df: ")
+        logger.info("Got the info to build the DF ")
 
         # Create the dataframe
-        df = pd.DataFrame(table)
         df.sort_values(by=['date'], ascending=True, inplace=True)
         df.drop_duplicates(
             ['item_uuid', 'store_uuid', 'date'],
@@ -259,12 +238,9 @@ class Map(object):
         grouped_by_interval = df.groupby(grouping_cols[interval])
         for key, df_interval in grouped_by_interval:
             # First date in the interval
-            d = df_interval.sort_values(
-                ['date'], ascending=True
-            ).time.tolist()[0].split(".")
-            interval_date = datetime.datetime.strptime(
-                d[0], '%Y-%m-%d %H:%M:%S'
-            ).isoformat()  
+            interval_date = df_interval.sort_values(
+                ['time'], ascending=True
+            ).date.tolist()[0]
             result['map'][interval_date] = []
             for store, df_store in df_interval.groupby(['store']):
                 
