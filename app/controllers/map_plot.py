@@ -24,4 +24,4 @@ def map():
         'status':'ok', 
         'module': 'task',
         'task_id' : request.async_id
-    })    
+    })

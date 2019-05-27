@@ -66,7 +66,7 @@ redis-server &
 source .envvars
 source env/bin/activate
 # Start Celery
-celery worker -A app.celery -n "$APP_NAME""_""$RANDOM" --loglevel=INFO --concurrency=1
+celery worker -A app.celery_app --loglevel="INFO" -c 1 -n "$APP_NAME""_""$RANDOM"
 # Only For Local
 python wsgi.py
 ```

@@ -1,4 +1,4 @@
-from flask import g
+from flask import g, request
 import uuid
 from ByHelpers import applogger
 import json
