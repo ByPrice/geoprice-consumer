@@ -7,6 +7,7 @@ import uuid
 import math
 from ByHelpers import applogger
 import warnings
+from uuid import UUID
 
 # Database connection:  db.session
 logger = applogger.get_logger()
@@ -622,23 +623,28 @@ class Price(object):
                     "date" : ""
                 }]
         """
+        logger.info("Querying prices in C*")
         # Order dates
-        dates = dates.sort()
+        dates.sort()
         result = []
         # Nested loops
         for d in dates:
             for s in stores:
                 for p in products:
-                    rows = g._db.query("""
-                        SELECT item_uuid, retailer,
-                        product_uuid, price_original,
-                        store_uuid, price, lat,
-                        lng, time, date, promo 
-                        FROM price_by_product_store 
-                        WHERE product_uuid=%s 
-                        AND store_uuid=%s
-                        AND date=%s
-                    """, [p,s,d])
-                    result.append(rows)
-                    
+                    try:
+                        rows = g._db.query("""
+                            SELECT source as retailer,
+                            product_uuid, price_original,
+                            store_uuid, price, lat,
+                            lng, time, date, promo
+                            FROM price_by_product_store 
+                            WHERE product_uuid=%s 
+                            AND store_uuid=%s
+                            AND date=%s
+                        """, (UUID(p), UUID(s), d) )
+                        if rows:
+                            result += list(rows)
+                    except:
+                        continue
+        logger.info("Returning C* prices")
         return result     

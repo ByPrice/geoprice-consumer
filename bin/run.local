@@ -4,7 +4,7 @@
 /bin/bash ./env/bin/activate
 
 # Init the database
-./env/bin/flask initdb
+#./env/bin/flask initdb
 
 # Evaluate the mode of execution and the 
 if [[ $APP_MODE == "SERVICE" ]]

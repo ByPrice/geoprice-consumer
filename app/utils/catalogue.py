@@ -1,4 +1,9 @@
 import requests
+from ByHelpers import applogger
+
+# Logger
+logger = applogger.get_logger()
+
 
 class Catalogue(object):
 
@@ -9,14 +14,12 @@ class Catalogue(object):
         self.protocol = protocol or "http"
         self.base_url = "{}://{}".format(self.protocol, self.uri)
         self.auth = None
-    
-    def get_item_details(
-        self, 
-        values=None, 
-        by='item_uuid', 
-        cols=['item_uuid','gtin','name'], 
-        loop_size=10
-        ):
+
+    def get_items_details(self, 
+                        values=None, 
+                        cols=['item_uuid','gtin','name'], 
+                        loop_size=20, 
+                        fmt='list'):
         """ Get item details by a given field 
             that equals a given value.
         """
@@ -26,18 +29,38 @@ class Catalogue(object):
         qry_cols = ','.join(cols)
         # Get chunks of n size for the values
         chunks = [values[i:i + loop_size] for i in range(0, len(values), loop_size)]
-        # Loop through chunks
-        result = []
+        # Iterate chunks
+        all_details = []
         for chunk in chunks:
-            qry_items=','.join(chunk)
-            # Make the request
-            resp = requests.get(self.base_url+'/item/details').json()
-            logger.info("Result from catalogue /item/details: {}".format(resp.status_code))
-            items = resp.json()
-            result += items
-
-        return result
+            try:
+                # Url
+                url = '{}/item/by/iuuid?keys={}&cols='.format(
+                    self.base_url,
+                    ','.join(chunk),
+                    qry_cols
+                )
+                # Request
+                logger.debug ("Requesting details to: {}".format(url))
+                details = requests.get(
+                    url,
+                    headers = {'Content-Type':'application/json'}
+                )
+                logger.debug("Received chunk")
+            except Exception as e:
+                logger.error(e)
+                continue
+            
+            items_chunk = details.json()['items']
+            if isinstance(items_chunk, dict) or isinstance(items_chunk, list):
+                logger.debug("Chunk with {} items".format(len(items_chunk)))
+                all_details = all_details + items_chunk
         
+        # Response format
+        if fmt == 'dict':
+            result = { i['item_uuid'] : i for i in all_details }
+        else:
+            result = all_details
+        return result
 
     def get_products_by_item(self, item_uuid, cols=['product_uuid']):
         """ Get list of products given an 
@@ -141,10 +164,9 @@ class Catalogue(object):
                         nxt = False
                     prods += page_prods
                     p+=1
-                
         except Exception as e:
             logger.error(e)
-            return False
+            return []
 
         # Response format
         if fmt == 'dict':

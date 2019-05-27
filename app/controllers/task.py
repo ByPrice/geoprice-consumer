@@ -71,12 +71,13 @@ def task_status(task_id):
     _status = task.status
     _status['celery_status'] = None
     try:
-        logger.info("Getting result")
+        logger.info("Getting status..")
         celery_task = celery_app.AsyncResult(task_id)
         #celery_task = eval("{}_task.AsyncResult('{}')".format(task.name, task_id))
         _status['celery_status'] = celery_task.state        
     except Exception as e:
         logger.error(e)
+    logger.info("Serving status!")
     return jsonify(_status)
 
 
@@ -97,6 +98,7 @@ def task_result(task_id):
 
     data = None
     if hasattr(task,'result'):
+        logger.info("Retrieving result data ...")
         data = task.result['data'] if 'data' in task.result else None
 
     resp = {
@@ -134,7 +136,6 @@ def task_cancel(task_id):
         return jsonify(task.status)
     # Celery status
     try:
-        logger.info("Getting result")
         task.progress = -1
         revoke(task_id, terminate=True)
     except Exception as e:

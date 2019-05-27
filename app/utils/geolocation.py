@@ -1,5 +1,8 @@
 import requests
+from ByHelpers import applogger
 
+# Logger
+logger = applogger.get_logger()
 
 class Geolocation(object):
 

@@ -60,7 +60,11 @@ def with_context(original_function):
         ctx.push()
         logger.debug('AppContext is been created')
         # Connect db
-        geoprice.build_context()
+        geoprice.build_context(
+            services=['geolocation', 'catalogue'],
+            queue_consumer=config.QUEUE_GEOPRICE,
+            queue_producer=config.QUEUE_CACHE
+        )
         logger.debug('Connected to redis')
         original_function(*args,**kwargs)
         # Teardown context
@@ -74,18 +78,19 @@ def with_context(original_function):
 def main_task(self, func, params):
     # Fetch Task ID
     task_id = self.request.id
-    logger.info('Verifying Task:'+str(task_id))
-    logger.info('Received params: {}'.format(params))
+    logger.debug('Verifying Task:'+str(task_id))
+    logger.debug('Received params: {}'.format(params))
 
     # Get the state
     task = Task(task_id)
     task.progress = 0
 
     # Execute the passed function
-    print("Starting task...")
+    logger.debug("Starting task...")
     try:
         result = func(task_id,params)
-        print("Got result from task...")
+        logger.info("Got result from task...")
+        logger.debug(result)
     except TaskError as te:
         logger.error(te)
         task.progress = -1
@@ -96,10 +101,10 @@ def main_task(self, func, params):
         task.progress = -1
         revoke(task_id, terminate=True)
         raise Exception("Couldn't complete task...")
-
     # Setting result
     task.progress=100
     task.result = result
+    logger.info("Finishing main task!")
 
 
 @celery_app.task(bind=True)
