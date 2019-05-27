@@ -20,6 +20,7 @@ def status():
 @mod.route('/submit',methods=['POST'])
 @asynchronize(Map.start_task)
 def map():
+    logger.info("Submited Map task...")
     return jsonify({
         'status':'ok', 
         'module': 'task',

@@ -29,11 +29,16 @@ class Map(object):
     @staticmethod        
     def validate_params(params):
         """ Params validation method
-            @Params:
-                - params (dict): params to validate
+            
+            Params:
+            -----
+            params : dict
+                params to validate
 
-            @Returns:
-                - params: (dict): Validated params
+            Returns:
+            -----
+            dict
+                Validated params
         """
         if not params:
             raise errors.AppError(40002, "Params Missing!", 400)
@@ -54,6 +59,21 @@ class Map(object):
     
     @staticmethod
     def start_task(task_id, params):
+        """ Start Map info task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Map Response
+        """
         print(task_id, params)
         # Validate params
         Map.validate_params(params)
@@ -75,7 +95,7 @@ class Map(object):
             and date range . 
             Result is temporarly stored in dumps/<task_id>
 
-            @Params:
+            Params:
             -----
                 - task_id: (str) Celery Task ID to keep track of the progress
                 - filters: (list) Item Filters 
@@ -86,7 +106,7 @@ class Map(object):
                 - date_end: (str) ISO format End Date 
                 - interval: (str) Time interval  
 
-            @Returns:
+            Returns:
             -----
                 - map: {
                     "date" : [ {
@@ -99,37 +119,24 @@ class Map(object):
                 - history: history chart data
                     
         """
+        ## Delete this later
         print(task_id)
         print(filters)
         print(rets)
         print(date_start)
         print(date_end)
         print(interval)
-        
+        ##
+
+        # Task initialization
         task = Task(task_id)
         task.task_id = task_id
         task.progress = 1
-
-        #####
-        ### JUST TESTING
-        ####         
-        print("TASK COMPUTED:", task.task_id)
-        task.progress = 100
-        resp = {
-            'data' : [],
-            'msg' : 'Task completed in 2 seconds'
-        }
-        print("Finisshed computing test elements!")
-        return resp
-        #####
-        ### JUST TESTING
-        ####
 
         # Filters
         f_retailers = [ f['retailer'] for f in filters if 'retailer' in f ]
         f_stores = [ f['store_uuid'] for f in filters if 'store_uuid' in f ]
         f_items = [ f['item_uuid'] for f in filters if 'item_uuid' in f ]
-
         logger.info("Filters for the task: {}".format(filters))
 
         # Dates
@@ -137,7 +144,7 @@ class Map(object):
         date_start = moment = datetime.datetime.strptime(date_start, "%Y-%m-%d") 
         date_end = datetime.datetime.strptime(date_end, "%Y-%m-%d") 
         while moment <= date_end:
-            dates.append(moment.strftime("%Y-%m-%d"))
+            dates.append(int(moment.strftime("%Y%m%d")))
             moment = moment + datetime.timedelta(days=1)
         logger.info("Dates list: {}".format(dates))
 
@@ -175,26 +182,26 @@ class Map(object):
                 source=list(retailers_by_key.keys()),
                 cols=['item_uuid','product_uuid','source','gtin','name'],
             )
-            
         # All prods by uuid
         prods_by_uuid = { p['product_uuid'] : p for p in prods }
-            
+        logger.info("Got products from filters")
         # Get prices of all the products
         prices = Price.query_by_product_store(
             stores=list(stores_by_uuid.keys()),
             products=list(prods_by_uuid.keys()),
-            date_start=date_start,
-            date_end=date_end
+            dates=dates
         )
         task.progress = 50
-
         # If no prices, end task...
         if not prices:
+            logger.warning("No prices found!")
             raise Exception("No se encontraron precios, intenta nuevamente")
+        logger.info("Got prices from DB !")
 
         # Append data to create dataframe
         row = {}
         for pr in prices:
+            print(pr)
             d = pr['time'].split(".")
             date = datetime.datetime.strptime(d[0], '%Y-%m-%d %H:%M:%S')  
             row = {

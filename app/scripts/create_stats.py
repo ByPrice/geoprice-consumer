@@ -1,4 +1,5 @@
-"""Script that computes stats and save them to `stats_by_product` tabl.
+"""
+    Script that computes stats and save them to `stats_by_product` tabl.
 
   References for cassandra driver batch statements
   (Group batch loads to be between 1-100kB and to have the 
@@ -23,7 +24,6 @@ from uuid import UUID
 from tqdm import tqdm
 
 # Logger
-applogger.create_logger('stats-'+APP_NAME)
 logger = applogger.get_logger()
 
 
