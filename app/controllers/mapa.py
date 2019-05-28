@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
 from app import errors, applogger
-from app.models.map import Map
+from app.models.mapa import Map
 from app.models.task import Task, asynchronize
 import datetime
 
 # Blueprint instance
-mod = Blueprint('map_plot', __name__)
+mod = Blueprint('mapa', __name__)
 # Logger
 logger = applogger.get_logger()
 
@@ -14,7 +14,7 @@ logger = applogger.get_logger()
 def status():
     """ Mapa blueprint status endpoint
     """
-    return jsonify({'status':'ok', 'module': 'map_plot'})
+    return jsonify({'status':'ok', 'module': 'mapa'})
 
 
 @mod.route('/submit',methods=['POST'])

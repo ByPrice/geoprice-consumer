@@ -10,10 +10,12 @@ mod = Blueprint('stats',__name__)
 def get_stats_bp():
     """ Stats route initial endpoint
     """
-    logger.info("Stats route initial endpoint")
-    return jsonify({'msg' : 'Stats Route'})
+    logger.info("Stats route")
+    return jsonify({'statis': 'ok', 'module' : 'stats'})
 
 def jsonfier(prod):
+    """ TODO: Reuse code if useful, otherwiser to clean later
+    """
     logger.debug('Constructing JSON response...')
     if not prod:
         if isinstance(prod,list):
@@ -29,6 +31,8 @@ def jsonfier(prod):
     return jp
 
 def actual_file(prod):
+    """ TODO: Reuse code if useful, otherwiser to clean later
+    """
     if not prod:
         raise errors.AppError(80009, "No prices available!")
     prod_csv = Stats.convert_csv_actual(prod)
@@ -39,6 +43,8 @@ def actual_file(prod):
                  "attachment; filename=actuales.csv"})
 
 def market_file(prod):
+    """ TODO: Reuse code if useful, otherwiser to clean later
+    """
     if not prod:
         raise errors.AppError(80009, "No prices available!")
     prod_csv = Stats.convert_csv_market(prod)
@@ -48,92 +54,147 @@ def market_file(prod):
         headers={"Content-disposition":
                  "attachment; filename=mercados.csv"})
 
-@mod.route('/current', methods=['POST'])
+@mod.route('/current/submit', methods=['POST'])
 def get_current():
-    """ Get item aggregated prices by filters
-    """
-    logger.info("Fetching needed filters...")
-    filters = request.get_json()
-    if 'filters' not in filters:
-        raise errors.AppError(80004, "Filters params missing")
-    if not filters['filters']:
-        raise errors.AppError(80004, "Filters params missing")
-    prod = Stats\
-        .get_actual_by_ret(filters['filters'])
-    if 'export' in filters:
-        if filters['export']:
-            return actual_file(prod)
-    return jsonfier(prod)
+	"""
+		Controller to get item avg prices by filters
+
+		{
+		"filters" : [
+			{ "category" : "9406" },
+			{ "retailer" : "superama" },
+			{ "retailer" : "ims" },
+			{ "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
+		],
+		"export":true
+		}
+
+        # TODO: Make it work async, but without `export`
+	"""
+	logger.debug("Fetching needed filters...")
+	filters = request.get_json()
+	if not filters['filters']:
+		raise errors.AppError(10000,"Not filters requested!")
+	prod = Stats.get_actual_by_ret(filters['filters'])
+	if 'export' in filters:
+		if filters['export']:
+			return actual_file(prod)
+	return jsonfier(prod)
+	
+
 
 @mod.route('/compare', methods=['POST'])
 def compare():
-    """ Get item avg prices by filters 
-        compared to all others
-    """
-    logger.info("Fetching needed by filters...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(80002,"No params in request")
-    prod = Stats.get_comparison(params)
-    if 'export' in params:
-        if params['export']:
-            return market_file(prod)
-    return jsonfier(prod)
+	"""
+		Controller to get item avg prices by filters compared to all others
+		{
+			"client": "walmart",
+			"date_start" : "2017-08-08",
+			"date_end" : "2017-08-10",
+			"filters" : [
+				{ "category" : "9406" },
+				{ "retailer" : "superama" },
+				{ "retailer" : "ims" },
+				{ "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
+			],
+			"ends": true,
+			interval: "day",
+			"export": true
+		}
+        # TODO: Make it work async, but without `export`
+	"""
+	logger.debug("Fetching needed by filters...")
+	params = request.get_json()
+	if not params:
+		raise errors.AppError(10000,"Not filters requested!")
+	prod = Stats.get_comparison(params)
+	if 'export' in params:
+		if params['export']:
+			return market_file(prod)
+	return jsonfier(prod)
+
+
+@mod.route('/direct_compare', methods=['POST'])
+def direct_compare():
+	"""
+		Controller to get price average of all products inside a category and count
+		Params:
+		{
+			"filters":[{"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
+						{"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
+						{"retailer":"walmart"}]
+		}
+        # TODO: Make it work async, but without `export`
+	"""
+	logger.debug("Direct compare data...")
+	params = request.get_json()
+	if not params:
+		raise errors.AppError(10010,"No parameters passed!")
+	if 'filters' not in params:
+		raise errors.AppError(10011,"No filters param passed!")
+
+	logger.info("Filters: {}".format(params['filters']))
+	cat_count = Stats.get_matched_items(params['filters'])
+	print(cat_count)
+	return jsonfier(cat_count)
+
 
 
 @mod.route('/history', methods=['POST'])
-def get_history():
-    """ Get item avg prices by filters
-        for charts rendering
-    """
-    logger.info("Fetching needed by filters...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppErrorr(80002,"No params in request")
-    prod = Stats.get_historics(params)
-    return jsonfier(prod)
+def get_actual():
+	"""
+		Controller to get item avg prices by filters for charts rendering
+
+		{
+			"date_start" : "2017-08-08",
+			"date_end" : "2017-08-10",
+			"filters" : [
+				{ "category" : "9406" },
+				{ "retailer" : "superama" },
+				{ "retailer" : "ims" },
+				{ "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
+			],
+			interval: "day",
+			"export": true
+		}
+        # TODO: Make it work async, but without `export`
+	"""
+	# Set Python datetime to JS timetamp
+	"""
+	dt = tuple(int(x) if i!= 1 else int(x)+1\
+		for i,x in enumerate(d.isoformat().split('-')))+(0,0)
+	d_js = datetime.datetime(*dt)
+	ts_js = (d_js - datetime.datetime(1970, 1, 1,0,0))\
+			datetime.timedelta(seconds=1)*1000
+	"""
+	logger.debug("Fetching needed by filters...")
+	params = request.get_json()
+	if not params:
+		raise errors.AppError(10000,"Not filters requested!")
+	prod = Stats.get_historics(params)
+	if 'export' in params:
+		if params['export']:
+			return market_file(prod)
+	return jsonfier(prod)
 
 
 @mod.route('/category', methods=["POST"])
 def get_category_count():
-    """ Get price average of all products 
-        inside a category and its product's count.
-    """
-    logger.info("Fetching category counts...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(80002,"No params in request")
-    if 'filters' not in params:
-        raise errors.AppError(80004, "Filters params missing")
-    cat_count = Stats.get_count_by_cat(params['filters'])
-    return jsonfier(cat_count)
-
-
-@mod.route('/stats/<uuid>', methods=['GET'])
-def get_stats_by_uuid(uuid):
-    """ Today's max, min & avg price
-        from an specific item_uuid  or product_uuid
-    """
-    logger.info("Fetching stats by uuid")
-    if 'stats' in request.args:
-        stats = request.args.get('stats').split(",")
-        stats = [stat.lower() for stat in stats if stat.lower() in ["max", "min", "avg"]]
-        if not stats:
-            logger.warning("Wrong Stats parameters!")
-            stats = ["avg"]
-    else:
-        stats = ["avg"]
-    # Call function to fetch prices
-    json_ = Stats.stats_by_uuid(uuid, stats)
-    return jsonify(json_)
-
-@mod.route('/exists/<uuid>', methods=['GET'])
-def get_exists_by_uuid(uuid):
-    """ Exists or not Price for specific item_uuid  or product_uuid
-    """
-    # Call function to fetch prices
-    exists = Stats.exists_by_uuid(uuid)
-    return jsonify({
-        "exists": exists,
-        "uuid": uuid
-    })
+	"""
+		Controller to get price average of all products inside a category and count
+		Params:
+		{
+			"filters":[{"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
+						{"item":"08cdcbaf-0101-440f-aab3-533e042afdc7"},
+						{"retailer":"walmart"}]
+		}
+        # TODO: Make it work async
+	"""
+	logger.debug("Fetching category counts...")
+	params = request.get_json()
+	if not params:
+		raise errors.AppError(10010,"No parameters passed!")
+	if 'filters' not in params:
+		raise errors.AppError(10011,"No filters param passed!")
+	cat_count = Retailer.get_count_by_cat(params['filters'])
+	return jsonfier(cat_count)

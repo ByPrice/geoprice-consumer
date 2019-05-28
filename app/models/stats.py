@@ -5,6 +5,7 @@ import math
 import json
 import itertools
 from collections import OrderedDict
+from collections import defaultdict
 from flask import g
 import pandas as pd
 import numpy as np
@@ -14,9 +15,22 @@ from config import *
 from app.models.item import Item
 from app.utils.helpers import *
 
+dd=lambda:defaultdict(dd)
+
+def dd_to_dict(dd):
+    if isinstance(dd, defaultdict):
+        aux = dict(dd)
+        aux = {k:dd_to_dict(val) for k, val in aux.items()}
+        return aux
+    else:
+        return dd
+
 class Stats(object):
     """ Class perform query methods 
         on Cassandra products over aggregated tables
+
+        Completion of methods needed can be found here:
+        https://github.com/ByPrice/byprice-stats/blob/dev/app/models/retailer.py 
     """
 
     def __init__(self):
