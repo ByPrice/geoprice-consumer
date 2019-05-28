@@ -200,10 +200,12 @@ def handle_api_error(error):
 
 # Flask controllers imports
 #from app.controllers import product, stats, alarm, dump, promos, geo_alert
-from app.controllers import mapa, task, geo_alert, geo_check, geo_dump
+from app.controllers import geo_mapa, task, geo_alert, geo_check, geo_dump,\
+                        geo_historia
+
 
 # Flask blueprint registration
-app.register_blueprint(mapa.mod, url_prefix='/map')
+app.register_blueprint(geo_mapa.mod, url_prefix='/geo/mapa')
 app.register_blueprint(task.mod, url_prefix='/task')
 
 # TODO: Uncomment to register Stats module
@@ -224,9 +226,11 @@ app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
 # TODO: Uncomment to register Geo Dump module
 app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
 
+# TODO: Uncomment to register Geo Historia
+app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
+
 #app.register_blueprint(promos.mod, url_prefix='/promos')
-#app.register_blueprint(historia.mod, url_prefix='/historia')
-#app.register_blueprint(check.mod, url_prefix='/check')
+
 
 
 if __name__ == '__main__':
