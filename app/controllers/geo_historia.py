@@ -4,7 +4,7 @@ from app import errors, logger
 from app.models.geo_historia import Historia
 
 # Blueprint instance
-mod = Blueprint('historia', __name__)
+mod = Blueprint('geo_historia', __name__)
 
 
 @mod.route('/')

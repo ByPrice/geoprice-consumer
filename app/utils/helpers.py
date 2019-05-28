@@ -6,8 +6,8 @@ from config import *
 from app import logger
 import calendar
 
-geo_stores_url = SRV_GEOLOCATION+'/store/retailer?key=%s'
-geo_rets_url = SRV_GEOLOCATION+'/retailer/all'
+geo_stores_url = SRV_PROTOCOL+'://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
+geo_rets_url = SRV_PROTOCOL+'://'+SRV_GEOLOCATION+'/retailer/all'
 
 
 def tuplize(_list, is_uuid=False):
