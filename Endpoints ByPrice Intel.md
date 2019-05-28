@@ -1,0 +1,132 @@
+# Endpoints ByPrice Intel
+
+Todos los endpoints que se convertiran en Rutas de Geoprice y Athena, se marcaron explicita la manera de respuesta:
+
+- [GET]. -  Se obtiene por un GET normal
+- [POST] - Se obtiene por un POST normal
+- [POST] [GET ASYNC] - Se obtiene por un POST al metodo listado, y se recaba el resultado de  la información la lógica de consultar el estatus de la tarea y luego el GET del resultado.
+
+## Stats
+
+- [Stats Current](https://github.com/ByPrice/byprice-stats/blob/dev/app/controllers/retailer.py)
+  - Ruta Actual `/stats/retailer/current`  [POST]
+  - Ruta Geoprice `/geoprice/stats/retailer/current/submit` [POST] [GET ASYNC]
+  - Ruta Athena `/athena/stats/retailer/current/submit` [POST] [GET ASYNC]
+- [Stats Compare](https://github.com/ByPrice/byprice-stats/blob/dev/app/controllers/retailer.py)
+  - Ruta Actual `/stats/retailer/compare`  [POST]
+  - Ruta Geoprice `/geoprice/stats/retailer/compare/submit` [POST] [GET ASYNC]
+  - Ruta Athena `/athena/stats/retailer/compare/submit` [POST] [GET ASYNC]
+- [Stats Direct Compare](https://github.com/ByPrice/byprice-stats/blob/dev/app/controllers/retailer.py)
+  - Ruta Actual `/stats/retailer/direct_compare`  [POST]
+  - Ruta Geoprice `/geoprice/stats/retailer/direct_compare/submit` [POST] [GET ASYNC]
+  - Ruta Athena `/athena/stats/retailer/direct_compare/submit` [POST] [GET ASYNC]
+- [Stats history](https://github.com/ByPrice/byprice-stats/blob/dev/app/controllers/retailer.py)
+  - Ruta Actual `/stats/retailer/history`  [POST]
+  - Ruta Geoprice `/geoprice/stats/retailer/history/submit` [POST] [GET ASYNC]
+  - Ruta Athena `/athena/stats/retailer/history/submit` [POST] [GET ASYNC]
+- [Stats Category](https://github.com/ByPrice/byprice-stats/blob/dev/app/controllers/retailer.py)
+  - Ruta Actual `/stats/retailer/category`  [POST]
+  - Ruta Geoprice `/geoprice/stats/retailer/category/submit` [POST] [GET ASYNC]
+  - Ruta Athena `/athena/stats/retailer/category/submit` [POST] [GET ASYNC]
+
+## Price-history
+
+- [Price History Alarm Prices](https://github.com/ByPrice/byprice-price-history/blob/dev/app/alarm/controllers.py)
+  - Ruta Actual `/price/alarm/prices` [POST]
+  - Ruta Geoprice. `/geoprice/history/alarm/prices`[POST] 
+  - Ruta Athena. `/athena/history/alarm/prices` [POST] 
+- [Price History Product By Store](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/bystore/` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/bystore/ [GET]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product By Store History ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/bystore/history` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/bystore/history` [GET]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Ticket ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/ticket` [POST]
+  - Ruta Geoprice. `/geoprice/history/product/bystore/ticket` [POST]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Catalogue ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/catalogue` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/catalogue` [GET]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Count by Store ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/count_by_store` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/count_by_store/submit` [POST] [GET ASYNC]
+  - Ruta Athena. `/athena/history/product/count_by_store/submit` [POST] [GET ASYNC]
+- [Price History Product Count by Store Hours ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/count_by_store_hours` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/count_by_store_hours` [GET]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product By File ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/byfile` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/byfile` [GET]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Retailer ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/retailer` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/retailer/submit` [POST] [GET ASYNC]
+  - Ruta Athena. `/athena/history/product/retailer/submit` [POST] [GET ASYNC]
+- [Price History Product Compare Details ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/compare/details [POST]
+  - Ruta Geoprice. `/geoprice/history/product/compare/details/submit` [POST] [GET ASYNC]
+  - Ruta Athena. `/athena/history/product/compare/details/submit` [POST] [GET ASYNC]
+- [Price History Product Compare History ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/compare/history [POST]
+  - Ruta Geoprice. `/geoprice/history/product/compare/history/submit` [POST] [GET ASYNC]
+  - Ruta Athena. `/athena/history/product/compare/history/submit` [POST] [GET ASYNC]
+- [Price History Product Compare Stores ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/compare/stores [POST]
+  - Ruta Geoprice. `/geoprice/history/product/compare/stores/submit` [POST] [GET ASYNC]
+  - Ruta Athena. `/athena/history/product/compare/stores/submit` [POST] [GET ASYNC]
+- [Price History Product Stats ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/stats` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/stats` [GET]]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Count by Store Engine ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/count_by_store_engine` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/count_by_store_engine/submit` [POST] [GET ASYNC]
+  - Ruta Athena. ***NOT NEEDED**
+- [Price History Product Count by Retailer Engine ](https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/controllers.py)
+  - Ruta Actual `/price/product/count_by_retailer_engine` [GET]
+  - Ruta Geoprice. `/geoprice/history/product/count_by_retailer_engine/submit` [POST] [GET ASYNC]
+  - Ruta Athena. ***NOT NEEDED**
+
+## Price-geo
+
+- [Price Geo Alert Prices](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/alert.py)
+  - Ruta Actual `region.byprice.com/alert/prices` [POST]
+  - Ruta Geoprice. `/geoprice/geo/alert/prices`[POST] 
+  - Ruta Athena. ***NOT NEEDED**
+- [Price Geo Alert Price Compare](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/alert.py)
+  - Ruta Actual `region.byprice.com/alert/price_compare` [POST]
+  - Ruta Geoprice. `/geoprice/geo/alert/price_compare` [POST] 
+  - Ruta Athena. ***NOT NEEDED**
+- [Price Geo Alert Geolocated](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/alert.py)
+  - Ruta Actual `region.byprice.com/alert/geolocated` [POST]
+  - Ruta Geoprice. `/geoprice/geo/alert/geolocated` [POST] 
+  - Ruta Athena. ***NOT NEEDED**
+- [Price Geo Check Stores Retailer](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/check.py)
+  - Ruta Actual `region.byprice.com/check/stores/<retailer>` [GET]
+  - Ruta Geoprice. `/geoprice/geo/check/stores/<retailer>` [GET] 
+  - Ruta Athena.  ***NOT NEEDED**
+- [Price Geo Dump Download](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/dump.py)
+  - Ruta Actual `region.byprice.com/dump/download` [GET]
+  - Ruta Geoprice. `/geoprice/geo/dump/download` [GET]
+  - Ruta Athena. ***NO NEEDED**
+- [Price Geo Dump Catalogue](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/dump.py)
+  - Ruta Actual `region.byprice.com/dump/catalogue` [GET]
+  - Ruta Geoprice. `/geoprice/geo/dump/catalogue/submit` [GET]
+  - Ruta Athena. ***NO NEEDED**
+- [Price Geo Dump items](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/dump.py)
+  - Ruta Actual `region.byprice.com/dump/items` [POST]
+  - Ruta Geoprice. `/geoprice/geo/dump/items/submit` [POST]
+  - Ruta Athena. ***NO NEEDED**
+- [Price Geo Historia ](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/historia.py)
+  - Ruta Actual `region.byprice.com/historia/submit` [POST]
+  - Ruta Geoprice. `/geoprice/geo/historia/submit` [POST] [GET ASYNC] 
+  - Ruta Geoprice. `/athena/geo/historia/submit` [POST] [GET ASYNC] 
+- [Price Geo Mapa ](https://github.com/ByPrice/byprice-price-geo/blob/dev/app/controllers/mapa.py)
+  - Ruta Actual `region.byprice.com/mapa/submit` [POST]
+  - Ruta Geoprice. `/geoprice/geo/mapa/submit` [POST] [GET ASYNC] 
+  - Ruta Geoprice. `/athena/geo/mapa/submit` [POST] [GET ASYNC] 
