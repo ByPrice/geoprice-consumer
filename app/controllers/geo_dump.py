@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
-from app import errors
-from ByHelpers import applogger
+from app import errors, logger
 from app.models.response import download_dataframe
 from app.models.item import Item
 from app.models.price import Price
@@ -16,16 +15,15 @@ import json
 from collections import OrderedDict
 
 # Blueprint instance
-mod = Blueprint('dump', __name__)
-# Logger
-logger = applogger.get_logger()
+mod = Blueprint('geo_dump', __name__)
 DATA_DIR = BASE_DIR+"/data/"
 
 @mod.route('/')
 def dump_status():
     """ Dump blueprint status endpoint
     """
-    return jsonify({'status':'ok', 'module': 'dump'})
+    logger.info("Geo Dump route initial endpoint")
+    return jsonify({'status':'ok', 'module': 'Geo dump'})
 
 @mod.route('/download')
 def dump_download():
