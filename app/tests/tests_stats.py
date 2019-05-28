@@ -1,36 +1,36 @@
-# -*- coding: utf-8 -*-
+#-*- coding: utf-8 -*-
 import app
-import config
+from app.models.task import Task
 import unittest
-import json
-import time
+import config
+import uuid
 import sys
-from pprint import pprint
-from app.scripts.create_stats import get_daily_data, aggregate_daily
-import datetime
+import time
+import json
 
-# Vars
-test_date = datetime.date(2018,5,10)
+task_id = None
 
-
-class GeopriceStatsTestCase(unittest.TestCase):
-    """ Test Case for Geoprice Stats
-    """ 
-
-    daily_data = None
+class GeopriceStatsTasksTestCase(unittest.TestCase):
+    """ Test Case for Geoprice Async Tasks  (Stats)
+    """
 
     @classmethod
     def setUpClass(cls):
         """ Initializes the database
         """
         # Define test database
-        print("Setting up Stats tests")
+        print("Setting up tests for CELERY TASKS")
+        if config.TESTING:
+            with app.app.app_context():
+                app.get_redis()
+                print("Connected to Redis")
 
     @classmethod
     def tearDownClass(cls):
         """ Drops database
         """
-        print("Teardown class")
+        print(">>>> Teardown class")
+        return
 
     def setUp(self):
         """ Set up
@@ -38,35 +38,53 @@ class GeopriceStatsTestCase(unittest.TestCase):
         # Init Flask ctx
         self.ctx = app.app.app_context()
         self.ctx.push()
-        app.get_db()
-        #pass
+        app.get_redis()
+        print("\n"+"_"*50+"\n")
 
     def tearDown(self):
         # Dropping flask ctx
         self.ctx.pop()
-        #pass
 
-    def test_01_stats_query(self):
-        """ Testing Stats query
-        """ 
-        self.daily_data = get_daily_data(test_date)
-        print(self.daily_data)
-        self.assertGreater(len(self.daily_data), 0)
+    def test_01_complete_task_stats_current(self):
+        """ Test price Stats Current Task
+        """
+        print(">>>>>", "Test price Stats Current Task")
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.stats import Stats
 
-    #@unittest.skip('To review')
-    def test_02_stats_generation(self):
-        """ Testing Stats generation
-        """ 
-        if self.daily_data is None:
-            self.daily_data = get_daily_data(test_date)
-        try:
-            if self.daily_data.empty:
-                raise Exception("Missing prices!!")
-            aggregate_daily(self.daily_data)
-            self.assertTrue(True)
-        except Exception as e:
-            print(e)
-            self.assertTrue(False)
+        # Filters for the task
+        params = {
+            "filters" : [
+                { "category" : "9406" },
+                { "retailer" : "superama" },
+                { "retailer" : "ims" },
+                { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }  
+            ],
+            "export": True
+		}
+        celery_task = main_task.apply_async(args=(Stats.start_task, params))        
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+        self.assertEqual(prog,100)
+    
 
 if __name__ == '__main__':
     unittest.main()
+
+
