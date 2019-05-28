@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# App
+export APP_MODE="SERVICE"
+export APP_NAME="geoprice-service"
+export ENV="PROD"
+export FLASK_APP="app/__init__.py"
+export APP_HOST="0.0.0.0"
+export APP_PORT="4022"
+
+# Celery
+export CELERY_BROKER="redis"
+export CELERY_HOST="localhost"
+export CELERY_PORT="6379"
+export CELERY_PASSWORD=""
+export CELERY_REDIS_DB="2"
+
+# Celery - Backend
+export TASK_BACKEND="redis"
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
+export REDIS_PASSWORD=""
+export REDIS_DB="2"
+​
+# Cassandra
+export CASSANDRA_CONTACT_POINTS="0.0.0.0"
+export CASSANDRA_PORT="9042"
+export CASSANDRA_KEYSPACE="geoprice"
+export CASSANDRA_USER="byprice"
+export CASSANDRA_PASSWORD="AHORITA_SE_LAS_PASO_APARTE"
+​
+# Logger
+export LOG_LEVEL="INFO"
+
+# Streamer
+export STREAMER="rabbitmq"
+export STREAMER_HOST="localhost"
+export STREAMER_PORT="5672"
+export QUEUE_ROUTING="bp_routing"
+export QUEUE_CACHE="bp_cache"
+export QUEUE_ROUTING="bp_geoprice"
+
+# Services
+export SRV_GEOLOCATION="gate.byprice.com/bpgeolocation"
+export SRV_CATALOGUE="gate.byprice.com/bpcatalogue"
+export SRV_PROTOCOL="http"
