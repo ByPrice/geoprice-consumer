@@ -25,7 +25,6 @@ class Map(object):
     """ Class to perform Map needed routines for Geo located prices.
     """
     
-
     @staticmethod        
     def validate_params(params):
         """ Params validation method
@@ -119,15 +118,6 @@ class Map(object):
                 - history: history chart data
                     
         """
-        ## Delete this later
-        print(task_id)
-        print(filters)
-        print(rets)
-        print(date_start)
-        print(date_end)
-        print(interval)
-        ##
-
         # Task initialization
         task = Task(task_id)
         task.task_id = task_id
