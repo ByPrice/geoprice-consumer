@@ -12,6 +12,8 @@ task_id = None
 
 class GeopriceStatsTasksTestCase(unittest.TestCase):
     """ Test Case for Geoprice Async Tasks  (Stats)
+
+        TODO: Set up all the tests of the `stats` module, for all the async tasks
     """
 
     @classmethod
