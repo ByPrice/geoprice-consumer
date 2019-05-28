@@ -11,7 +11,7 @@ def get_alarm_bp():
     """ Alarm route initial endpoint
     """
     logger.info("Alarm route initial endpoint")
-    return jsonify({'msg' : 'Alarm Route'})
+    return jsonify({'status': 'ok', 'msg' : 'History Alarm'})
 
 @mod.route('/prices', methods=['POST'])
 def check_prices_today():
@@ -23,6 +23,7 @@ def check_prices_today():
 			'retailers' : ['walmart','chedraui'],
 			'today' : '2017-09-20'
 		}
+		# TODO: Verify it works directly from POST method
 	"""
 	logger.debug('Alarm prices endpoint...')
 	params = request.get_json()

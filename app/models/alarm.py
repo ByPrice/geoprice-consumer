@@ -20,6 +20,9 @@ class Alarm(object):
     """ Class perform query methods 
         on Cassandra products over elements
         to verify change.
+
+        # TODO: Reference for additional needed methods:
+        https://github.com/ByPrice/byprice-price-history/blob/dev/app/alarm/models.py
     """
 
     def __init__(self):

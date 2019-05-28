@@ -200,14 +200,19 @@ def handle_api_error(error):
 
 # Flask controllers imports
 #from app.controllers import product, stats, alarm, dump, promos
-from app.controllers import mapa, task
+from app.controllers import mapa, task, alarm
 
 # Flask blueprint registration
 app.register_blueprint(mapa.mod, url_prefix='/map')
 app.register_blueprint(task.mod, url_prefix='/task')
-#app.register_blueprint(product.mod, url_prefix='/product')
+
+# TODO: Uncomment to register Stats module
 #app.register_blueprint(stats.mod, url_prefix='/stats')
-#app.register_blueprint(alarm.mod, url_prefix='/alarm')
+
+# TODO: Uncomment to register History Alarm module
+#app.register_blueprint(alarm.mod, url_prefix='/history/alarm')
+
+#app.register_blueprint(product.mod, url_prefix='/product')
 #app.register_blueprint(dump.mod, url_prefix='/dump')
 #app.register_blueprint(promos.mod, url_prefix='/promos')
 #app.register_blueprint(mapa.mod, url_prefix='/mapa')
