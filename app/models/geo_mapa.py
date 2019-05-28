@@ -73,7 +73,6 @@ class Map(object):
             flask.Response
                 Map Response
         """
-        print(task_id, params)
         # Validate params
         Map.validate_params(params)
         # Parse and start task
@@ -274,7 +273,7 @@ class Map(object):
                 })
 
         # Save task result
-        print("Before saving result... ")
+        logger.debug("Before saving result... ")
         task.progress = 100
         resp = {
             'data' : result,
