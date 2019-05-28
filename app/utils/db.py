@@ -109,7 +109,7 @@ def getdb():
         current application context.
     """
     global session
-    logger.info("Connecting to  Cassandra KS: {}...".format(config.CASSANDRA_KEYSPACE))
+    logger.debug("Connecting to  Cassandra KS: {}...".format(config.CASSANDRA_KEYSPACE))
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
         PORT=config.CASSANDRA_PORT,
@@ -118,5 +118,6 @@ def getdb():
         USER=config.CASSANDRA_USER,
         PASSWORD=config.CASSANDRA_PASSWORD
     ))
+    logger.debug("Connected to  Cassandra")
     return cass
 
