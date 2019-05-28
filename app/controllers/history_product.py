@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
-from app.models.product import Product
+from app.models.history_product import Product
 from app import errors, logger
 import datetime
 
-mod = Blueprint('product',__name__)
+mod = Blueprint('history_product',__name__)
+
+
+@mod.route('/')
+def get_hproduct_bp():
+    """ History Product route initial endpoint
+    """
+    logger.info("History Product route initial endpoint")
+    return jsonify({'status': 'ok', 'msg' : 'History Product'})
 
 @mod.route('/one')
 def get_one():
@@ -21,6 +29,8 @@ def get_one():
 def get_today_prices_bystore():
     """ Get prices from an specific 
         item by day, and closest stores
+        
+        TODO: Make it work
     """
     logger.debug('Getting prices from uuid...')
     item_uuid, product_uuid = None, None
@@ -53,6 +63,8 @@ def get_history_prices_bystore():
     """ Get prices from an specific item 
         for the past period of time, 
         and closest stores.
+
+        TODO:  Make it work
     """
     item_uuid, product_uuid = None, None
     # Validate UUIDs
@@ -78,6 +90,8 @@ def get_history_prices_bystore():
 def get_ticket_bystore():
     """ Get prices from an especific ticket 
         from N number of items by day and closest stores
+
+        TODO: Make it Work
     """
     logger.info("Fetching Ticket values")
     item_uuids, product_uuids = [], []
@@ -107,6 +121,8 @@ def get_all_by_store():
         Params:
             * r - # Retailer Key
             * sid  -  # Store UUID
+
+        TODO: Make it Work
     """
     logger.info("Fetching Prices per Store")
     # Params validation
@@ -121,9 +137,11 @@ def get_all_by_store():
         raise errors.AppError(80005, "Issues fetching store results")
     return jsonify(catalogue)
 
-@mod.route('/count_by_store', methods=['GET'])
+@mod.route('/count_by_store/submit', methods=['POST'])
 def count_by_store():
     """ Get the prices count of certain store
+
+        TODO: Make it Work with Async response
     """
     logger.info("Fetching Prices per Store")
     params = request.args.to_dict()
@@ -143,6 +161,8 @@ def count_by_store():
 def count_by_store_hours():
     """ Get the prices of all items 
         of certain store for the past X hours
+
+        TODO: Make it work
     """
     logger.info("Fetching Prices per Store in last X hours")
     params = request.args.to_dict()
@@ -183,10 +203,12 @@ def get_today_prices_by_file():
                             store_name)}
         )
 
-@mod.route('/retailer', methods=['GET'])
+@mod.route('/retailer/submit', methods=['POST'])
 def get_prices_by_ret():
     """ Get Today's prices from an 
         specific retailer and products
+
+        TODO: Make it work as Async 
     """
     logger.info("Fetching product' prices by Retailer ")
     # Verify Request Params
@@ -222,10 +244,12 @@ def get_prices_by_ret():
         # Return a JSONified Response
         return jsonify(prod)
 
-@mod.route('/compare/details', methods=['POST'])
+@mod.route('/compare/details/submit', methods=['POST'])
 def compare_retailer_item():
     """ Compare prices from a fixed pair retailer-item
         with additional pairs
+
+        TODO: Make it work Async
     """
     logger.info("Comparing pairs Retailer-Item")
     # Verify Params
@@ -256,10 +280,12 @@ def compare_retailer_item():
             "No prices with that Retailer and item combination.")
     return jsonify(prod)
 
-@mod.route('/compare/history', methods=['POST'])
+@mod.route('/compare/history/submit', methods=['POST'])
 def compare_store_item():
     """ Compare prices from a fixed pair store-item
         in time with additional pairs
+        
+        TODO: Make it work async
     """
     logger.info("Comparing pairs Store-Item")
     # Verify Params
@@ -295,9 +321,9 @@ def compare_store_item():
 def get_stats_by_item():
     """ Today's max, min & avg price 
         from an specific item_uuid  or product_uuid
+
+        TODO: Make it work
     """
-    return jsonify({"status": "DEPRECATED",
-                    "msg": "Use: /stats/stats"})
     logger.info("Fetching product stats by item")
     # Validate UUIDs
     item_uuid, product_uuid = None, None
@@ -314,9 +340,46 @@ def get_stats_by_item():
     prod = Product.get_stats(item_uuid, product_uuid)
     return jsonify(prod)
 
+
+@mod.route('/count_by_store_engine', methods=['GET'])
+def get_count_by_store_engine():
+    """
+        Get Count from store
+
+        @Params:
+         - "retailer" : retailer_key
+         - "store_uuid" : store_uuid
+         - "date" : date
+         - "env" : env
+
+        @Returns:
+         - (flask.Response)  # if export: Mimetype else: JSON
+
+        TODO: Make it work
+    """
+    logger.info("Fetching counts by store")
+    # Verify Request Params
+    params = request.args
+    if 'retailer' not in params :
+        raise errors.ApiError("invalid_request", "retailer key missing")
+    if 'store_uuid' not in params:
+        raise errors.ApiError("invalid_request", "store_uuid key missing")
+    if 'date' not in params:
+        raise errors.ApiError("invalid_request", "date key missing")
+
+    retailer = params.get('retailer')
+    store_uuid = params.get('store_uuid')
+    date = params.get('date')
+    env = params.get('env')
+    # Call function to fetch prices
+    prod = Product.count_by_store_engine(retailer, store_uuid, date)
+    return jsonify(prod)
+
 @mod.route('/count_by_retailer_engine', methods=['GET'])
 def get_count_by_retailer_engine():
     """ Get Count by engine
+
+        TODO: Make it work
     """
     logger.info("Fetching counts by store")
     # Verify Request Params

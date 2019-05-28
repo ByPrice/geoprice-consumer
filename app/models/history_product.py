@@ -17,6 +17,10 @@ from app.utils.helpers import *
 
 class Product(object):
     """ Class perform Query methods on Cassandra items
+
+        TODO: Modify correctly methods to query existing Databases for 
+        the enpoints and tasks, any useful methods can be here:
+        https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/models.py
     """
 
     @staticmethod

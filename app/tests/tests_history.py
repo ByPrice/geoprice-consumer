@@ -60,14 +60,22 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
     
+    def test_01_history_product_root_path(self):
+        """ Test price History Product Root path
+        """
+        print(">>>>>", "Test price History Product Root path")
+        _res = self.app.get("/history/product/")
+        print(_res.status_code)
+        print(_res.data)
+
     @unittest.skip('TODO')
-    def test_01_history_alarm_method(self):
+    def test_02_history_alarm_method(self):
         """ Test price History Alarm Method
 
             TODO:  Verify this test before running
         """
         print(">>>>>", "Test price History Alarm Method")
-        from app.controllers.alarm import check_prices_today
+        from app.controllers.history_alarm import check_prices_today
 
         # Filters for the task
         params = {

@@ -4,7 +4,7 @@ from app.models.alarm import Alarm
 from app import errors, logger
 import datetime
 
-mod = Blueprint('alarm',__name__)
+mod = Blueprint('history_alarm',__name__)
 
 @mod.route('/')
 def get_alarm_bp():
