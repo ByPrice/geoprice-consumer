@@ -5,6 +5,7 @@ from ByHelpers import applogger
 import pandas as pd
 from pandas import DataFrame
 from app.models.history_alarm import Alarm
+from app.utils.helpers import tuplize
 import numpy as np
 import uuid
 from config import *
@@ -132,39 +133,41 @@ class Alert(Alarm):
 
         return df[df['activate'] == True].to_dict(orient='records')
 
+    @staticmethod
+    def breaks_rules(row):
+        """ Check if the row breaks the price rule
+            if so returns true or false
+        """
+        price_ref = float(row['price'])
+        price = float(row['price_compare'])
+
+        if row['type'] == 'percent':
+            upper_boundry = price_ref+price_ref*(float(row['variation'])/100)
+            lower_boundry = price_ref-price_ref*(float(row['variation'])/100)
+        else:
+            upper_boundry = price_ref+float(row['variation'])
+            lower_boundry = price_ref-float(row['variation'])
+
+        # If its beyond the thresholds
+        if price > upper_boundry or price < lower_boundry:
+            return True
+        else:
+            return False
 
     @staticmethod
     def get_price_compare(params):
+        """ Get Price compare given Alert rules, stores and retailers
 
-        print('inside get_price_compare')
+            Params:
+            -----
+            dict
+                Dict containing {`alerts`, `retailers`, `stores`} keys as params
+        """
+        # Aux assignation
+        items, _stores, _items, _retailers = [], [], [], []
+        size_items, size_stores = 100, 100
 
-        def breaks_rules(row):
-            """ Check if the row breaks the price rule
-                if so returns true or false
-            """
-            price_ref = float(row['price'])
-            price = float(row['price_compare'])
-
-            if row['type'] == 'percent':
-                upper_boundry = price_ref+price_ref*(float(row['variation'])/100)
-                lower_boundry = price_ref-price_ref*(float(row['variation'])/100)
-            else:
-                upper_boundry = price_ref+float(row['variation'])
-                lower_boundry = price_ref-float(row['variation'])
-
-            # If its beyond the thresholds
-            if price > upper_boundry or price < lower_boundry:
-                return True
-            else:
-                return False
-
-        items = []
-        _stores = []
-        _items = []
-        _retailers = []
-        size_items = 100
-        size_stores = 100
-
+        # Alerts DF
         alerts_df = pd.DataFrame(params['alerts'])
 
         # Divide in chunks
@@ -176,43 +179,40 @@ class Alert(Alarm):
         _retailers = params['retailers']
 
         chunks_items = [ _items[i:i+size_items] for i in range(0, len(_items), size_items)]
-        chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]
-        rows = []
-        print(chunks_items)
-        input('BREAKPOINT')
+        chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]        
+        # Define Chunk dates
+        chunks_dates = [int(params['date'].replace('-',''))]
+        aux_date = datetime.datetime.strptime(params['date'],'%Y-%m-%d').date()
+        for _d in range((datetime.date.today() - aux_date).days):
+            chunks_dates.append(
+                int((aux_date + datetime.timedelta(days=1)).strftime('%Y%m%d'))
+            )
+        # Fetch Products from Item UUIDs
+        prods, rows = [], []
         # Loop stores
         for ch_items in chunks_items:
             # Loop items
+            _temp_prods = []
+            for _chi in ch_items:
+                _temp_prods += g._catalogue.get_products_by_item(_chi) 
+                prods += _temp_prods
+            ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
             for ch_stores in chunks_stores:
-                '''print("""
-                    select item_uuid, retailer, store_uuid, price, promo
-                    from price_details
-                    where item_uuid in ({})
-                    and store_uuid in ({})
-                    and retailer in  ({})
-                    and time > '{}'
-                """.format(
-                    """, """.join(ch_items),
-                    """, """.join(ch_stores),
-                    """, """.join([""" '{}' """.format(r) for r in _retailers]),
-                    params['date']
-                ))'''
-                # Get the
-                rows += g._db.execute("""
-                    select item_uuid, retailer, store_uuid, price, promo
-                    from price_details
-                    where item_uuid in ({})
-                    and store_uuid in ({})
-                    and retailer in  ({})
-                    and time > '{}'
-                """.format(
-                    """, """.join(ch_items),
-                    """, """.join(ch_stores),
-                    """, """.join( [""" '{}' """.format(r) for r in _retailers] ),
-                    params['date']
-                ))
-
-
+                # Get prices 
+                rows += g._db.query("""SELECT product_uuid, 
+                                source as retailer, 
+                                store_uuid, price, promo
+                            FROM price_by_product_store
+                            WHERE product_uuid IN {}
+                            AND store_uuid IN {}
+                            AND date IN {}
+                            """.format(
+                                tuplize(ch_prods, is_uuid=True),
+                                tuplize(ch_stores, is_uuid=True),
+                                tuplize(chunks_dates)
+                            ))
+        print(rows)
+        input('BREAKPOINT')
         prices_df = pd.DataFrame(rows).drop_duplicates()
 
         if len(prices_df) == 0:
@@ -222,12 +222,20 @@ class Alert(Alarm):
         prices_df['store_uuid'] = prices_df['store_uuid'].apply(lambda x: str(x))
 
         results_df = alerts_df.merge(prices_df, on='item_uuid', how='left')
-        prices_df = prices_df.rename(index=str, columns={"item_uuid": "item_uuid_compare", "retailer": "retailer_compare", \
-                                            "store_uuid": "store_uuid_compare", "price": "price_compare", "promo": "promo_compare"})
-        results_df = results_df.merge(prices_df, on='item_uuid_compare', how='left')
+        prices_df = prices_df.rename(index=str, 
+                                    columns={
+                                        "item_uuid": "item_uuid_compare", 
+                                        "retailer": "retailer_compare",
+                                        "store_uuid": "store_uuid_compare", 
+                                        "price": "price_compare", 
+                                        "promo": "promo_compare"
+                                    })
+        results_df = results_df.merge(prices_df, 
+                                    on='item_uuid_compare', 
+                                    how='left')
 
         results_df['alert'] = results_df.apply(
-            lambda x: breaks_rules(x),
+            lambda x: Alert.breaks_rules(x),
             axis=1
         )
 
