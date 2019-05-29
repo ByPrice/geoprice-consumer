@@ -111,6 +111,12 @@ class Historia(Map):
         # Task initialization
         task = Task(task_id)
         task.task_id = task_id
+        task.progress = 1
+        
+        # Validate Params
+        filters += [{'retailer': _ret} for _ret in rets.keys()]
+        print(filters)
+
         task.progress = 100
         return {
             'data': [],
@@ -119,8 +125,6 @@ class Historia(Map):
         ##
         ##
 
-        # Validate Params
-        filters += [{'retailer': _ret} for _ret in rets.keys()]
         # Fetch Items by filters
         items = Mapa.fetch_from_item(filters)
         Historia.write_file('states', task_id, '10')
