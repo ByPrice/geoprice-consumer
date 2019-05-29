@@ -213,7 +213,7 @@ app.register_blueprint(task.mod, url_prefix='/task')
 app.register_blueprint(history_alarm.mod, url_prefix='/history/alarm')
 
 # TODO: Uncomment to register History Product module
-#app.register_blueprint(history_product.mod, url_prefix='/history/product')
+# app.register_blueprint(history_product.mod, url_prefix='/history/product')
 
 # TODO: Uncomment to register Geo Alert module
 # app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')

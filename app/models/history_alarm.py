@@ -61,7 +61,7 @@ class Alarm(object):
 
 
     @staticmethod
-    def start_task(task_id, params):
+    def start_task(params):
         """ Start History price alert task, first it validates parameters
             and then it builds a response upon filters
 
@@ -77,12 +77,11 @@ class Alarm(object):
             flask.Response
                 Alarm Response
         """
-        print(task_id, params)
+        
         # Validate params
         Alarm.validate_params(params)
         # Parse and start task
         response = Alarm.prices_vs_prior(
-            task_id,
             params
         )
         return response
@@ -140,7 +139,7 @@ class Alarm(object):
         return df
 
     @staticmethod
-    def prices_vs_prior(task_id, params):
+    def prices_vs_prior(params):
         """ Compute prices for alarms.
             
             Params:
@@ -153,11 +152,6 @@ class Alarm(object):
             prices : dict
                 Dict containing list of current and prior prices
         """
-        # Task initialization
-        task = Task(task_id)
-        task.task_id = task_id
-        task.progress = 1
-
         logger.debug('Fetching Alarm prices...')
         # Format params
         params['filters'] = [{'item_uuid': i} for i in params['uuids']]
@@ -166,17 +160,14 @@ class Alarm(object):
         if not rets:
             raise errors.AppError(80011,
                 "No retailers found.")
-        task.progress = 15
+        
         # Items from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
-            return {
-                'msg' : 'No Products found!',
-                'data' : {'today':[], 'prevday':[]}
-                }
-        task.progress = 30
+            return {'today':[], 'prevday':[]}
+        
         # Date
         if isinstance(params['today'], datetime.datetime):
             _now = params['today']
@@ -187,21 +178,18 @@ class Alarm(object):
             # Today prices
             today_df = Alarm.get_cassandra_prices(filt_items, 
                 _now, 2)
-            task.progress = 45
+            
             # Yesterday prices
             yday_df = Alarm.get_cassandra_prices(filt_items, 
                 _now - datetime.timedelta(days=1), 2)
-            task.progress = 60
+            
             logger.debug('Prices fetched from Cassandra...')
         except Exception as e:
             logger.error(e)
             raise errors.AppError(80005, "Could not retrieve data from DB.")
         if today_df.empty:
             logger.warning("No Products found!")
-            return {
-                'msg' : 'No Products found!',
-                'data' : {'today':[], 'prevday':[]}
-                }
+            return {'today':[], 'prevday':[]}
         # Products DF
         info_df = pd.DataFrame(filt_items,
             columns=['item_uuid', 'product_uuid',
@@ -211,7 +199,7 @@ class Alarm(object):
             on='product_uuid', how='left')
         yday_df = pd.merge(yday_df, info_df,
             on='product_uuid', how='left')
-        task.progress = 85
+        
         ### TODO
         # Add rows with unmatched products!
         non_matched = today_df[today_df['item_uuid'].isnull() | 
@@ -239,7 +227,7 @@ class Alarm(object):
         yday_df.drop(['store_uuid', 'product_uuid',
             'name', 'time', 'gtin'], inplace=True, axis=1)
         logger.debug('Dataframes filtered!')
-        task.progress = 100
+        
         resp = {
             'today': today_df\
                         .rename(columns={'source':'retailer'})\
@@ -249,10 +237,7 @@ class Alarm(object):
                         .to_dict(orient='records')
         }
         # Convert in dict 
-        return {
-                'msg' : 'Task completed',
-                'data' : resp
-                }
+        return resp
 
 
 
