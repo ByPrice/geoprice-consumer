@@ -52,6 +52,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
+    @unittest.skip('TODO')
     def test_00_history_alarm_root_path(self):
         """ Test price History Alarm Root path
         """
@@ -96,9 +97,8 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-
     # @unittest.skip("Already tested")
-    def test_04_complete_task_history_alarm(self):
+    def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
         print(">>>>>", "Test Alarm")
@@ -119,6 +119,29 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(resp.keys())))
 
         self.assertIsInstance(resp, dict)
+
+    def test_04_history_product_bystore(self):
+        """ Test price History Product bystore
+        """
+        print(">>>>>", "Test price History Product bystore")
+        _res = self.app.get("/history/product/bystore?uuid=fd960578-71ae-463e-84d5-0e451d184597")
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+
+    def test_05_history_product_bystore_history(self):
+        """ Test price History Product bystore
+        """
+        print(">>>>>", "Test price History Product bystore history")
+        _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+          
 
 if __name__ == '__main__':
     unittest.main()
