@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
 from app.models.history_product import Product
-from app import errors, logger
+from app.models.task import asynchronize, Task
+from app import errors, applogger
 import datetime
 
 mod = Blueprint('history_product',__name__)
 
+# Logger
+logger = applogger.get_logger()
 
 @mod.route('/')
 def get_hproduct_bp():
@@ -138,25 +141,18 @@ def get_all_by_store():
         raise errors.AppError(80005, "Issues fetching store results")
     return jsonify(catalogue)
 
-@mod.route('/count_by_store/submit', methods=['POST'])
-def count_by_store():
-    """ Get the prices count of certain store
 
-        TODO: Make it Work with Async response
-    """
-    logger.info("Fetching Prices per Store")
-    params = request.args.to_dict()
-    _needed = set({'r','sid', 'date_start', 'date_end'})
-    if not _needed.issubset(params.keys()):
-        raise errors.AppError(80002, "Dates, Retailer or Store UUID parameters missing")
-    logger.debug(params)
-    count = Product\
-        .get_count_by_store(params['r'],
-            params['sid'], params['date_start'],
-            params['date_end'])
-    if not count:
-        raise errors.AppError(80005,  "Issues fetching store results")
-    return jsonify(count)
+@mod.route('/count_by_store/submit', methods=['POST'])
+@asynchronize(Product.count_by_store_task)
+def count_by_store():
+    logger.info("Submited Count by store task...")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
+
+
 
 @mod.route('/count_by_store_hours', methods=['GET'])
 def count_by_store_hours():

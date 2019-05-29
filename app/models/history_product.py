@@ -12,6 +12,7 @@ import requests
 from app import errors, logger
 from config import *
 from app.models.item import Item
+from app.models.task import Task
 from app.utils.helpers import *
 
 
@@ -461,13 +462,82 @@ class Product(object):
         logger.debug(res)
         return res
 
+
     @staticmethod
-    def get_count_by_store(retailer, store_id, date_start, date_end):
+    def validate_count(params):
+        """ Params validation method
+            
+            Params:
+            -----
+            params : dict
+                params to validate
+
+            Returns:
+            -----
+            dict
+                Validated params
+        """
+        if not params:
+            raise errors.AppError(40002, "Params Missing!", 400)
+        if 'retailer' not in params:
+            raise errors.AppError(40003, "Retailer param Missing!", 400)
+        if 'store_id' not in params:
+            raise errors.AppError(40003, "Store UUID param Missing!", 400)
+        if 'date_start' not in params:
+            raise errors.AppError(40003, "Start Date param Missing!", 400)
+        if 'date_end' not in params:
+            raise errors.AppError(40003, "End Date param Missing!", 400)
+
+        return params
+    
+
+    @staticmethod
+    def count_by_store_task(task_id, params):
+        """ Start count by store task, first it validates parameters
+            and then it builds a response
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Prod Response
+        """
+        print(task_id, params)
+        # Param validation
+        Product.validate_count(params)
+
+        result = Product.get_count_by_store(
+            task_id,
+            params['retailer'],
+            params['store_id'],
+            params['date_start'],
+            params['date_end']
+        )
+
+        resp = {
+            'data' : result,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+
+    @staticmethod
+    def get_count_by_store(task_id, retailer, store_id, date_start, date_end):
         """ Query to retrieve quantity of items
             from certain store of time selected period
 
             Params:
             -----
+            task_id :  str
+                Task UUID
             retailer : str
                 Source key
             store_id :  str
@@ -482,10 +552,16 @@ class Product(object):
             res : dict
                 Results dict
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Generate days
         _d1 = datetime.datetime.strptime(date_start, '%Y-%m-%d')
         _d2 = datetime.datetime.strptime(date_end, '%Y-%m-%d')
         _days = tupleize_date(_d1.date(), (_d2-_d1).days)
+        
         cass_query = """
             SELECT COUNT(1)
             FROM price_by_store
@@ -504,6 +580,7 @@ class Product(object):
                 _count += list(q)[0].count
             except Exception as e:
                 logger.error("Cassandra Connection error: "+str(e))
+        task.progress = 50
         # Format response
         res = {
             'source': retailer,
@@ -513,6 +590,7 @@ class Product(object):
             'date_end': date_end
         }
         logger.debug(res)
+        task.progress = 100
         return res
     
     @staticmethod
