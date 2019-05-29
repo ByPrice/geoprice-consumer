@@ -15,11 +15,8 @@ def get_alarm_bp():
     return jsonify({'status': 'ok', 'msg' : 'History Alarm'})
 
 @mod.route('/prices', methods=['POST'])
-@asynchronize(Alarm.start_task)
+# @asynchronize(Alarm.start_task)
 def check_prices_today():
-    logger.info("Submited History price alarm task...")
-    return jsonify({
-        'status':'ok', 
-        'module': 'task',
-        'task_id' : request.async_id
-    })
+	logger.info("Submited History price alarm task...")
+	resp = Alarm.start_task(request.get_json())
+	return jsonify(resp)
