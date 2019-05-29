@@ -8,7 +8,4 @@ Dockerfile.local
 *.local
 missing_items.csv
 data/
-<<<<<<< HEAD
 Endpoints*
-=======
->>>>>>> 6a8560b09afeed4e66228c3e3cee822f281913bc
