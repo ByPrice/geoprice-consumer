@@ -142,7 +142,6 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
             
-
     #@unittest.skip("Already tested")
     def test_06_history_product_ticket(self):
         """ Test price History Product ticket
@@ -154,6 +153,18 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
                 ),
             headers={'content-type': 'application/json'}
         )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+
+    #@unittest.skip("Already tested")
+    def test_07_history_product_stats(self):
+        """ Test price History Product stats
+        """
+        print(">>>>>", "Test price History Product stats")
+        _res = self.app.get("/history/product/stats?item_uuid=fd960578-71ae-463e-84d5-0e451d184597")
         try:
             _jr = json.loads(_res.data.decode('utf-8'))
             print(_jr)
