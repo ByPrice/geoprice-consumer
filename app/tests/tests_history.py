@@ -107,6 +107,17 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
+    def test_04_history_product_bystore_history(self):
+        """ Test price History Product bystore
+        """
+        print(">>>>>", "Test price History Product bystore history")
+        _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()
