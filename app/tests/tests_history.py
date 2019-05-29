@@ -70,7 +70,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
 
-    #@unittest.skip('TODO')
+    #@unittest.skip("Already tested")
     def test_02_history_alarm_method(self):
         """ Test price History Alarm Method
         """
@@ -118,6 +118,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
 
         self.assertIsInstance(resp, dict)
 
+    #@unittest.skip("Already tested")
     def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
@@ -129,8 +130,9 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
+    #@unittest.skip("Already tested")
     def test_05_history_product_bystore_history(self):
-        """ Test price History Product bystore
+        """ Test price History Product bystore history
         """
         print(">>>>>", "Test price History Product bystore history")
         _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
@@ -139,7 +141,25 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             print(_jr)
         except:
             pass
-          
+            
+
+    #@unittest.skip("Already tested")
+    def test_06_history_product_ticket(self):
+        """ Test price History Product ticket
+        """
+        print(">>>>>", "Test price History Product ticket")
+        _res = self.app.post("/history/product/ticket",
+            data=json.dumps(
+                {'uuids': ['fd960578-71ae-463e-84d5-0e451d184597'] }
+                ),
+            headers={'content-type': 'application/json'}
+        )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()
