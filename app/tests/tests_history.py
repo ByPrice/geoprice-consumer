@@ -95,7 +95,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    # @unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
@@ -112,7 +112,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             "today" : "2019-05-24"
         }   
 
-        resp = Alarm.start_task(params)     
+        resp = Alarm.start_task(params)
         print("Submitted Task: ")
         print("Result keys: {} ".format(list(resp.keys())))
 
