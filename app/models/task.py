@@ -227,7 +227,7 @@ class Task(object):
             variable as well
         """
         if self._backend == 'redis':
-            print("Getting result from redis: " + "task:result:"+self._task_id)
+            logger.debug("Getting result from redis: " + "task:result:"+self._task_id)
             res = g._redis.get("task:result:"+self._task_id)
             if res:
                 self._result = json.loads(res.decode('utf-8'))
@@ -261,7 +261,6 @@ class Task(object):
             "data" : self._data,
             "date" : datetime.datetime.utcnow().strftime("%Y-%m-%d %I:%M:%S")
         }
-        print(self._result)
         self._save_result()
         return self._result
 
@@ -273,7 +272,7 @@ class Task(object):
             variable as well
         """
         if self._backend == 'redis':
-            print("Getting name from redis" + "task:name:"+self._task_id)
+            logger.debug("Getting name from redis" + "task:name:"+self._task_id)
             res = g._redis.get("task:name:"+self._task_id)
             if res:
                 self._name = res.decode('utf-8')
@@ -343,7 +342,6 @@ class Task(object):
             logger.error("Can not save result without defining the task_id!")
             return False 
         try:
-            print("Storing Result", self._task_id)
             if self._backend == 'redis':
                 g._redis.set("task:result:"+self._task_id, 
                     json.dumps(self._result), 

@@ -10,7 +10,7 @@ import json
 
 task_id = None
 
-class GeopriceHistoryasksTestCase(unittest.TestCase):
+class GeopriceHistoryTasksTestCase(unittest.TestCase):
     """ Test Case for Geoprice Async Tasks  (History)
 
         TODO: Set up all the tests of the 
@@ -60,8 +60,8 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         _res = self.app.get("/history/alarm/")
         print(_res.status_code)
         print(_res.data)
-
-    @unittest.skip('TODO')    
+    
+    @unittest.skip("Already tested")
     def test_01_history_product_root_path(self):
         """ Test price History Product Root path
         """
@@ -70,21 +70,20 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
 
-    @unittest.skip('TODO')
+    #@unittest.skip("Already tested")
     def test_02_history_alarm_method(self):
         """ Test price History Alarm Method
-
-            TODO:  Verify this test before running
         """
         print(">>>>>", "Test price History Alarm Method")
-        from app.controllers.history_alarm import check_prices_today
 
         # Filters for the task
-        params = {
-			'uuids' : ['2h354iu23h5423i5uh23i5', '30748123412057g1085h5oh3'],
-			'retailers' : ['walmart','chedraui'],
-			'today' : '2017-09-20'
-		}
+        params = params = {
+            "uuids" : ["478c624b-bf0d-4540-bee9-c870ff0e69fd",
+                    "c34742b1-9ed7-451c-b0aa-c965e146675b",
+                    "6267ab2f-bf96-4c4c-8c12-acac370aebf3"],
+            "retailers" : ["walmart","chedraui", "san_pablo"],
+            "today" : "2019-05-20"
+        }
         _res = self.app.post('/history/alarm/prices',
                     data=json.dumps(params),
                     headers={'content-type': 'application/json'}
@@ -96,8 +95,31 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    @unittest.skip('TODO')
-    def test_03_history_product_bystore(self):
+    # @unittest.skip("Already tested")
+    def test_03_complete_task_history_alarm(self):
+        """ Test price Alarm
+        """
+        print(">>>>>", "Test Alarm")
+        # Import celery task
+        from app.models.history_alarm import Alarm
+
+        # Filters for the task
+        params = {
+            "uuids" : [
+                "abebb3a7-e6d2-4235-8cfa-66b63f80c3e2"
+            ],
+            "retailers" : ["walmart","superama"],
+            "today" : "2019-05-24"
+        }   
+
+        resp = Alarm.start_task(params)     
+        print("Submitted Task: ")
+        print("Result keys: {} ".format(list(resp.keys())))
+
+        self.assertIsInstance(resp, dict)
+
+    #@unittest.skip("Already tested")
+    def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
         print(">>>>>", "Test price History Product bystore")
@@ -108,8 +130,8 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
-    @unittest.skip('TODO')
-    def test_04_history_product_bystore_history(self):
+    #@unittest.skip("Already tested")
+    def test_05_history_product_bystore_history(self):
         """ Test price History Product bystore history
         """
         print(">>>>>", "Test price History Product bystore history")
@@ -121,8 +143,8 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
             
 
-    #@unittest.skip('TODO')
-    def test_05_history_product_ticket(self):
+    #@unittest.skip("Already tested")
+    def test_06_history_product_ticket(self):
         """ Test price History Product ticket
         """
         print(">>>>>", "Test price History Product ticket")

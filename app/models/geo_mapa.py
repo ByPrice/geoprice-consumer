@@ -73,7 +73,6 @@ class Map(object):
             flask.Response
                 Map Response
         """
-        print(task_id, params)
         # Validate params
         Map.validate_params(params)
         # Parse and start task
@@ -128,7 +127,6 @@ class Map(object):
         f_stores = [ f['store_uuid'] for f in filters if 'store_uuid' in f ]
         f_items = [ f['item_uuid'] for f in filters if 'item_uuid' in f ]
         logger.info("Filters for the task: {}".format(filters))
-
         # Dates
         dates = []
         date_start = moment = datetime.datetime.strptime(date_start, "%Y-%m-%d") 
@@ -274,7 +272,7 @@ class Map(object):
                 })
 
         # Save task result
-        print("Before saving result... ")
+        logger.debug("Before saving result... ")
         task.progress = 100
         resp = {
             'data' : result,

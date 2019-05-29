@@ -2,10 +2,10 @@
 from flask import Blueprint, jsonify, request, Response
 from app import errors, logger
 from app.models.geo_historia import Historia
+from app.models.task import Task, asynchronize
 
 # Blueprint instance
-mod = Blueprint('historia', __name__)
-
+mod = Blueprint('geo_historia', __name__)
 
 @mod.route('/')
 def status():
@@ -15,11 +15,11 @@ def status():
     return jsonify({'status':'ok', 'module': 'Geo Historia'})
 
 
-@mod.route('/submit/', methods=['POST'])
-@mod.route('/submit', methods=["POST"])
+@mod.route('/submit', methods=['POST'])
+@asynchronize(Historia.filters_task)
 def submit_history():
     """ Endpoint to submit task:
-        Price by Item IDs and Stores retrieval within a timeframe
+        Price by Item UUIDs and Stores retrieval within a timeframe
 
         Params:
         -----
@@ -51,27 +51,10 @@ def submit_history():
             "method": "prices_history"
         }
     """
-    logger.info('Submitting Prices History task...')
-    # Verify params
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(40002, "Params Missing!", 400)
-    if 'filters' not in params:
-        raise errors.AppError(40003, "Filters param Missing!", 400)
-    if 'retailers' not in params:
-        raise errors.AppError(40003, "Retailers param Missing!", 400)
-    if 'date_start' not in params:
-        raise errors.AppError(40003, "Start Date param Missing!", 400)
-    if 'date_end' not in params:
-        raise errors.AppError(40003, "End Date param Missing!", 400)
-    if 'interval' not in params:
-        # In case interval is not explicit, set to day
-        params['interval'] = 'day'        
+    logger.info('Submitting Geo History task...')  
     # Call to submit task
-    task = prices_history.apply_async(args=(params,))
     return jsonify({
-        'msg': 'Processing...',
         'status': 'ok',
-        'task_id': task.id,
-        "method": 'prices_history'
+        'task_id': request.async_id,
+        "method": 'geo_historia'
         })

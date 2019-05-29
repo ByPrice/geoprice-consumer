@@ -18,7 +18,7 @@ env/bin/flask initdb
 if [[ $MODE == "SERVICE" ]]
     then
     # Run celery
-    echo "Starting Cekery..."
+    echo "Starting Celery..."
     env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
     # Run gunicorn
     echo "Starting Web Service"

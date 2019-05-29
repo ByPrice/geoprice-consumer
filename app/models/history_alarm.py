@@ -11,6 +11,7 @@ import numpy as np
 import requests
 from app import errors, logger
 from config import *
+from app.models.task import Task
 from app.models.item import Item
 from app.models.stats import Stats
 from app.utils.helpers import *
@@ -27,7 +28,65 @@ class Alarm(object):
 
     def __init__(self):
         pass
+
+    @staticmethod        
+    def validate_params(params):
+        """ Params validation method
+            
+            Params:
+            -----
+            params : dict
+                params to validate
+
+            Returns:
+            -----
+            dict
+                Validated params
+        """
+        if not params:
+            raise errors.AppError(40002, "Params Missing!", 400)
+        if 'uuids' not in params:
+            raise errors.AppError(40003, "Uuids param Missing!", 400)
+        elif not isinstance(params['uuids'], list):
+            raise errors.AppError(40003, "Uuids param must be a list!", 400)                
+        if 'retailers' not in params:
+            raise errors.AppError(40003, "Retailers param Missing!", 400)
+        elif not isinstance(params['retailers'], list):
+            raise errors.AppError(40003, "Retailers param must be a list!", 400)
+        if 'today' not in params:
+            params['today'] = datetime.datetime.utcnow()
+        else:
+            params['today'] = params['today']
+        return params
+
+
+    @staticmethod
+    def start_task(params):
+        """ Start History price alert task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Alarm Response
+        """
+        
+        # Validate params
+        Alarm.validate_params(params)
+        # Parse and start task
+        response = Alarm.prices_vs_prior(
+            params
+        )
+        return response
     
+
     @staticmethod
     def get_cassandra_prices(prods, _date, period):
         """ Query prices of product by date
@@ -70,7 +129,7 @@ class Alarm(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         logger.info("Fetched {} prices".format(len(qs)))
-        logger.debug(qs[:1] if len(qs) > 1 else [])
+        # logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
             return pd.DataFrame({'date':[], 'product_uuid':[]})
@@ -96,17 +155,18 @@ class Alarm(object):
         logger.debug('Fetching Alarm prices...')
         # Format params
         params['filters'] = [{'item_uuid': i} for i in params['uuids']]
-        params['filters'] = [{'retailer': i} for i in params['retailers']]
+        params['filters'] += [{'retailer': i} for i in params['retailers']]
         rets = Stats.fetch_rets(params['filters'])
+
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
+            raise errors.AppError(80011, "No retailers found.")
         # Items from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
             return {'today':[], 'prevday':[]}
+        
         # Date
         if isinstance(params['today'], datetime.datetime):
             _now = params['today']
@@ -117,6 +177,7 @@ class Alarm(object):
             # Today prices
             today_df = Alarm.get_cassandra_prices(filt_items, 
                 _now, 2)
+            
             # Yesterday prices
             yday_df = Alarm.get_cassandra_prices(filt_items, 
                 _now - datetime.timedelta(days=1), 2)
@@ -125,7 +186,7 @@ class Alarm(object):
             logger.error(e)
             raise errors.AppError(80005, "Could not retrieve data from DB.")
         if today_df.empty:
-            logger.warning("No Products found!")
+            logger.warning("No Products found today!")
             return {'today':[], 'prevday':[]}
         # Products DF
         info_df = pd.DataFrame(filt_items,
@@ -148,30 +209,37 @@ class Alarm(object):
             (yday_df['item_uuid'] != '')]
         # Filter elements with not valid retailers
         today_df = today_df[today_df['source'].isin(rets)]
-        yday_df = yday_df[yday_df['source'].isin(rets)]
+        if not yday_df.empty:
+            yday_df = yday_df[yday_df['source'].isin(rets)]
         # Convert datetime to date
         today_df['date'] = today_df['time'].apply(lambda x : x.date().__str__())
-        yday_df['date'] = yday_df['time'].apply(lambda x : x.date().__str__())
+        if not yday_df.empty:
+            yday_df['date'] = yday_df['time'].apply(lambda x : x.date().__str__())
         # Order  and Drop duplicates
         today_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
-        yday_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
+        if not yday_df.empty:
+            yday_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
         today_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
-        yday_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
+        if not yday_df.empty:
+            yday_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
         # Drop Store UUID and time column
         today_df.drop(['store_uuid', 'product_uuid',
             'name', 'time', 'gtin'], inplace=True, axis=1)
-        yday_df.drop(['store_uuid', 'product_uuid',
-            'name', 'time', 'gtin'], inplace=True, axis=1)
+        if not yday_df.empty:
+            yday_df.drop(['store_uuid', 'product_uuid',
+                'name', 'time', 'gtin'], inplace=True, axis=1)
         logger.debug('Dataframes filtered!')
+        resp = {
+            'today': today_df\
+                        .rename(columns={'source':'retailer'})\
+                        .to_dict(orient='records'),
+            'prevday': yday_df\
+                        .rename(columns={'source':'retailer'})\
+                        .to_dict(orient='records')
+        }
+        logger.info("Serving Alarm response..")
         # Convert in dict 
-        return {
-                'today': today_df\
-                            .rename(columns={'source':'retailer'})\
-                            .to_dict(orient='records'),
-                'prevday': yday_df\
-                            .rename(columns={'source':'retailer'})\
-                            .to_dict(orient='records')
-            }
+        return resp
 
 
 

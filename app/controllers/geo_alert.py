@@ -24,10 +24,8 @@ def check_prices_today():
 			'retailers' : ['walmart','chedraui'],
 			'today' : '2017-09-20'
 		}
-        
-    TODO: Make it Work
 	"""
-	logger.debug('alert prices endpoint...')
+	logger.info('Geo Alert prices endpoint.')
 	params = request.get_json()
 	if 'uuids' not in params:
 		raise errors.AppError("invalid_request", "UUIDs parameters missing")
