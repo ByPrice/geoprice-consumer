@@ -27,7 +27,7 @@ def check_prices_today():
         
     TODO: Make it Work
 	"""
-	logger.debug('alert prices endpoint...')
+	logger.info('Geo Alert prices endpoint.')
 	params = request.get_json()
 	if 'uuids' not in params:
 		raise errors.AppError("invalid_request", "UUIDs parameters missing")
@@ -36,7 +36,7 @@ def check_prices_today():
 	if 'today' not in params:
 		params['today'] = datetime.date.today().__str__()
 	logger.debug('Params correct...')
-	prices = Alert.prices_vs_prior(params)
+	prices = [] # Alert.prices_vs_prior(params)
 	return jsonify(prices)
 
 

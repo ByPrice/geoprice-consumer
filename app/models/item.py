@@ -2,7 +2,7 @@ import json
 from flask import g
 import requests
 from app import logger
-from config import SRV_CATALOGUE
+from config import SRV_CATALOGUE, SRV_PROTOCOL
 
 
 class Item(object):
@@ -72,7 +72,8 @@ class Item(object):
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+        url = SRV_PROTOCOL + "://" + \
+            SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))

@@ -79,23 +79,20 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
 
-
-    @unittest.skip('TODO')
-    def test_0X_history_alarm_method(self):
-        """ Test price History Alarm Method
-
-            TODO:  Verify this test before running
+    def test_03_geo_alert_prices_method(self):
+        """ Test Geo Alert Prices Method
         """
-        print(">>>>>", "Test price History Alarm Method")
-        from app.controllers.history_alarm import check_prices_today
+        print(">>>>>", "Test Geo Alert Prices Method")
 
         # Filters for the task
         params = {
-			'uuids' : ['2h354iu23h5423i5uh23i5', '30748123412057g1085h5oh3'],
-			'retailers' : ['walmart','chedraui'],
-			'today' : '2017-09-20'
-		}
-        _res = self.app.post('/history/alarm/prices',
+            "uuids" : ["478c624b-bf0d-4540-bee9-c870ff0e69fd",
+                    "c34742b1-9ed7-451c-b0aa-c965e146675b",
+                    "6267ab2f-bf96-4c4c-8c12-acac370aebf3"],
+            "retailers" : ["walmart","chedraui", "san_pablo"],
+            "today" : "2019-05-20"
+        }
+        _res = self.app.post('/geo/alert/prices',
                     data=json.dumps(params),
                     headers={'content-type': 'application/json'}
         )

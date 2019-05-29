@@ -129,7 +129,7 @@ class Alarm(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         logger.info("Fetched {} prices".format(len(qs)))
-        logger.debug(qs[:1] if len(qs) > 1 else [])
+        # logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
             return pd.DataFrame({'date':[], 'product_uuid':[]})
@@ -155,12 +155,11 @@ class Alarm(object):
         logger.debug('Fetching Alarm prices...')
         # Format params
         params['filters'] = [{'item_uuid': i} for i in params['uuids']]
-        params['filters'] = [{'retailer': i} for i in params['retailers']]
+        params['filters'] += [{'retailer': i} for i in params['retailers']]
         rets = Stats.fetch_rets(params['filters'])
+
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
-        
+            raise errors.AppError(80011, "No retailers found.")
         # Items from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
@@ -182,13 +181,12 @@ class Alarm(object):
             # Yesterday prices
             yday_df = Alarm.get_cassandra_prices(filt_items, 
                 _now - datetime.timedelta(days=1), 2)
-            
             logger.debug('Prices fetched from Cassandra...')
         except Exception as e:
             logger.error(e)
             raise errors.AppError(80005, "Could not retrieve data from DB.")
         if today_df.empty:
-            logger.warning("No Products found!")
+            logger.warning("No Products found today!")
             return {'today':[], 'prevday':[]}
         # Products DF
         info_df = pd.DataFrame(filt_items,
@@ -199,7 +197,6 @@ class Alarm(object):
             on='product_uuid', how='left')
         yday_df = pd.merge(yday_df, info_df,
             on='product_uuid', how='left')
-        
         ### TODO
         # Add rows with unmatched products!
         non_matched = today_df[today_df['item_uuid'].isnull() | 
@@ -212,22 +209,26 @@ class Alarm(object):
             (yday_df['item_uuid'] != '')]
         # Filter elements with not valid retailers
         today_df = today_df[today_df['source'].isin(rets)]
-        yday_df = yday_df[yday_df['source'].isin(rets)]
+        if not yday_df.empty:
+            yday_df = yday_df[yday_df['source'].isin(rets)]
         # Convert datetime to date
         today_df['date'] = today_df['time'].apply(lambda x : x.date().__str__())
-        yday_df['date'] = yday_df['time'].apply(lambda x : x.date().__str__())
+        if not yday_df.empty:
+            yday_df['date'] = yday_df['time'].apply(lambda x : x.date().__str__())
         # Order  and Drop duplicates
         today_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
-        yday_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
+        if not yday_df.empty:
+            yday_df.sort_values(by=['item_uuid','source', 'price'], inplace=True)
         today_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
-        yday_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
+        if not yday_df.empty:
+            yday_df.drop_duplicates(subset=['item_uuid', 'source'], keep='first', inplace=True)
         # Drop Store UUID and time column
         today_df.drop(['store_uuid', 'product_uuid',
             'name', 'time', 'gtin'], inplace=True, axis=1)
-        yday_df.drop(['store_uuid', 'product_uuid',
-            'name', 'time', 'gtin'], inplace=True, axis=1)
+        if not yday_df.empty:
+            yday_df.drop(['store_uuid', 'product_uuid',
+                'name', 'time', 'gtin'], inplace=True, axis=1)
         logger.debug('Dataframes filtered!')
-        
         resp = {
             'today': today_df\
                         .rename(columns={'source':'retailer'})\
@@ -236,6 +237,7 @@ class Alarm(object):
                         .rename(columns={'source':'retailer'})\
                         .to_dict(orient='records')
         }
+        logger.info("Serving Alarm response..")
         # Convert in dict 
         return resp
 
