@@ -25,6 +25,7 @@ def get_one():
         raise errors.AppError("invalid_request", "Could not fetch data from Cassandra")
     return jsonify(prod)
 
+
 @mod.route('/bystore', methods=['GET'])
 def get_today_prices_bystore():
     """ Get prices from an specific 

@@ -202,7 +202,7 @@ def handle_api_error(error):
 
 #from app.controllers import product, stats, alarm, dump, promos, geo_alert
 from app.controllers import geo_mapa, task, history_product, geo_alert, geo_check, geo_dump,\
-                        geo_historia
+                        geo_historia, history_alarm
 
 # Flask blueprint registration
 app.register_blueprint(geo_mapa.mod, url_prefix='/geo/mapa')

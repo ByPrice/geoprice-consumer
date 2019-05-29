@@ -2,7 +2,7 @@ import json
 from flask import g
 import requests
 from app import logger
-from config import SRV_CATALOGUE
+from config import SRV_CATALOGUE, SRV_PROTOCOL
 
 
 class Item(object):
@@ -36,7 +36,7 @@ class Item(object):
         # Iterate over batches of lenght: _k
         for i in range(0, len(p_uuids), _k):
             _pbatch = p_uuids[i: i+_k]
-            url = SRV_CATALOGUE + \
+            url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
                 '/product/by/puuid?keys={item}&ipp={ipp}&cols={cols}'\
                 .format(item=','.join(_pbatch),
                         ipp=_k,

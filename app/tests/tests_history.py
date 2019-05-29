@@ -97,7 +97,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    # @unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
@@ -120,6 +120,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
 
         self.assertIsInstance(resp, dict)
 
+    @unittest.skip("Already tested")
     def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
@@ -131,6 +132,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
+    @unittest.skip("Already tested")
     def test_05_history_product_bystore_history(self):
         """ Test price History Product bystore
         """
@@ -142,6 +144,18 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
           
+    # @unittest.skip("Already tested")
+    def test_06_history_product_catalogue(self):
+        """ Test price History Product Catalogue
+        """
+        print(">>>>>", "Test price History Product Catalogue")
+        _res = self.app.get("/history/product/catalogue?r=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003")
+        print('Got Response')
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
 
 if __name__ == '__main__':
     unittest.main()

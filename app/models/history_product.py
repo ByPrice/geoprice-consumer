@@ -347,6 +347,7 @@ class Product(object):
         """
         # Generate days
         _days = tupleize_date(datetime.date.today(), 2)
+        
         cass_query = """
             SELECT product_uuid, price, promo,
             price_original, time,
@@ -358,7 +359,7 @@ class Product(object):
         qs = []
         # Iterate for each store-date combination
         for _s, _d in itertools.product([store_id], _days):
-            try: 
+            try:
                 q = g._db.query(cass_query,
                     (UUID(_s), _d),
                     timeout=120)
