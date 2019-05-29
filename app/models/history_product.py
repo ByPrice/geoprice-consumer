@@ -442,7 +442,7 @@ class Product(object):
         _count = 0
         # Iterate for each store-date combination
         for _s, _d in itertools.product([store_id], _days):
-            try: 
+            try:
                 q = g._db.query(cass_query,
                     (UUID(_s), _d, _delta),
                     timeout=120)

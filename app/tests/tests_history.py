@@ -194,6 +194,18 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog,100)
         
+    # @unittest.skip("Already tested")
+    def test_08_history_product_count_st_hours(self):
+        """ Test price History Product Count by Store hours
+        """
+        print(">>>>>", "Test price History Product Count by Store hours")
+        _res = self.app.get("/history/product/count_by_store_hours?r=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003&last_hours=168")
+        print('Got Response')
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
 
 if __name__ == '__main__':
     unittest.main()

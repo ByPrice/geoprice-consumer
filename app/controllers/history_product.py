@@ -158,8 +158,6 @@ def count_by_store():
 def count_by_store_hours():
     """ Get the prices of all items 
         of certain store for the past X hours
-
-        TODO: Make it work
     """
     logger.info("Fetching Prices per Store in last X hours")
     params = request.args.to_dict()
