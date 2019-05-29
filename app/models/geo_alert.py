@@ -178,7 +178,8 @@ class Alert(Alarm):
         chunks_items = [ _items[i:i+size_items] for i in range(0, len(_items), size_items)]
         chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]
         rows = []
-
+        print(chunks_items)
+        input('BREAKPOINT')
         # Loop stores
         for ch_items in chunks_items:
             # Loop items
