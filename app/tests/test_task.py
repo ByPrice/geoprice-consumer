@@ -176,7 +176,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print(">>>>>", "Test price Map Decorator")
         # Import celery task
         from app.celery_app import main_task
-        from app.models.map import Map
+        from app.models.mapa import Map
 
         # Filters for the task
         params = {
