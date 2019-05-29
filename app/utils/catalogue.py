@@ -78,7 +78,7 @@ class Catalogue(object):
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+        url = SRV_PROTOCOL + "://" + SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))
