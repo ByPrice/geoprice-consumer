@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
-from app.models.alarm import Alarm
+from app.models.history_alarm import Alarm
 from app import errors, logger
 import datetime
 

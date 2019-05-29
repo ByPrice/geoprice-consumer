@@ -1,16 +1,16 @@
 import datetime
 import app
 from ByHelpers import applogger
-from flask import g
+from flask import g, request
 import config
 import requests
 import json
 import pandas as pd
 from app.models.geo_mapa import Map
+from app.models.task import Task
 
 # Logger
 logger = applogger.get_logger()
-
 
 class Historia(Map):
     """ Class to perform Historic needed routines for Geo located prices,
@@ -26,6 +26,36 @@ class Historia(Map):
         """ Destructor
         """
         pass
+
+    @staticmethod
+    def filters_task(task_id, params):
+        """ Start Historia info task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Historia Response
+        """
+        # Validate params
+        Historia.validate_params(params)
+        # Parse and start task
+        response = Historia.grouped_by_retailer(
+            task_id,
+            params['filters'],
+            params['retailers'],
+            params['date_start'],
+            params['date_end'],
+            params['interval']
+        )
+        return response
 
     @staticmethod
     def fetch_prices(items, _t, _t1=None):
@@ -78,8 +108,17 @@ class Historia(Map):
             - until: (str) Date Upper Bound
             - interval: (str) Interval Type (day, month, week)
         """
-        # Start status file in 0
-        Historia.write_file('states', task_id, '0')
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 100
+        return {
+            'data': [],
+            'msg': 'Task test OK'
+        }
+        ##
+        ##
+
         # Validate Params
         filters += [{'retailer': _ret} for _ret in rets.keys()]
         # Fetch Items by filters
