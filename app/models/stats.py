@@ -59,6 +59,7 @@ class Stats(object):
             'gtin', 'name', 'source']     
         _iuuids = [f['item_uuid'] for f in filters\
             if 'item_uuid' in f]
+        _iuuids += [f['item'] for f in filters if 'item' in f]
         logger.debug(_iuuids)
         _puuids = [f['product_uuid'] for f in filters\
             if 'product_uuid' in f]
