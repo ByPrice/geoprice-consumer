@@ -10,7 +10,7 @@ import json
 
 task_id = None
 
-class GeopriceHistoryasksTestCase(unittest.TestCase):
+class GeopriceHistoryTasksTestCase(unittest.TestCase):
     """ Test Case for Geoprice Async Tasks  (History)
 
         TODO: Set up all the tests of the 

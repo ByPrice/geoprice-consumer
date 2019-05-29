@@ -176,7 +176,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print(">>>>>", "Test price Map Decorator")
         # Import celery task
         from app.celery_app import main_task
-        from app.models.mapa import Map
+        from app.models.geo_mapa import Map
 
         # Filters for the task
         params = {
@@ -224,7 +224,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         print(">>>>", "Test Map task without filters")
         # Import celery task
         from app.celery_app import main_task
-        from app.models.map import Map
+        from app.models.geo_mapa import Map
 
         # Filters for the task -> missing filters
         params = {
@@ -250,17 +250,53 @@ class GeopriceTaskTestCase(unittest.TestCase):
         
         self.assertEqual(prog,-1)
 
-    def test_09_write_result_redis(self):
-        """ Test Write Result redis
+    #@unittest.skip("Already tested")
+    def test_09_complete_task_price_historia_decorator(self):
+        """ Test price Geo Historia Decorator
         """
-        from uuid import uuid4
-        # Emulate Task
-        task = Task(uuid4())
-        # Write Progress 
-        task.progress = 100
-        # Write Progress
-        task.result = test_task_result
-        self.assertEqual(task._result, test_task_result)
+        print(">>>>>", "Test price Geo Historia Decorator")
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.geo_historia import Historia
+
+        # Filters for the task
+        params = {
+            "filters" : [
+                {"item_uuid" : "fd960578-71ae-463e-84d5-0e451d184597"},
+                {"item_uuid" : "7f177768-cd76-45e4-92ac-9bab4ec8d8b3"},
+                {"item_uuid" : "63aa59b6-04a7-45ed-99df-8f6d1403c4de"},
+                {"item_uuid" : "facdc537-d80f-447e-9d6e-0266e0e9d082"},
+                {"retailer" : "walmart"}
+            ],
+            "retailers" : {
+                "walmart" : "Walmart",
+                "superama" : "Superama"
+            },
+            "date_start" : "2019-05-19",
+            "date_end" : "2019-05-21",
+            "interval" : "day"
+        }
+
+        celery_task = main_task.apply_async(args=(Historia.filters_task, params))        
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+
+        self.assertEqual(prog,100)
 
 if __name__ == '__main__':
     unittest.main()

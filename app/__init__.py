@@ -227,7 +227,7 @@ app.register_blueprint(history_product.mod, url_prefix='/history/product')
 # app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
 
 # TODO: Uncomment to register Geo Historia
-# app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
+app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
 
 #app.register_blueprint(promos.mod, url_prefix='/promos')
 
