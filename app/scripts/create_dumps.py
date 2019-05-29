@@ -34,7 +34,7 @@ template = {
 
 def get_retailers():
     # Get all retailers
-    resp = requests.get("http://"+SRV_GEOLOCATION+"/retailer/all")
+    resp = requests.get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION + "/retailer/all")
     print(resp.text)
     retailers = resp.json()
     rets = { r['key'] : r['name'] for r in retailers }
@@ -42,14 +42,14 @@ def get_retailers():
 
 def get_catalogue(ret):
     # Query all catalogue of retailer to items
-    resp = requests.get("http://"+SRV_CATALOGUE+"/item/source/"+ret)
+    resp = requests.get(SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/item/source/"+ret)
     catalogue = resp.json()
     return catalogue
 
 
 def get_total_items(source=SOURCE):
     # Get the items of ims
-    resp = requests.get("http://"+SRV_ITEM+"/item/source/"+source)
+    resp = requests.get(SRV_PROTOCOL + "://" + SRV_ITEM + "/item/source/" + source)
     catalogue_source = resp.json()
     return catalogue_provider
 

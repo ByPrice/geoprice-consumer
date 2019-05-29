@@ -10,7 +10,7 @@ import uuid
 from config import *
 import requests
 
-geo_stores_url = 'http://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
+geo_stores_url = SRV_PROTOCOL + "://" + SRV_GEOLOCATION + '/store/retailer?key=%s'
 logger = applogger.get_logger()
 
 def get_items_str(items_list):
@@ -256,7 +256,7 @@ class Alert(Alarm):
 
         # get items info
         items = results_df['item_uuid'].drop_duplicates().tolist() + results_df['item_uuid_compare'].drop_duplicates().tolist()
-        items_info = requests.get('http://gate.byprice.com/bpcatalogue/product/by/iuuid?cols=item_uuid,gtin&keys={}'.format(\
+        items_info = requests.get(SRV_PROTOCOL + "://" + SRV_CATALOGUE + '/product/by/iuuid?cols=item_uuid,gtin&keys={}'.format(\
                             ','.join(items))).json()['products']
 
         items_df = pd.DataFrame(items_info)
