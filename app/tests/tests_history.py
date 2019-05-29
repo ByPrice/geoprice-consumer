@@ -60,8 +60,8 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         _res = self.app.get("/history/alarm/")
         print(_res.status_code)
         print(_res.data)
-
-    @unittest.skip('TODO')    
+    
+    @unittest.skip("Already tested")
     def test_01_history_product_root_path(self):
         """ Test price History Product Root path
         """
@@ -69,6 +69,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         _res = self.app.get("/history/product/")
         print(_res.status_code)
         print(_res.data)
+
 
     @unittest.skip('TODO')
     def test_02_history_alarm_method(self):
@@ -96,7 +97,30 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    def test_03_history_product_bystore(self):
+    # @unittest.skip("Already tested")
+    def test_03_complete_task_history_alarm(self):
+        """ Test price Alarm
+        """
+        print(">>>>>", "Test Alarm")
+        # Import celery task
+        from app.models.history_alarm import Alarm
+
+        # Filters for the task
+        params = {
+            "uuids" : [
+                "abebb3a7-e6d2-4235-8cfa-66b63f80c3e2"
+            ],
+            "retailers" : ["walmart","superama"],
+            "today" : "2019-05-24"
+        }   
+
+        resp = Alarm.start_task(params)     
+        print("Submitted Task: ")
+        print("Result keys: {} ".format(list(resp.keys())))
+
+        self.assertIsInstance(resp, dict)
+
+    def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
         print(">>>>>", "Test price History Product bystore")
@@ -107,6 +131,17 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
+    def test_05_history_product_bystore_history(self):
+        """ Test price History Product bystore
+        """
+        print(">>>>>", "Test price History Product bystore history")
+        _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+          
 
 if __name__ == '__main__':
     unittest.main()
