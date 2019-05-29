@@ -11,6 +11,7 @@ import numpy as np
 import requests
 from app import errors, logger
 from config import *
+from app.models.task import Task
 from app.models.item import Item
 from app.models.stats import Stats
 from app.utils.helpers import *
@@ -27,7 +28,65 @@ class Alarm(object):
 
     def __init__(self):
         pass
+
+    @staticmethod        
+    def validate_params(params):
+        """ Params validation method
+            
+            Params:
+            -----
+            params : dict
+                params to validate
+
+            Returns:
+            -----
+            dict
+                Validated params
+        """
+        if not params:
+            raise errors.AppError(40002, "Params Missing!", 400)
+        if 'uuids' not in params:
+            raise errors.AppError(40003, "Uuids param Missing!", 400)
+        elif not isinstance(params['uuids'], list):
+            raise errors.AppError(40003, "Uuids param must be a list!", 400)                
+        if 'retailers' not in params:
+            raise errors.AppError(40003, "Retailers param Missing!", 400)
+        elif not isinstance(params['retailers'], list):
+            raise errors.AppError(40003, "Retailers param must be a list!", 400)
+        if 'today' not in params:
+            params['today'] = datetime.datetime.utcnow()
+        else:
+            params['today'] = params['today']
+        return params
+
+
+    @staticmethod
+    def start_task(params):
+        """ Start History price alert task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Alarm Response
+        """
+        
+        # Validate params
+        Alarm.validate_params(params)
+        # Parse and start task
+        response = Alarm.prices_vs_prior(
+            params
+        )
+        return response
     
+
     @staticmethod
     def get_cassandra_prices(prods, _date, period):
         """ Query prices of product by date
@@ -101,12 +160,14 @@ class Alarm(object):
         if not rets:
             raise errors.AppError(80011,
                 "No retailers found.")
+        
         # Items from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
             return {'today':[], 'prevday':[]}
+        
         # Date
         if isinstance(params['today'], datetime.datetime):
             _now = params['today']
@@ -117,9 +178,11 @@ class Alarm(object):
             # Today prices
             today_df = Alarm.get_cassandra_prices(filt_items, 
                 _now, 2)
+            
             # Yesterday prices
             yday_df = Alarm.get_cassandra_prices(filt_items, 
                 _now - datetime.timedelta(days=1), 2)
+            
             logger.debug('Prices fetched from Cassandra...')
         except Exception as e:
             logger.error(e)
@@ -136,6 +199,7 @@ class Alarm(object):
             on='product_uuid', how='left')
         yday_df = pd.merge(yday_df, info_df,
             on='product_uuid', how='left')
+        
         ### TODO
         # Add rows with unmatched products!
         non_matched = today_df[today_df['item_uuid'].isnull() | 
@@ -163,15 +227,17 @@ class Alarm(object):
         yday_df.drop(['store_uuid', 'product_uuid',
             'name', 'time', 'gtin'], inplace=True, axis=1)
         logger.debug('Dataframes filtered!')
+        
+        resp = {
+            'today': today_df\
+                        .rename(columns={'source':'retailer'})\
+                        .to_dict(orient='records'),
+            'prevday': yday_df\
+                        .rename(columns={'source':'retailer'})\
+                        .to_dict(orient='records')
+        }
         # Convert in dict 
-        return {
-                'today': today_df\
-                            .rename(columns={'source':'retailer'})\
-                            .to_dict(orient='records'),
-                'prevday': yday_df\
-                            .rename(columns={'source':'retailer'})\
-                            .to_dict(orient='records')
-            }
+        return resp
 
 
 

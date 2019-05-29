@@ -199,10 +199,10 @@ def handle_api_error(error):
 
 
 # Flask controllers imports
+
 #from app.controllers import product, stats, alarm, dump, promos, geo_alert
 from app.controllers import geo_mapa, task, history_product, geo_alert, geo_check, geo_dump,\
                         geo_historia
-
 
 # Flask blueprint registration
 app.register_blueprint(geo_mapa.mod, url_prefix='/geo/mapa')
@@ -212,22 +212,22 @@ app.register_blueprint(task.mod, url_prefix='/task')
 #app.register_blueprint(stats.mod, url_prefix='/stats')
 
 # TODO: Uncomment to register History Alarm module
-#app.register_blueprint(history_alarm.mod, url_prefix='/history/alarm')
+app.register_blueprint(history_alarm.mod, url_prefix='/history/alarm')
 
 # TODO: Uncomment to register History Product module
 app.register_blueprint(history_product.mod, url_prefix='/history/product')
 
 # TODO: Uncomment to register Geo Alert module
-app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')
+# app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')
 
 # TODO: Uncomment to register Geo Check module
-app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
+# app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
 
 # TODO: Uncomment to register Geo Dump module
-app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
+# app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
 
 # TODO: Uncomment to register Geo Historia
-app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
+# app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
 
 #app.register_blueprint(promos.mod, url_prefix='/promos')
 
