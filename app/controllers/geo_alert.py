@@ -24,8 +24,6 @@ def check_prices_today():
 			'retailers' : ['walmart','chedraui'],
 			'today' : '2017-09-20'
 		}
-        
-    TODO: Make it Work
 	"""
 	logger.info('Geo Alert prices endpoint.')
 	params = request.get_json()
@@ -36,7 +34,7 @@ def check_prices_today():
 	if 'today' not in params:
 		params['today'] = datetime.date.today().__str__()
 	logger.debug('Params correct...')
-	prices = [] # Alert.prices_vs_prior(params)
+	prices = Alert.prices_vs_prior(params)
 	return jsonify(prices)
 
 
