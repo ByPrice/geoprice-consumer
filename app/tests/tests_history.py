@@ -96,6 +96,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
+    @unittest.skip('TODO')
     def test_03_history_product_bystore(self):
         """ Test price History Product bystore
         """
@@ -107,11 +108,30 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
+    @unittest.skip('TODO')
     def test_04_history_product_bystore_history(self):
-        """ Test price History Product bystore
+        """ Test price History Product bystore history
         """
         print(">>>>>", "Test price History Product bystore history")
         _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+            
+
+    #@unittest.skip('TODO')
+    def test_05_history_product_ticket(self):
+        """ Test price History Product ticket
+        """
+        print(">>>>>", "Test price History Product ticket")
+        _res = self.app.post("/history/product/ticket",
+            data=json.dumps(
+                {'uuids': ['fd960578-71ae-463e-84d5-0e451d184597'] }
+                ),
+            headers={'content-type': 'application/json'}
+        )
         try:
             _jr = json.loads(_res.data.decode('utf-8'))
             print(_jr)
