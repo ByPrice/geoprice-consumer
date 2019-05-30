@@ -222,7 +222,7 @@ class Alert(Alarm):
         prices_df['store_uuid'] = prices_df['store_uuid'].apply(lambda x: str(x))
         print('Prices Stats')
         print(prices_df.count())
-        prices_df['item_uuid'] = prices_df['product_uuid'].apply(lambda x: )
+        prices_df['item_uuid'] = prices_df['product_uuid'].apply(lambda x: x)
         print('Prices Stats with UUID')
         print(prices_df.count())
         print(prods_df.head())
