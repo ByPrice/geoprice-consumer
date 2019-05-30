@@ -63,6 +63,8 @@ class Stats(object):
         logger.debug(_iuuids)
         _puuids = [f['product_uuid'] for f in filters\
             if 'product_uuid' in f]
+        _puuids += [f['product'] for f in filters \
+                   if 'product' in f]
         logger.debug(_puuids)
         # Get by item uuid
         for _iu in _iuuids:
@@ -623,11 +625,12 @@ class Stats(object):
             on='product_uuid', how='left')
         ### TODO:
         # Add rows with unmatched products!
-        non_matched = df[df['item_uuid'].isnull() | 
-            (df['item_uuid'] == '')].copy()
-        # Format only products with matched results
-        df = df[~(df['item_uuid'].isnull()) & 
-            (df['item_uuid'] != '')]
+        # Review the use of the variables: non_matched and df
+        # non_matched = df[df['item_uuid'].isnull() |
+        #     (df['item_uuid'] == '')].copy()
+        # # Format only products with matched results
+        # df = df[~(df['item_uuid'].isnull()) &
+        #     (df['item_uuid'] != '')]
         # --- Compute for Metrics
         # Group by interval
         avg_l,min_l, max_l = [],[],[]
@@ -651,7 +654,7 @@ class Stats(object):
         # --- Compute for Retailers
         retailers = []
         # Group by retailer
-        for i,df_t in df_n.groupby('retailer'):
+        for i,df_t in df_n.groupby('source'):
             tmp = {
                 'name': ' '\
                     .join([rsp[0].upper() + rsp[1:] \
