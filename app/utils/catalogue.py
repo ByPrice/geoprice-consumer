@@ -78,7 +78,7 @@ class Catalogue(object):
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+        url = SRV_PROTOCOL + "://" + SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))
@@ -155,7 +155,6 @@ class Catalogue(object):
                     url = "{}/product/intersection{}&p={}&ipp={}".format(
                         self.base_url, qry, p, ipp
                     )
-                    print(url)
                     r = requests.get(url)
                     if r.status_code != 200:
                         raise Exception("Could not fetch product intersection")

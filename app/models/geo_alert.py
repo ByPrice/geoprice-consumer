@@ -4,12 +4,13 @@ from app import errors
 from ByHelpers import applogger
 import pandas as pd
 from pandas import DataFrame
+from app.models.history_alarm import Alarm
 import numpy as np
 import uuid
 from config import *
 import requests
 
-geo_stores_url = 'http://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
+geo_stores_url = SRV_PROTOCOL + "://" + SRV_GEOLOCATION + '/store/retailer?key=%s'
 logger = applogger.get_logger()
 
 def get_items_str(items_list):
@@ -24,79 +25,15 @@ def get_yday(today):
     return str(datetime.date(*[int(x) for x in today.split('-')]) +
             datetime.timedelta(days=-1))
 
-class Alert(object):
+class Alert(Alarm):
     """
-        Class perform Query methods on Cassandra items to verify alert
+        Class perform Query methods on Cassandra items to verify aler,
+        reuses various methods from the Alarm Class
 
         TODO: Verify all methods are working correctly with Cassandra v3
     """
     def __init__(self):
         pass
-
-    @staticmethod
-    def prices_vs_prior(params):
-        """ Static method to compute prices after queries params.
-            Args:
-                + params: (dict) - {
-                                        'uuids' : (list),
-                                        'retailers': (list),
-                                        'today': (str) "YYYY-MM-DD"
-                                    }
-        """
-        logger.debug('Fetching alert prices...')
-        try:
-            # Today prices
-            prx_today = g._db.execute("""
-                SELECT item_uuid, retailer, store_uuid, price, time
-                FROM price_item
-                WHERE item_uuid IN {}
-                AND time > '{}'
-                """.format(get_items_str(params['uuids']),
-                            params['today']))
-            # Yesterday prices
-            prx_yday = g._db.execute("""
-                select item_uuid, retailer, store_uuid,
-                price, time from price_item
-                where item_uuid IN {}
-                and time > '{}' AND time < '{}'
-                """.format(get_items_str(params['uuids']),
-                            get_yday(params['today']),
-                            params['today']))
-            logger.debug('Prices fetched from Cassandra...')
-        except Exception as e:
-            logger.error(e)
-            raise errors.ApiError('db_issues', "Could not retrieve data from DB.")
-
-        # Generate DataFrames to proceed filtering
-        today_df = pd.DataFrame(list(prx_today))
-        yday_df = pd.DataFrame(list(prx_yday))
-        try:
-            # Filter elements with not valid retailers
-            today_df['valid'] = today_df['retailer'].apply(lambda x : True if x in params['retailers'] else False)
-            yday_df['valid'] = yday_df['retailer'].apply(lambda x : True if x in params['retailers'] else False)
-            today_df = today_df[today_df['valid']]
-            yday_df = yday_df[yday_df['valid']]
-        except:
-            logger.warning('No retailers to filter')
-            return {"today":[],"prevday":[]}
-        # Convert datetime to date
-        today_df['date'] = today_df['time'].apply(lambda x : x.date().__str__())
-        yday_df['date'] = yday_df['time'].apply(lambda x : x.date().__str__())
-        # Drop Store UUID column
-        today_df.drop(['store_uuid','valid', 'time'], inplace=True, axis=1)
-        yday_df.drop(['store_uuid','valid','time'], inplace=True, axis=1)
-        # Order  and Drop duplicates
-        today_df.sort_values(by=['item_uuid','retailer', 'price'], inplace=True)
-        yday_df.sort_values(by=['item_uuid','retailer', 'price'], inplace=True)
-        today_df.drop_duplicates(subset=['item_uuid', 'retailer'], keep='first', inplace=True)
-        yday_df.drop_duplicates(subset=['item_uuid', 'retailer'], keep='first', inplace=True)
-        logger.debug('Dataframes filtered!')
-        # Convert in dict
-        return {
-                'today': today_df.to_dict(orient='records'),
-                'prevday': yday_df.to_dict(orient='records')
-            }
-
 
     @staticmethod
     def get_geolocated(params):
@@ -319,7 +256,7 @@ class Alert(object):
 
         # get items info
         items = results_df['item_uuid'].drop_duplicates().tolist() + results_df['item_uuid_compare'].drop_duplicates().tolist()
-        items_info = requests.get('http://gate.byprice.com/bpcatalogue/product/by/iuuid?cols=item_uuid,gtin&keys={}'.format(\
+        items_info = requests.get(SRV_PROTOCOL + "://" + SRV_CATALOGUE + '/product/by/iuuid?cols=item_uuid,gtin&keys={}'.format(\
                             ','.join(items))).json()['products']
 
         items_df = pd.DataFrame(items_info)

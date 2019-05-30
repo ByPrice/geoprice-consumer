@@ -51,7 +51,7 @@ def dump_download():
 
     # Get all retailers from geo
     logger.info("Requesting all retailers")
-    resp = requests.get("http://"+SRV_GEOLOCATION+"/retailer/all")
+    resp = requests.get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION + "/retailer/all")
     total_rets = resp.json()
     retailer_names = { r['key'] : r['name'] for r in total_rets }
 

@@ -30,7 +30,7 @@ def check_stores(retailer):
     """
     logger.debug("Start checking stores...")
     # Get the list of active stores from geolocation
-    resp = requests.get("http://"+SRV_GEOLOCATION+"/store/retailer?key={}".format(retailer))
+    resp = requests.get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION + "/store/retailer?key={}".format(retailer))
     stores = resp.json()
     logger.debug("Got {} total stores".format(len(stores)))
 

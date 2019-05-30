@@ -781,7 +781,7 @@ class Stats(object):
         # Retailers from service
         try:
             items = requests.get(
-                SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
                     uuid=uuid)).json()
             dates = [
                 str(datetime.date.today()). replace("-", ""),
@@ -796,7 +796,7 @@ class Stats(object):
                 logger.debug("item_uuid found")
         except Exception as e:
             logger.error("Stats by uuid is not working correctly! : {}".format(e))
-            logger.error("Url: {}".format(SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+            logger.error("Url: {}".format(SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
                     uuid=uuid)))
             product_uuids = []
 
@@ -863,7 +863,7 @@ class Stats(object):
         # Retailers from service
         try:
             items = requests.get(
-                SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                    SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
                     uuid=uuid)).json()
             dates = [
                 str(datetime.date.today()). replace("-", ""),
@@ -878,7 +878,7 @@ class Stats(object):
                 logger.debug("item_uuid found")
         except Exception as e:
             logger.error("Exists by uuid is not working correctly! : {}".format(e))
-            logger.error("Url: {}".format(SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+            logger.error("Url: {}".format(SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
                     uuid=uuid)))
             product_uuids = []
 

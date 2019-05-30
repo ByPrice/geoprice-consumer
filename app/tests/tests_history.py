@@ -10,7 +10,7 @@ import json
 
 task_id = None
 
-class GeopriceHistoryasksTestCase(unittest.TestCase):
+class GeopriceHistoryTasksTestCase(unittest.TestCase):
     """ Test Case for Geoprice Async Tasks  (History)
 
         TODO: Set up all the tests of the 
@@ -70,22 +70,20 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
 
-
     # @unittest.skip('TODO')
     def test_02_history_alarm_method(self):
         """ Test price History Alarm Method
-
-            TODO:  Verify this test before running
         """
         print(">>>>>", "Test price History Alarm Method")
-        from app.controllers.history_alarm import check_prices_today
 
         # Filters for the task
-        params = {
-			'uuids' : ['2h354iu23h5423i5uh23i5', '30748123412057g1085h5oh3'],
-			'retailers' : ['walmart','chedraui'],
-			'today' : '2017-09-20'
-		}
+        params = params = {
+            "uuids" : ["478c624b-bf0d-4540-bee9-c870ff0e69fd",
+                    "c34742b1-9ed7-451c-b0aa-c965e146675b",
+                    "6267ab2f-bf96-4c4c-8c12-acac370aebf3"],
+            "retailers" : ["walmart","chedraui", "san_pablo"],
+            "today" : "2019-05-20"
+        }
         _res = self.app.post('/history/alarm/prices',
                     data=json.dumps(params),
                     headers={'content-type': 'application/json'}
@@ -97,7 +95,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    # @unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
@@ -114,7 +112,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             "today" : "2019-05-24"
         }   
 
-        resp = Alarm.start_task(params)     
+        resp = Alarm.start_task(params)
         print("Submitted Task: ")
         print("Result keys: {} ".format(list(resp.keys())))
 
@@ -134,7 +132,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
 
     # @unittest.skip("Already tested")
     def test_05_history_product_bystore_history(self):
-        """ Test price History Product bystore
+        """ Test price History Product bystore history
         """
         print(">>>>>", "Test price History Product bystore history")
         _res = self.app.get("/history/product/bystore/history?uuid=fd960578-71ae-463e-84d5-0e451d184597")
@@ -151,6 +149,18 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(">>>>>", "Test price History Product Catalogue")
         _res = self.app.get("/history/product/catalogue?r=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003")
         print('Got Response')
+            
+    #@unittest.skip("Already tested")
+    def test_06_history_product_ticket(self):
+        """ Test price History Product ticket
+        """
+        print(">>>>>", "Test price History Product ticket")
+        _res = self.app.post("/history/product/ticket",
+            data=json.dumps(
+                {'uuids': ['fd960578-71ae-463e-84d5-0e451d184597'] }
+                ),
+            headers={'content-type': 'application/json'}
+        )
         try:
             _jr = json.loads(_res.data.decode('utf-8'))
             print(_jr)
@@ -201,12 +211,18 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(">>>>>", "Test price History Product Count by Store hours")
         _res = self.app.get("/history/product/count_by_store_hours?r=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003&last_hours=168")
         print('Got Response')
+
+    #@unittest.skip("Already tested")
+    def test_07_history_product_stats(self):
+        """ Test price History Product stats
+        """
+        print(">>>>>", "Test price History Product stats")
+        _res = self.app.get("/history/product/stats?item_uuid=fd960578-71ae-463e-84d5-0e451d184597")
         try:
             _jr = json.loads(_res.data.decode('utf-8'))
             print(_jr)
         except:
             pass
-
 
     # @unittest.skip("Already tested")
     def test_09_complete_task_compare_store_item(self):

@@ -33,8 +33,6 @@ def get_one():
 def get_today_prices_bystore():
     """ Get prices from an specific 
         item by day, and closest stores
-        
-        TODO: Make it work
     """
     logger.debug('Getting prices from uuid...')
     item_uuid, product_uuid = None, None
@@ -67,8 +65,6 @@ def get_history_prices_bystore():
     """ Get prices from an specific item 
         for the past period of time, 
         and closest stores.
-
-        TODO:  Make it work
     """
     item_uuid, product_uuid = None, None
     # Validate UUIDs
@@ -94,8 +90,6 @@ def get_history_prices_bystore():
 def get_ticket_bystore():
     """ Get prices from an especific ticket 
         from N number of items by day and closest stores
-
-        TODO: Make it Work
     """
     logger.info("Fetching Ticket values")
     item_uuids, product_uuids = [], []
@@ -291,8 +285,6 @@ def counmpare_hist():
 def get_stats_by_item():
     """ Today's max, min & avg price 
         from an specific item_uuid  or product_uuid
-
-        TODO: Make it work
     """
     logger.info("Fetching product stats by item")
     # Validate UUIDs
