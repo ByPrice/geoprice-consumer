@@ -196,6 +196,9 @@ class Stats(object):
         else:
             period = (dates[-1] - dates[0]).days
         _days = tupleize_date(dates[-1].date(), period)
+        date_start = int(dates[0].date().__str__().replace('-', ''))
+        if date_start not in _days:
+            _days = _days + (date_start,)
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
                 mode_price, date
