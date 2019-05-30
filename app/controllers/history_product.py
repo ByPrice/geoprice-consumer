@@ -310,39 +310,16 @@ def get_stats_by_item():
     return jsonify(prod)
 
 
-@mod.route('/count_by_store_engine', methods=['GET'])
+@mod.route('/count_by_store_engine/submit', methods=['POST'])
+@asynchronize(Product.count_by_store_engine_task)
 def get_count_by_store_engine():
-    """
-        Get Count from store
-
-        @Params:
-         - "retailer" : retailer_key
-         - "store_uuid" : store_uuid
-         - "date" : date
-         - "env" : env
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
-
-        TODO: Make it work
-    """
     logger.info("Fetching counts by store")
-    # Verify Request Params
-    params = request.args
-    if 'retailer' not in params :
-        raise errors.ApiError("invalid_request", "retailer key missing")
-    if 'store_uuid' not in params:
-        raise errors.ApiError("invalid_request", "store_uuid key missing")
-    if 'date' not in params:
-        raise errors.ApiError("invalid_request", "date key missing")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
 
-    retailer = params.get('retailer')
-    store_uuid = params.get('store_uuid')
-    date = params.get('date')
-    env = params.get('env')
-    # Call function to fetch prices
-    prod = Product.count_by_store_engine(retailer, store_uuid, date)
-    return jsonify(prod)
 
 @mod.route('/count_by_retailer_engine', methods=['GET'])
 def get_count_by_retailer_engine():

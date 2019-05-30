@@ -462,6 +462,92 @@ class Product(object):
         logger.debug(res)
         return res
 
+    
+    @staticmethod
+    def validate_count_engine(params):
+        # Verify Request Params
+        if 'retailer' not in params :
+            raise errors.ApiError("invalid_request", "retailer key missing")
+        if 'store_uuid' not in params:
+            raise errors.ApiError("invalid_request", "store_uuid key missing")
+        if 'date' not in params:
+            raise errors.ApiError("invalid_request", "date key missing")
+        else:
+            try:
+                _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError(80010, "Wrong Format: Date")
+        return params
+
+
+    @staticmethod
+    def count_by_store_engine_task(task_id, params):
+        """
+        Get Count from store
+
+        @Params:
+         - "retailer" : retailer_key
+         - "store_uuid" : store_uuid
+         - "date" : date
+         - "env" : env
+
+        @Returns:
+         - (flask.Response)  # if export: Mimetype else: JSON
+
+        """
+        print(task_id, params)
+        # Param validation
+        Product.validate_count_engine(params)
+
+        result = Product.get_count_by_store_engine(
+            task_id,
+            params['retailer'],
+            params['store_uuid'],
+            params['date']
+        )
+
+        resp = {
+            'data' : result,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+    @staticmethod
+    def get_count_by_store_engine(task_id, retailer, store_uuid, date):
+        """
+            Method to query to retrieve quantity of items from certain store of the last hours defined
+        """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
+        date_int = int(date.replace('-',''))
+        cass_query = """
+            select count(product_uuid) as rows 
+            from price_by_store
+            where store_uuid = {store_uuid} and 
+            date = {date_int}
+            """. format(retailer=retailer, store_uuid=UUID(store_uuid), date_int=date_int)
+        logger.debug(cass_query)
+        try:
+            q = g._db.execute(cass_query, timeout=120)
+        except Exception as e:
+            logger.error("Cassandra Connection error: {error}".format(error=str(e)))
+            return {'count': 0}
+        task.progress = 100
+        # Format response
+        for row in q:
+            prods = {
+                        'count': row[0]
+                    }
+            logger.debug(prods)
+            return prods
+        return {'count': 0}
+
 
     @staticmethod
     def validate_count(params):
