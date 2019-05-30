@@ -330,7 +330,33 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog,100)
 
-    
+
+    # @unittest.skip("Already tested")
+    def test_12_complete_byfile(self):
+        """ Test price History Product byfile
+        """
+        # Filters for the task
+        params = {
+            "sid" : "1e3d5b76-7ace-11e7-9b9f-0242ac110003",
+            "date" : "2019-05-24",
+            "ret" : "walmart",
+            "stn" : "Walmart Test"
+        }
+
+        print(">>>>>", "Test price History Product byfile")
+        _res = self.app.get("/history/product/byfile?ret=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003&stn=Walmart%20Test")
+        print('Got Response')
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        try:
+            head = _res.headers
+            print(head)
+        except:
+            pass
+
 
 if __name__ == '__main__':
     unittest.main()
