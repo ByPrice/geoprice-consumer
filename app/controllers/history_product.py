@@ -276,41 +276,15 @@ def compare_retailer_item():
     return jsonify(prod)
 
 @mod.route('/compare/history/submit', methods=['POST'])
-def compare_store_item():
-    """ Compare prices from a fixed pair store-item
-        in time with additional pairs
-        
-        TODO: Make it work async
-    """
-    logger.info("Comparing pairs Store-Item")
-    # Verify Params
-    params = request.get_json()    
-    # Existance verif
-    if 'fixed_segment' not in params:
-        raise errors.AppError(80002, "Fixed Segment missing")
-    if 'added_segments' not in params:
-        raise errors.AppError(80002, "Added Segments missing")
-    # Datatype verif
-    if not isinstance(params['fixed_segment'], dict):
-        raise errors.AppError(80010, "Wrong Format: Fixed Segment")
-    if not isinstance(params['added_segments'], list):
-        raise errors.AppError(80010, "Wrong Format: Added Segments")
-    # Dates verif
-    if ('date_ini' not in params) or ('date_fin' not in params):
-        raise errors.AppError(80002, "Missing Dates params")
-    if 'interval' in params:
-        if params['interval'] not in ['day','week','month']:
-            raise errors.AppError(80010, "Wrong Format: interval type")
-    else:
-        params['interval'] = 'day'
-    # Call function to fetch prices
-    prod = Product\
-        .get_pairs_store_item(params['fixed_segment'],
-            params['added_segments'], params)
-    if not prod:
-        raise errors.AppError(80009,
-            "No products with that Store and item combination.")
-    return jsonify(prod)
+@asynchronize(Product.compare_store_item_task)
+def counmpare_hist():
+    logger.info("Submited Compare store item task...")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
+
 
 @mod.route('/stats', methods=['GET'])
 def get_stats_by_item():

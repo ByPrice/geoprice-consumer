@@ -975,7 +975,69 @@ class Product(object):
         }
 
     @staticmethod
-    def get_pairs_store_item(fixed, added, params):
+    def validate_store_item(params):
+        "Validates params for store item"
+        # Existance verif
+        if 'fixed_segment' not in params:
+            raise errors.AppError(80002, "Fixed Segment missing")
+        if 'added_segments' not in params:
+            raise errors.AppError(80002, "Added Segments missing")
+        # Datatype verif
+        if not isinstance(params['fixed_segment'], dict):
+            raise errors.AppError(80010, "Wrong Format: Fixed Segment")
+        if not isinstance(params['added_segments'], list):
+            raise errors.AppError(80010, "Wrong Format: Added Segments")
+        # Dates verif
+        if ('date_ini' not in params) or ('date_fin' not in params):
+            raise errors.AppError(80002, "Missing Dates params")
+        if 'interval' in params:
+            if params['interval'] not in ['day','week','month']:
+                raise errors.AppError(80010, "Wrong Format: interval type")
+        else:
+            params['interval'] = 'day'
+        return params
+
+
+    @staticmethod
+    def compare_store_item_task(task_id, params):
+        """ Start Compare store item task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Map Response
+        """
+        print(task_id, params)
+        # Validate params
+        Product.validate_store_item(params)
+        # Parse and start task
+        prod = Product.get_pairs_store_item(
+            task_id,
+            params['fixed_segment'],
+            params['added_segments'],
+            params
+        )
+        if not prod:
+            raise errors.AppError(80009,
+                "No products with that Store and item combination.") 
+        resp = {
+            'data' : prod,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+    @staticmethod
+    def get_pairs_store_item(task_id, fixed, added, params):
         """ Compare segments of pairs (store-item)
 
             Params:
@@ -992,6 +1054,11 @@ class Product(object):
             _resp : dict
                 JSON response of comparison
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Vars
         _resp = {}
         # Obtain distances
@@ -999,8 +1066,10 @@ class Product(object):
         dist_dict = obtain_distances(fixed['store_uuid'],
                     [x['store_uuid'] for x in added],
                     _rets)
+        task.progress = 10
         # Obtain date groups
         date_groups = grouping_periods(params)
+        task.progress = 20
         # Fetch fixed prices
         fix_store = Product\
             .fetch_detail_price(
@@ -1008,6 +1077,7 @@ class Product(object):
                     fixed['item_uuid'],
                     date_groups[0][0],
                     date_groups[-1][-1])
+        task.progress = 60
         if not fix_store:
             raise errors.AppError(80009, "No available prices for that combination.")
         fix_st_df = pd.DataFrame(fix_store)
@@ -1017,6 +1087,7 @@ class Product(object):
         # TODO:
         # Add agroupation by Interval for graph
         #####
+        print(fix_st_df)
         # Added Fixed Response
         _resp['fixed'] = {
             'name': fixed['name'],
@@ -1025,11 +1096,12 @@ class Product(object):
             "max": fix_st_df['price'].max(),
             "min": fix_st_df['price'].min(),
             "avg": fix_st_df['price'].mean(),
-            "std": fix_st_df['price'].std()
+            "std": fix_st_df['price'].std() if fix_st_df['price'].count() > 1 else 0
         }
         logger.info('Fetched fixed values')
         # Fetch added prices
         _resp['segments'] =[]
+        task.progress = 70
         for _a in added:
             _tmp_st =  Product.fetch_detail_price(
                     [_a['store_uuid']],
@@ -1051,11 +1123,13 @@ class Product(object):
                 "max": _tmp_df['price'].max(),
                 "min": _tmp_df['price'].min(),
                 "avg": _tmp_df['price'].mean(),
-                "std": _tmp_df['price'].std(),
+                "std": _tmp_df['price'].std() if _tmp_df['price'].count() > 1 else 0,
                 "dist": dist_dict[_a['store_uuid']] 
             }
+            print(_tmp_df['price'])
             # Add to segments
             _resp['segments'].append(_tmp_rsp)
+        task.progress = 100
         logger.info('Fetched all segments')
         # Construct response
         return _resp

@@ -207,6 +207,56 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
+
+    # @unittest.skip("Already tested")
+    def test_09_complete_task_compare_store_item(self):
+        """ Test compare store item
+        """
+        print(">>>>>", "Test Compare store item")
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.history_product import Product
+
+        # Filters for the task
+        params = {
+            "fixed_segment" : {
+                "store_uuid": "1e3d5b76-7ace-11e7-9b9f-0242ac110003",
+                "item_uuid" : "12e4f953-0595-4d3f-8024-aa04c2ec60eb",
+                "retailer":"walmart",
+                "name": "Test Name"
+            },
+            "added_segments" : [
+                {
+                "store_uuid": "1e3d5b76-7ace-11e7-9b9f-0242ac110003",
+                    "item_uuid" : "12e4f953-0595-4d3f-8024-aa04c2ec60eb",
+                    "retailer":"walmart",
+                    "name": "Test Name"
+                }
+            ],
+            "date_ini": "2019-05-24",
+            "date_fin": "2019-05-25"
+        }
+
+        celery_task = main_task.apply_async(args=(Product.compare_store_item_task, params))        
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+        self.assertEqual(prog,100)
+
 if __name__ == '__main__':
     unittest.main()
 

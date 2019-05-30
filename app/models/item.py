@@ -72,7 +72,7 @@ class Item(object):
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+        url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))
@@ -110,7 +110,7 @@ class Item(object):
         """
         # Fetch uuids from filters in ITEM
         payload  = json.dumps(filters)
-        url = 'http://'+SRV_CATALOGUE+'/item/filtered'
+        url = SRV_PROTOCOL + '://'+SRV_CATALOGUE+'/item/filtered'
         headers = {'content-type':'application/json'}
         logger.debug(url)
         try:
