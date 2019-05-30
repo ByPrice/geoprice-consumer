@@ -321,25 +321,15 @@ def get_count_by_store_engine():
     })
 
 
-@mod.route('/count_by_retailer_engine', methods=['GET'])
+@mod.route('/count_by_retailer_engine/submit', methods=['POST'])
+@asynchronize(Product.count_by_retailer_engine_task)
 def get_count_by_retailer_engine():
     """ Get Count by engine
-
-        TODO: Make it work
     """
-    logger.info("Fetching counts by store")
-    # Verify Request Params
-    params = request.args.to_dict()
-    if 'retailer' not in params :
-        raise errors.ApiError(80002,
-            "Retailer param missing")
-    if 'date' not in params:
-        raise errors.ApiError(80002,
-            "Date param missing")
-    logger.debug(params)
-    # Call function to fetch prices
-    prod = Product\
-        .count_by_retailer_engine(params['retailer'],
-            params['date'])
-    return jsonify(prod)
+    logger.info("Fetching counts by retailer")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
 

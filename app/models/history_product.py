@@ -527,11 +527,11 @@ class Product(object):
 
         date_int = int(date.replace('-',''))
         cass_query = """
-            select count(product_uuid) as rows 
-            from price_by_store
-            where store_uuid = {store_uuid} and 
+            SELECT count(product_uuid) AS rows 
+            FROM price_by_store
+            WHERE store_uuid = {store_uuid} AND 
             date = {date_int}
-            """. format(retailer=retailer, store_uuid=UUID(store_uuid), date_int=date_int)
+            """. format(store_uuid=UUID(store_uuid), date_int=date_int)
         logger.debug(cass_query)
         try:
             q = g._db.execute(cass_query, timeout=120)
@@ -904,6 +904,27 @@ class Product(object):
             date : datetime.datetime
                 Date of comparison
 
+            Input Example:
+            -----
+            params {
+            "fixed_segment" : {
+                "store_uuid": UUID,
+                "item_uuid" : UUID,
+                "retailer": str,
+                "name": str
+            },
+            "added_segments" : [
+                {
+                "store_uuid": UUID,
+                    "item_uuid" : UUID,
+                    "retailer": str,
+                    "name": str
+                }
+            ],
+            "date_ini": str(YYYY-MM-DD),
+            "date_fin": str(YYYY-MM-DD)
+        }
+
             Returns:
             -----
             compares : dict
@@ -1173,7 +1194,6 @@ class Product(object):
         # TODO:
         # Add agroupation by Interval for graph
         #####
-        print(fix_st_df)
         # Added Fixed Response
         _resp['fixed'] = {
             'name': fixed['name'],
@@ -1212,7 +1232,6 @@ class Product(object):
                 "std": _tmp_df['price'].std() if _tmp_df['price'].count() > 1 else 0,
                 "dist": dist_dict[_a['store_uuid']] 
             }
-            print(_tmp_df['price'])
             # Add to segments
             _resp['segments'].append(_tmp_rsp)
         task.progress = 100
@@ -1282,8 +1301,41 @@ class Product(object):
             return {}
         return _stats
 
+
     @staticmethod
-    def count_by_retailer_engine(retailer, _date):
+    def validate_count_ret_eng_params(params):
+        if 'retailer' not in params :
+            raise errors.ApiError(80002,
+                "Retailer param missing")
+        if 'date' not in params:
+            raise errors.ApiError(80002,
+                "Date param missing")
+        logger.debug(params)
+        return params
+
+
+    @staticmethod
+    def count_by_retailer_engine_task(task_id, params):
+        print(task_id, params)
+        # Validate params
+        Product.validate_count_ret_eng_params(params)
+        # Parse and start task
+        prod = Product.count_by_retailer_engine(
+            task_id,
+            params['retailer'],
+            params['date']
+        )
+
+        resp = {
+            'data' : prod,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+    @staticmethod
+    def count_by_retailer_engine(task_id, retailer, _date):
         """ Get max, min, avg price from 
             item_uuid or product_uuid
 
@@ -1299,30 +1351,38 @@ class Product(object):
             _count : dict
                 JSON response
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+
         # Format time
         _time = datetime.datetime\
             .strptime(_date, '%Y-%m-%d %H:%M:%S')
         _time_plus = _time + datetime.timedelta(hours=1)
         # Generate days
         _days = tupleize_date(_time.date(), 2)
+        stores = g._geolocation.get_stores(rets=[retailer])
+        uuids = [ st['uuid'] for st in stores if 'uuid' in st ]
+        tot = len(uuids) * len(_days)
+        unit = 100/tot
         cass_query = """
-            SELECT COUNT(1) as count
-            FROM price_by_source_parted
-            WHERE source=%s
-            AND date=%s
-            AND part=%s
-            AND time>%s
-            AND time<%s
+            SELECT COUNT(1) AS count 
+            FROM price_by_store
+            WHERE store_uuid = %s 
+            AND date = %s
+            AND time > %s
+            AND time < %s
             """
         qs = []
-        # Iterate for each product-date combination
+        count = 0
         for _d in _days:
-            # Need to iterate over all the 20 partitions
-            for _part in range(1,21):
+            for store_uuid in uuids:
+                count += 1
+                task.progress = int(count*unit)
                 try:
                     q = g._db.query(cass_query, 
-                        (retailer, _d, _part, _time, _time_plus),
-                        timeout=30)
+                            (UUID(store_uuid), _d, _time, _time_plus),
+                            timeout=30)
                     if not q:
                         continue
                     qs += list(q)
@@ -1340,4 +1400,5 @@ class Product(object):
         logger.info('Found {} points for {} ({} - {})'\
             .format(_count['count'], retailer,
                     _time, _time_plus))
+        task.progress = 100
         return _count

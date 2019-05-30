@@ -52,7 +52,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
-    @unittest.skip('TODO')
+    # @unittest.skip('TODO')
     def test_00_history_alarm_root_path(self):
         """ Test price History Alarm Root path
         """
@@ -61,7 +61,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
     
-    @unittest.skip("Already tested")
+    # @unittest.skip("Already tested")
     def test_01_history_product_root_path(self):
         """ Test price History Product Root path
         """
@@ -71,7 +71,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print(_res.data)
 
 
-    @unittest.skip('TODO')
+    # @unittest.skip('TODO')
     def test_02_history_alarm_method(self):
         """ Test price History Alarm Method
 
@@ -97,7 +97,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    @unittest.skip("Already tested")
+    # @unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
@@ -120,7 +120,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
 
         self.assertIsInstance(resp, dict)
 
-    @unittest.skip("Already tested")
+    # @unittest.skip("Already tested")
     def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
@@ -132,7 +132,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         except:
             pass
 
-    @unittest.skip("Already tested")
+    # @unittest.skip("Already tested")
     def test_05_history_product_bystore_history(self):
         """ Test price History Product bystore
         """
@@ -258,6 +258,7 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         self.assertEqual(prog,100)
 
 
+    # @unittest.skip("Already tested")
     def test_10_complete_task_count_by_store_engine(self):
         """ Test count by store engine
         """
@@ -292,7 +293,44 @@ class GeopriceHistoryasksTestCase(unittest.TestCase):
         print("Final progress: {}".format(prog))
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog,100)
+ 
 
+    # @unittest.skip("Already tested")
+    def test_11_complete_task_count_by_retailer_engine(self):
+        """ Test count by retailer engine
+        """
+        print(">>>>>", "Test Count by retailer engine")
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.history_product import Product
+
+        # Filters for the task
+        params = {
+            "date" : "2019-05-24 19:17:06",
+            "retailer" : "walmart"
+        }
+
+        celery_task = main_task.apply_async(args=(Product.count_by_retailer_engine_task, params))        
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+        self.assertEqual(prog,100)
+
+    
 
 if __name__ == '__main__':
     unittest.main()

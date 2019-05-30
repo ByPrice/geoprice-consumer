@@ -127,7 +127,7 @@ def before_request():
     """ Before request method
     """
     # Connect to database
-    build_context()
+    build_context(services=['geolocation', 'catalogue'])
     
 
 @app.cli.command('initdb')
