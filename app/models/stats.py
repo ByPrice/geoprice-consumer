@@ -168,6 +168,63 @@ class Stats(object):
         df['product_uuid'] = df.product_uuid.astype(str)
         return df
 
+
+    @staticmethod
+    def get_cassandra_by_retailers_and_period(prods, rets, dates):
+        """ Query prices of aggregated table
+
+            Params:
+            -----
+            prods : list
+                List of products
+            rets : list
+                List of source/retailer keys
+            dates : list
+                List of dates
+
+            Returns
+            -----
+            df : pandas.DataFrame
+                Product aggregated prices
+        """
+        # Fetch prod uuids
+        puuids = [p['product_uuid'] for p in prods]
+        # Generate dates
+        dates = sorted(dates)
+        if len(dates) == 1:
+            period = 1
+        else:
+            period = (dates[-1] - dates[0]).days
+        _days = tupleize_date(dates[-1].date(), period)
+        cass_query = """SELECT product_uuid, avg_price,
+                min_price, max_price,
+                mode_price, date
+                FROM stats_by_product
+                WHERE product_uuid = %s
+                AND date = %s"""
+        qs = []
+        # Iterate for each product-date combination
+        for _p, _d in itertools.product(puuids, _days):
+            try:
+                q = g._db.query(cass_query,
+                    (UUID(_p), _d),
+                    timeout=100)
+                if not q:
+                    continue
+                qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
+                continue
+        logger.info("Fetched {} prices".format(len(qs)))
+        logger.debug(qs[:1] if len(qs) > 1 else [])
+        # Empty validation
+        if len(qs) == 0:
+            return pd.DataFrame({'date':[], 'product_uuid':[]})
+        # Load Response into a DF
+        df = pd.DataFrame(qs)
+        df['product_uuid'] = df.product_uuid.astype(str)
+        return df
+
     @staticmethod
     def get_actual_by_ret(params):
         """ Retrieve current prices given a set of filters
@@ -601,9 +658,8 @@ class Stats(object):
         logger.debug('Got grouping dates')
         # Query over all range
         range_dates = [date_groups[0][0],date_groups[-1][-1]]
-        df = Stats\
-            .get_cassandra_by_ret(filt_items,
-                rets, range_dates)
+        df = Stats.get_cassandra_by_retailers_and_period(
+            filt_items, rets, range_dates)
         if df.empty:
             return []
         # Products DF 
