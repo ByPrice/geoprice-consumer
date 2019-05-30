@@ -88,9 +88,9 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog, 100)
 
-    # @unittest.skip('TODO')
+    #@unittest.skip('TODO')
     def test_02_retailer_current_submit(self):
-        """ Test retailer/current/submit endpoint
+        """ Test /stats/current/submit endpoint
         """
         print(">>>>>", "Test retailer current stats")
 
@@ -118,7 +118,41 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_res.status_code, 200)
-        self.assertEqual(len(_jr), 3)
+        self.assertNotIn('error', _jr)
+
+    def test_03_stats_history(self):
+        """ Test /stats/history endpoint
+        """
+        print(">>>>>", "Test history stats")
+
+        # Filters for the task
+        params = {
+            "filters":
+                [
+                    {"product": "3c9beac2-a944-4f05-871c-7cee6afd47d6"},
+                    {"item": "930d055d-d781-40bd-8f9c-93e9722046bd"},
+                    {"retailer": "superama"},
+                    {"retailer": "walmart"},
+                    {"retailer": "san_pablo"},
+                    {"retailer": "chedraui"}
+                ],
+            "client": "chedraui",
+            "date_start": "2019-05-27",
+            "date_end": "2019-06-30",
+            "interval": "day"
+        }
+        _res = self.app.post('/stats/history',
+                             data=json.dumps(params),
+                             headers={'content-type': 'application/json'}
+                             )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
+        self.assertIn('metrics', _jr)
+        self.assertNotIn('error', _jr)
 
 
 if __name__ == '__main__':
