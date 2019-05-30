@@ -88,7 +88,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog, 100)
 
-    #@unittest.skip('TODO')
+    @unittest.skip('TODO')
     def test_02_retailer_current_submit(self):
         """ Test /stats/current/submit endpoint
         """
@@ -153,6 +153,45 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertEqual(_res.status_code, 200)
         self.assertIn('metrics', _jr)
         self.assertNotIn('error', _jr)
+
+    def test_04_stats_category(self):
+        """ Test /stats/category endpoint
+        """
+        print(">>>>>", "Test category stats")
+
+        # Filters for the task
+        params = {
+            "filters": [
+                {"item": "98440d28-64be-4994-8244-2b2aa57b0c1a"},
+                {"item": "56e67b35-d27e-4cac-9e91-533e0578b59c"},
+                {"item": "3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
+                {"item": "decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                {"item": "62ec9ad5-2c26-483e-8413-83499d5eef04"},
+                {"retailer": "san_pablo"},
+                {"retailer": "comercial_mexicana"},
+                {"retailer": "farmatodo"},
+                {"retailer": "f_ahorro"},
+                {"retailer": "soriana"},
+                {"retailer": "superama"},
+                {"retailer": "la_comer"},
+                {"retailer": "walmart"}
+            ]
+        }
+        _res = self.app.post('/stats/category',
+                             data=json.dumps(params),
+                             headers={'content-type': 'application/json'}
+                             )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
+
+        self.assertNotIn('error', _jr)
+        for r in _jr:
+            self.assertIn('name', r)
+
 
 
 if __name__ == '__main__':
