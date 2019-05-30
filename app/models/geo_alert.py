@@ -194,7 +194,8 @@ class Alert(Alarm):
             # Loop items
             _temp_prods = []
             for _chi in ch_items:
-                _temp_prods += g._catalogue.get_products_by_item(_chi) 
+                _temp_prods += g._catalogue.get_products_by_item(_chi, 
+                    cols=['product_uuid', 'name', 'item_uuid', 'gtin']) 
                 prods += _temp_prods
             ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
             for ch_stores in chunks_stores:
@@ -211,16 +212,21 @@ class Alert(Alarm):
                                 tuplize(ch_stores, is_uuid=True),
                                 tuplize(chunks_dates)
                             ))
-        print(rows)
-        input('BREAKPOINT')
         prices_df = pd.DataFrame(rows).drop_duplicates()
-
         if len(prices_df) == 0:
             return []
-
-        prices_df['item_uuid'] = prices_df['item_uuid'].apply(lambda x: str(x))
+        # Add Item and Product UUIDs
+        prods_df = pd.DataFrame(prods)
+        prods_by_uuid = {p['product_uuid'] : p for p in prods}
+        prices_df['product_uuid'] = prices_df['product_uuid'].apply(lambda x: str(x))
         prices_df['store_uuid'] = prices_df['store_uuid'].apply(lambda x: str(x))
-
+        print('Prices Stats')
+        print(prices_df.count())
+        prices_df['item_uuid'] = prices_df['product_uuid'].apply(lambda x: )
+        print('Prices Stats with UUID')
+        print(prices_df.count())
+        print(prods_df.head())
+        input('BREAKPOINT')
         results_df = alerts_df.merge(prices_df, on='item_uuid', how='left')
         prices_df = prices_df.rename(index=str, 
                                     columns={
