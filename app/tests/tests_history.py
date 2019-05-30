@@ -244,13 +244,13 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             "added_segments" : [
                 {
                 "store_uuid": "1e3d5b76-7ace-11e7-9b9f-0242ac110003",
-                    "item_uuid" : "12e4f953-0595-4d3f-8024-aa04c2ec60eb",
-                    "retailer":"walmart",
-                    "name": "Test Name"
+                "item_uuid" : "12e4f953-0595-4d3f-8024-aa04c2ec60eb",
+                "retailer":"walmart",
+                "name": "Test Name"
                 }
             ],
-            "date_ini": "2019-05-24",
-            "date_fin": "2019-05-25"
+            "date_ini": "2019-05-28",
+            "date_fin": "2019-05-29"
         }
 
         celery_task = main_task.apply_async(args=(Product.compare_store_item_task, params))        
