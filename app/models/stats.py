@@ -103,7 +103,7 @@ class Stats(object):
             try:
                 rets = [r['key'] \
                     for r in requests\
-                            .get(SRV_GEOLOCATION+'/retailer/all')\
+                            .get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION+'/retailer/all')\
                             .json()]
             except Exception as e:
                 logger.error(e)
@@ -966,3 +966,96 @@ class Stats(object):
                 return False
         else:
             return False
+
+
+    @staticmethod
+    def get_matched_items(params):
+        """
+            Method to get all the count of the elements in a categ (given the list of items of it)
+            Params:
+                categ_its: list of dicts
+            Return:
+            [
+                { x: 1, y: 180.7, z: 200, name: 'Superama',retailer: 'Superama' },
+                { x: 1, y: 180.7, z: 200, name: 'Superama',retailer: 'Superama' }
+            ]
+        """
+        items = [{'item_uuid': iu['item']} for iu in params['filters'] if 'item' in iu]
+        rets = Stats.fetch_rets(params)
+        filt_items = Stats \
+            .fetch_from_catalogue(params['filters'], rets)
+        if not filt_items:
+            logger.warning("No Products found!")
+            return []
+        date_groups = grouping_periods(params)
+        logger.debug('Got grouping dates')
+        # Query over all range
+        range_dates = [date_groups[0][0], date_groups[-1][-1]]
+        qres = Stats.get_cassandra_by_ret(
+            filt_items,
+            rets,
+            range_dates)  # today
+        if len(qres) == 0:
+            logger.warning('No prices found!')
+            return []
+        df = pd.DataFrame(qres)
+        prods_by_uuids = {p['product_uuid']: p for p in filt_items}
+        df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['item_uuid'])
+        df['retailer'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['source'])
+        # For every item, check availability in every retaliers
+        # If not, delete from set
+        filtered = []
+        rejected = []
+        item_uuids = [i['item_uuid'] for i in items if 'item_uuid' in i]
+        for it in item_uuids:
+            try:
+                # If not in all retailers, pass
+                logger.debug("item {} found in {} out of {} retailers".format(
+                    it,
+                    df[df['item_uuid'] == UUID(it)].groupby('retailer').size().shape[0],
+                    len(rets)))
+                if df[df['item_uuid'] == UUID(it)].groupby('retailer').size().shape[0] != len(rets):
+                    rejected.append(UUID(it))
+                    continue
+            except Exception as e:
+                logger.error(e)
+                pass
+
+        if rejected:
+            df_new = df[~df['item_uuid'].isin(rejected)]
+
+        # logger.debug(df.head())
+        ccat, counter, digs = [], 1, 1
+        data = {}
+        prices_per_retailer = dd()
+        for i, row in df_new.groupby('retailer'):
+            prod_count = row.drop_duplicates(['item_uuid'])['avg_price'].count()
+            prod_avg = row.drop_duplicates(['item_uuid'])['avg_price'].mean()
+            # All item prices
+            prices = {}
+            for j, prod in row.drop_duplicates(['item_uuid']).iterrows():
+                prices[str(prod['item_uuid'])] = prod['avg_price']
+                prices_per_retailer[str(prod['item_uuid'])][i] = prod['avg_price']
+
+            # Retailer prices
+            data[i] = prices
+            ccat.append({
+                'x': round(float(prod_avg), 2),
+                'name': i,
+                'ret': " ".join([x[0].upper() + x[1:] for x in i.split('_')]),
+                'retailer': " ".join([x[0].upper() + x[1:] for x in i.split('_')]),
+                'z': round(float(prod_count), 2),
+                'prods': round(float(prod_count), 2),
+                'y': 50,
+                'prices': prices
+            })
+            counter += 1
+
+        logger.info('Got Category counts')
+
+        return {
+            "graph": ccat,
+            "items": list(set([str(iu) for iu in list(df_new['item_uuid'])])),
+            "data": dd_to_dict(prices_per_retailer)
+        }
+

@@ -88,6 +88,7 @@ def get_current():
 
 
 @mod.route('/compare', methods=['POST'])
+
 def compare():
     """
         Controller to get item avg prices by filters compared to all others
@@ -119,6 +120,7 @@ def compare():
 
 
 @mod.route('/direct_compare', methods=['POST'])
+
 def direct_compare():
     """
         Controller to get price average of all products inside a category and count
@@ -138,7 +140,7 @@ def direct_compare():
         raise errors.AppError(10011, "No filters param passed!")
 
     logger.info("Filters: {}".format(params['filters']))
-    cat_count = Stats.get_matched_items(params['filters'])
+    cat_count = Stats.get_matched_items(params)
     print(cat_count)
     return jsonfier(cat_count)
 
