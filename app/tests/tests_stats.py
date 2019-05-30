@@ -191,8 +191,6 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', _jr)
         self.assertIn('name', _jr[0])
 
-
-
     def test_05_stats_direct_compare(self):
         """ Test /stats/direct_compare endpoint
         """
@@ -200,7 +198,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
 
         # Filters for the task
         params = {
-          "client": " ",
+            "client": " ",
             "export": True,
             "filters": [
                 {
@@ -234,6 +232,46 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', _jr)
         self.assertIn('items', _jr)
 
+    def test_05_stats_compare(self):
+        """ Test /stats/compare endpoint
+        """
+        print(">>>>>", "Test compare stats")
+
+        # Filters for the task
+        params = {
+            "filters":
+                [
+                    {"item": "98440d28-64be-4994-8244-2b2aa57b0c1a"},
+                    {"item": "56e67b35-d27e-4cac-9e91-533e0578b59c"},
+                    {"category": "2388"},
+                    {"retailer": "superama"},
+                    {"retailer": "walmart"},
+                    {"retailer": "san_pablo"},
+                    {"retailer": "soriana"},
+                    {"retailer": "city_market"},
+                    {"retailer": "f_ahorro"},
+                    {"retailer": "la_comer"}
+                ],
+            "client": "",
+            "date_start": "2019-05-28",
+            "date_end": "2019-05-30",
+            "ends": False,
+            "interval": "day",
+            "export": False
+        }
+        _res = self.app.post('/stats/compare',
+                             data=json.dumps(params),
+                             headers={'content-type': 'application/json'}
+                             )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
+
+        self.assertNotIn('error', _jr)
+        self.assertIn('gtin', _jr[0])
 
 
 if __name__ == '__main__':
