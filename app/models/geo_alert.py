@@ -195,11 +195,11 @@ class Alert(Alarm):
             _temp_prods = []
             for _chi in ch_items:
                 _temp_prods += g._catalogue.get_products_by_item(_chi, 
-                    cols=['product_uuid', 'name', 'item_uuid', 'gtin']) 
+                    cols=['product_uuid', 'name', 'item_uuid', 'gtin', 'source']) 
                 prods += _temp_prods
             ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
             for ch_stores in chunks_stores:
-                # Get prices 
+                # Get prices from Cassandra
                 rows += g._db.query("""SELECT product_uuid, 
                                 source as retailer, 
                                 store_uuid, price, promo
@@ -215,18 +215,14 @@ class Alert(Alarm):
         prices_df = pd.DataFrame(rows).drop_duplicates()
         if len(prices_df) == 0:
             return []
+        logger.info("Found {} prices ".format(len(prices_df)))
         # Add Item and Product UUIDs
         prods_df = pd.DataFrame(prods)
         prods_by_uuid = {p['product_uuid'] : p for p in prods}
         prices_df['product_uuid'] = prices_df['product_uuid'].apply(lambda x: str(x))
         prices_df['store_uuid'] = prices_df['store_uuid'].apply(lambda x: str(x))
-        print('Prices Stats')
-        print(prices_df.count())
-        prices_df['item_uuid'] = prices_df['product_uuid'].apply(lambda x: x)
-        print('Prices Stats with UUID')
-        print(prices_df.count())
-        print(prods_df.head())
-        input('BREAKPOINT')
+        prices_df['item_uuid'] = prices_df['product_uuid'].apply(lambda x: prods_by_uuid[x]['item_uuid'])
+        # Merge with alerts
         results_df = alerts_df.merge(prices_df, on='item_uuid', how='left')
         prices_df = prices_df.rename(index=str, 
                                     columns={
@@ -236,54 +232,57 @@ class Alert(Alarm):
                                         "price": "price_compare", 
                                         "promo": "promo_compare"
                                     })
+        # Add prices from compare
         results_df = results_df.merge(prices_df, 
                                     on='item_uuid_compare', 
                                     how='left')
-
         results_df['alert'] = results_df.apply(
             lambda x: Alert.breaks_rules(x),
             axis=1
         )
-
         results_df = results_df.loc[results_df['alert'] == True]
-
+        # Results validation
         if len(results_df) == 0:
             return []
-
+        # Difference calculation
         results_df['diff'] = results_df['price_compare'] - results_df['price']
-
-        retailers = results_df['retailer'].drop_duplicates().tolist() + results_df['retailer_compare'].drop_duplicates().tolist()
-
-        # get stores for all the retailers in alerts
-        stores = []
-        for retailer in retailers:
-            stores += requests.get(geo_stores_url%(retailer)).json()
-
+        retailers = results_df['retailer'].drop_duplicates().tolist() \
+            + results_df['retailer_compare'].drop_duplicates().tolist()
+        # Get stores for all the retailers in alerts
+        stores = g._geolocation.get_stores(list(set(retailers)))
+        # Format Stores
         stores_df = pd.DataFrame(stores)
-        # select only that columns
         stores_df = stores_df[['name','city', 'state', 'zip', 'uuid']].rename(index=str, columns={"uuid": "store_uuid", "name": "store_name"})
         stores_df['city'] = stores_df['city'].str.strip()
         # merge with store_uuid and store_uuid_compare
         results_df = results_df.merge(stores_df, on='store_uuid', how='left')
-        stores_df = stores_df.rename(index=str, columns={"store_uuid": "store_uuid_compare", "store_name": "store_name_compare",\
-                                                         "city": "city_compare", "state": "state_compare", "zip": "zip_compare"})
+        stores_df = stores_df.rename(index=str, 
+                                    columns={"store_uuid": "store_uuid_compare", 
+                                            "store_name": "store_name_compare",
+                                            "city": "city_compare", 
+                                            "state": "state_compare", 
+                                            "zip": "zip_compare"
+        })
         results_df = results_df.merge(stores_df, on='store_uuid_compare', how='left')
-
-        # get items info
-        items = results_df['item_uuid'].drop_duplicates().tolist() + results_df['item_uuid_compare'].drop_duplicates().tolist()
-        items_info = requests.get(SRV_PROTOCOL + "://" + SRV_CATALOGUE + '/product/by/iuuid?cols=item_uuid,gtin&keys={}'.format(\
-                            ','.join(items))).json()['products']
-
+        # Get items info
+        items = results_df['item_uuid'].drop_duplicates().tolist() \
+            + results_df['item_uuid_compare'].drop_duplicates().tolist()
+        items_info = g._catalogue.get_products_by_item(','.join(items), 
+            ['source','item_uuid', 'gtin', 'name'])
         items_df = pd.DataFrame(items_info)
-        items_df.drop(['product_uuid','product_id'], inplace=True, axis=1)
         items_df = items_df.drop_duplicates(subset='source', keep="first")
         items_df = items_df.rename(index=str, columns={"name": "item_name", "source": "retailer"})
-        # merge item info
-        results_df = results_df.merge(items_df, on=['item_uuid', "retailer"], how='left')
-        items_df = items_df.rename(index=str, columns={"item_name": "item_name_compare", "item_uuid": "item_uuid_compare", \
-                                                        "retailer": "retailer_compare", "gtin": "gtin_compare"})
-        results_df = results_df.merge(items_df, on=['item_uuid_compare', 'retailer_compare'], how='left')
-
-        results_df = results_df.dropna()
-
+        results_df = results_df.merge(items_df,
+            on=['item_uuid', "retailer"], how='left')
+        items_df = items_df.rename(index=str, 
+                                    columns={"item_name": "item_name_compare", 
+                                            "item_uuid": "item_uuid_compare",
+                                            "retailer": "retailer_compare", 
+                                            "gtin": "gtin_compare"
+        })
+        results_df = results_df.merge(items_df,
+                        on=['item_uuid_compare', 'retailer_compare'], 
+                        how='left')
+        results_df = results_df.fillna("")
+        logger.info("Serving prices compare.")
         return results_df.to_dict(orient='records')
