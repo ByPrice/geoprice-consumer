@@ -943,9 +943,58 @@ class Product(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         return qs
+
+    @staticmethod
+    def start_compare_details_task(task_id, params):
+        """ Start history product retailer task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Product Response
+        """
+        logger.info("Comparing pairs Retailer-Item")
+        # Verify Params
+        if 'fixed_segment' not in params:
+            raise errors.AppError(80002, "Fixed Segment missing")
+        if 'added_segments' not in params:
+            raise errors.AppError(80002, "Added Segments missing")
+        if not isinstance(params['fixed_segment'], dict):
+            raise errors.AppError(80010, "Wrong Format: Fixed Segment")
+        if not isinstance(params['added_segments'], list):
+            raise errors.AppError(80010, "Wrong Format: Added Segments")
+        if 'date' in params:
+            try:
+                _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError(80010, "Wrong Format: Date")
+        else:
+            _date = datetime.datetime.utcnow()
+        # Call function to fetch prices
+        prod = Product\
+            .get_pairs_ret_item(task_id, params['fixed_segment'],
+                params['added_segments'], _date)
+        if not prod:
+            logger.warning("Not able to fetch prices.")
+            raise errors.AppError(80009,
+                "No prices with that Retailer and item combination.")
+        
+        return {
+            'data' : prod,
+            'msg' : 'Retailer Task completed'
+        }
             
     @staticmethod
-    def get_pairs_ret_item(fixed, added, date):
+    def get_pairs_ret_item(task_id, fixed, added, date):
         """ Compare segments of pairs (retailer-item)
             between the fixed against all the added
 
@@ -984,6 +1033,11 @@ class Product(object):
             compares : dict
                 JSON response of comparison
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Fetch Retailers and Time
         logger.debug("Setting Comparison...")
         _rets = [fixed['retailer']] + [x['retailer'] for x in added]
@@ -992,6 +1046,7 @@ class Product(object):
         # Create Geo DF
         geo_df = get_all_stores(_ret_keys)
         logger.info("Fetched {} stores".format(len(geo_df)))
+        task.progress = 30
         # Fetch Fixed Prices DF
         fix_price = Product.fetch_detail_price(
                 geo_df[geo_df['source'] == fixed['retailer']]\
@@ -1009,9 +1064,12 @@ class Product(object):
                             ['store_uuid'].tolist(),
                         _a['item_uuid'], _time)
                 )
+
+        task.progress = 60
         # Build Fix DF, cast and drop dupls
         fix_df = pd.DataFrame(fix_price)
         fix_df['store_uuid'] = fix_df['store_uuid'].astype(str)
+        fix_df['product_uuid'] = fix_df['product_uuid'].astype(str)
         fix_df['item_uuid'] = fixed['item_uuid']
         fix_df.sort_values(by=["time"], ascending=False, inplace=True)
         fix_df.drop_duplicates(subset=['store_uuid'], inplace=True)
@@ -1034,7 +1092,7 @@ class Product(object):
             # Build Added DF, cast and drop dupls
             _tmp = pd.DataFrame(_a)
             _tmp['store_uuid'] = _tmp['store_uuid'].apply(lambda x: str(x))
-            _tmp['item_uuid'] = added['item_uuid']
+            _tmp['item_uuid'] = added[j]['item_uuid']
             _tmp.sort_values(by=["time"], ascending=False, inplace=True)
             _tmp.drop_duplicates(subset=['store_uuid'], inplace=True)
             # Add Geolocated info and rename columns
@@ -1046,6 +1104,8 @@ class Product(object):
                 how='left', on="store_uuid")
             _tmp.rename(columns={'name':'store'},
                         inplace=True)
+            _tmp['store_uuid'] = _tmp.store_uuid.astype(str)
+            _tmp['product_uuid'] = _tmp.product_uuid.astype(str)
             # Added to the list
             added_dfs.append(_tmp)
         logger.debug('Built Added DFs')
@@ -1067,9 +1127,9 @@ class Product(object):
                 # Set unfound price like dict
                 _jkth = {
                     "store": None,
-                    "source": added[_ith]['source'],
+                    "source": added[_ith]['retailer'],
                     "item_uuid": added[_ith]['item_uuid'],
-                    "product_uuid": added[_ith]['product_uuid'],
+                    "product_uuid": _ai.product_uuid.tolist()[0],
                     "price": None,
                     "diff": None,
                     "dist": None
@@ -1104,6 +1164,7 @@ class Product(object):
             _rows.append(_jth)            
             logger.debug(_j)
         logger.info('Created Rows!')
+        task.progress = 80
         # Generate Fixed Stores
         _valid_sts = []
         fix_df['name'] = fix_df['store'].astype(str)
@@ -1129,8 +1190,9 @@ class Product(object):
                             .drop_duplicates(subset=['store_uuid'])\
                             .iterrows()]})
         logger.info('Generated Stores!')
+        task.progress = 100
         return {
-            'date': date,
+            'date': date.isoformat(),
             'segments': _valid_sts,
             'rows': _rows
         }
@@ -1176,7 +1238,6 @@ class Product(object):
             flask.Response
                 Map Response
         """
-        print(task_id, params)
         # Validate params
         Product.validate_store_item(params)
         # Parse and start task
