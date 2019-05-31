@@ -95,7 +95,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    #@unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """

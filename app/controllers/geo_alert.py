@@ -54,15 +54,14 @@ def check_prices_compare():
 
         TODO: Make it Work
 	"""
-	logger.debug('price compare endpoint...')
+	logger.info('Geo Alert price compare endpoint...')
 	params = request.get_json()
 	if 'date' not in params:
-		params['date'] = (datetime.datetime.utcnow()+datetime.timedelta(days=-1)).strftime('%Y-%m-%d')
+		params['date'] = (datetime.datetime.utcnow() \
+            + datetime.timedelta(days=-1)).strftime('%Y-%m-%d')
 	logger.debug('Params correct...')
 	logger.debug(params)
-
 	prices = Alert.get_price_compare(params)
-
 	return jsonify(prices)
 
 
