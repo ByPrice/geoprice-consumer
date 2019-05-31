@@ -51,8 +51,6 @@ def check_prices_compare():
 			- retailers <list (str)>
 			- date <str (%Y-%m-%d)>
 				: date to get the prices from
-
-        TODO: Make it Work
 	"""
 	logger.info('Geo Alert price compare endpoint...')
 	params = request.get_json()
@@ -83,7 +81,7 @@ def check_prices_geolocated():
 
         TODO: Make it Work
 	"""
-	logger.debug('alert geolocated endpoint...')
+	logger.info('Alert geolocated endpoint...')
 	params = request.get_json()
 	if 'retailers' not in params:
 		raise errors.AppError("invalid_request", "Retailers parameters missing")
@@ -92,12 +90,8 @@ def check_prices_geolocated():
 	if 'date' not in params:
 		params['date'] = datetime.datetime.utcnow().strftime('%Y-%m-%d')
 	logger.debug('Params correct...')
-
 	try:
 		prices = Alert.get_geolocated(params)
-		for i,p in enumerate(prices):
-			prices[i]['day'] = p['time'].strftime("%Y-%m-%d")
-
 	except:
 		raise errors.AppError('server_serror',"Alerts geolocation failed")
 	return jsonify(prices)
