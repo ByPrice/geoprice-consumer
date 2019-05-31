@@ -34,7 +34,7 @@ class Catalogue(object):
         for chunk in chunks:
             try:
                 # Url
-                url = '{}/item/by/iuuid?keys={}&cols='.format(
+                url = '{}/item/by/iuuid?keys={}&cols={}'.format(
                     self.base_url,
                     ','.join(chunk),
                     qry_cols
@@ -58,6 +58,69 @@ class Catalogue(object):
         # Response format
         if fmt == 'dict':
             result = { i['item_uuid'] : i for i in all_details }
+        else:
+            result = all_details
+        return result
+
+    def get_product_details(self, 
+                        values=None, 
+                        cols=['item_uuid','gtin'], 
+                        loop_size=20, 
+                        fmt='list'):
+        """ Get product details by a given field 
+            that equals a Item_uuids
+
+            Params:
+            -----
+            values: list
+                List of ItemUUIDs
+            cols: list
+                List of Columns to retrieve
+            loop_size: int
+                Size of chunks to retrieve info
+            fmt: str   
+                Result format (`dict` or `list`)
+            
+            Returns:
+            -----
+            `dict` or `list`  
+                Products found in selected format
+        """
+        if not values:
+            logger.error("Set the values to obtain")
+            return False
+        qry_cols = ','.join(cols)
+        # Get chunks of n size for the values
+        chunks = [values[i:i + loop_size] for i in range(0, len(values), loop_size)]
+        # Iterate chunks
+        all_details = []
+        for chunk in chunks:
+            try:
+                # Url
+                url = '{}/product/by/iuuid?keys={}&cols={}&ipp={}'.format(
+                    self.base_url,
+                    ','.join(chunk),
+                    qry_cols,
+                    loop_size * 100
+                )
+                # Request
+                logger.debug("Requesting details to: {}".format(url))
+                details = requests.get(
+                    url,
+                    headers = {'Content-Type':'application/json'}
+                )
+                logger.debug("Received chunk")
+            except Exception as e:
+                logger.error(e)
+                continue
+            
+            items_chunk = details.json()['products']
+            if isinstance(items_chunk, dict) or isinstance(items_chunk, list):
+                logger.debug("Chunk with {} products".format(len(items_chunk)))
+                all_details = all_details + items_chunk        
+        # Response format
+        if fmt == 'dict':
+            result = { i['product_uuid'] : i for i in all_details }
         else:
             result = all_details
         return result

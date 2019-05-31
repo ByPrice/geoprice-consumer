@@ -85,7 +85,7 @@ SRV_CATALOGUE = ('dev.' if ENV in ['DEV', 'LOCAL'] else '')  + os.getenv('SRV_CA
 SRV_GEOLOCATION = ('dev.' if ENV in ['DEV', 'LOCAL'] else '') + os.getenv('SRV_GEOLOCATION', 'geolocation')
 
 # Tasks arguments 
-TASK_ARG_CREATE_DUMPS = os.getenv('TASK_ARG_CREATE_DUMPS', 'byprice,ims,walmart') 
+TASK_ARG_CREATE_DUMPS = os.getenv('TASK_ARG_CREATE_DUMPS', 'kelloggs,ims')
 
 # AWS keys to access S3
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '') 
