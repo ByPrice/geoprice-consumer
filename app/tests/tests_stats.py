@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-import app
-from app.models.task import Task
 import unittest
 import config
-import uuid
-import sys
 import time
 import json
+import app
+from app.models.task import Task
+from app.celery_app import main_task
+from app.models.stats import Stats
+
 
 task_id = None
 
@@ -49,47 +50,8 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
-    @unittest.skip('TODO')
-    def test_01_complete_task_stats_current(self):
-        """ Test price Stats Current Task
-        """
-        print(">>>>>", "Test price Stats Current Task")
-        # Import celery task
-        from app.celery_app import main_task
-        from app.models.stats import Stats
-
-        # Filters for the task
-        params = {
-            "filters": [
-                {"category": "9406"},
-                {"retailer": "superama"},
-                {"retailer": "ims"},
-                {"item": "08cdcbaf-0101-440f-aab3-533e042afdc7"}
-            ],
-            "export": True
-        }
-        celery_task = main_task.apply_async(args=(Stats.start_task, params))
-        print("Submitted Task: ", celery_task.id)
-        # Get the task from the celery task
-        time.sleep(2)
-        task = Task(celery_task.id)
-        print('Created task instance!')
-
-        # Check result of task
-        while task.is_running():
-            print("Waiting for task to finish")
-            print(task.task_id)
-            print(task.progress)
-            print(task.status)
-            time.sleep(1)
-
-        prog = task.status['progress']
-        print("Final progress: {}".format(prog))
-        print("Result keys: {} ".format(list(task.result.keys())))
-        self.assertEqual(prog, 100)
-
-
-    def test_02_retailer_current_submit(self):
+    #@unittest.skip('TODO')
+    def test_01_retailer_current_submit(self):
         """ Test /stats/current/submit endpoint
         """
         print(">>>>>", "Test retailer current stats")
@@ -108,18 +70,25 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
                 ],
             "export": False
         }
-        _res = self.app.post('/stats/current/submit',
-                             data=json.dumps(params),
-                             headers={'content-type': 'application/json'}
-                             )
-        try:
-            _jr = json.loads(_res.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_res.status_code, 200)
-        self.assertNotIn('error', _jr)
+        celery_task = main_task.apply_async(args=(Stats.get_actual_by_retailer_task, params))
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        task = Task(celery_task.id)
+        print('Created task instance!')
 
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            time.sleep(1)
+            print(task.task_id, task.progress, task.status['stage'])
+
+        progress = task.status['progress']
+        print("Final progress: {}".format(progress))
+        self.assertEqual(progress, 100)
+        self.assertNotIn('error', task.result['data'])
+        self.assertIsInstance(task.result['data'], list)
+
+    @unittest.skip('TODO')
     def test_03_stats_history(self):
         """ Test /stats/history endpoint
         """
@@ -154,6 +123,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertIn('metrics', _jr)
         self.assertNotIn('error', _jr)
 
+    @unittest.skip('TODO')
     def test_04_stats_category(self):
         """ Test /stats/category endpoint
         """
@@ -191,6 +161,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', _jr)
         self.assertIn('name', _jr[0])
 
+    @unittest.skip('TODO')
     def test_05_stats_direct_compare(self):
         """ Test /stats/direct_compare endpoint
         """
@@ -232,7 +203,8 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', _jr)
         self.assertIn('items', _jr)
 
-    def test_05_stats_compare(self):
+    @unittest.skip('TODO')
+    def test_06_stats_compare(self):
         """ Test /stats/compare endpoint
         """
         print(">>>>>", "Test compare stats")
