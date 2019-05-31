@@ -221,7 +221,7 @@ app.register_blueprint(history_product.mod, url_prefix='/history/product')
 app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')
 
 # TODO: Uncomment to register Geo Check module
-# app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
+app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
 
 # TODO: Uncomment to register Geo Dump module
 # app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
