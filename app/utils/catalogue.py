@@ -10,7 +10,7 @@ class Catalogue(object):
     def __init__(self, uri="", protocol="http"):
         """ Constructor method
         """
-        self.uri = uri or "geolocation"
+        self.uri = uri or "catalogue"
         self.protocol = protocol or "http"
         self.base_url = "{}://{}".format(self.protocol, self.uri)
         self.auth = None
@@ -78,7 +78,7 @@ class Catalogue(object):
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+        url = self.base_url + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))

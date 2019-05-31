@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response
 from app.models.history_product import Product
-from app import errors, logger
+from app.models.task import asynchronize, Task
+from app import errors, applogger
 import datetime
 
 mod = Blueprint('history_product',__name__)
 
+# Logger
+logger = applogger.get_logger()
 
 @mod.route('/')
 def get_hproduct_bp():
@@ -25,12 +28,11 @@ def get_one():
         raise errors.AppError("invalid_request", "Could not fetch data from Cassandra")
     return jsonify(prod)
 
+
 @mod.route('/bystore', methods=['GET'])
 def get_today_prices_bystore():
     """ Get prices from an specific 
         item by day, and closest stores
-        
-        TODO: Make it work
     """
     logger.debug('Getting prices from uuid...')
     item_uuid, product_uuid = None, None
@@ -63,8 +65,6 @@ def get_history_prices_bystore():
     """ Get prices from an specific item 
         for the past period of time, 
         and closest stores.
-
-        TODO:  Make it work
     """
     item_uuid, product_uuid = None, None
     # Validate UUIDs
@@ -90,8 +90,6 @@ def get_history_prices_bystore():
 def get_ticket_bystore():
     """ Get prices from an especific ticket 
         from N number of items by day and closest stores
-
-        TODO: Make it Work
     """
     logger.info("Fetching Ticket values")
     item_uuids, product_uuids = [], []
@@ -137,32 +135,23 @@ def get_all_by_store():
         raise errors.AppError(80005, "Issues fetching store results")
     return jsonify(catalogue)
 
-@mod.route('/count_by_store/submit', methods=['POST'])
-def count_by_store():
-    """ Get the prices count of certain store
 
-        TODO: Make it Work with Async response
-    """
-    logger.info("Fetching Prices per Store")
-    params = request.args.to_dict()
-    _needed = set({'r','sid', 'date_start', 'date_end'})
-    if not _needed.issubset(params.keys()):
-        raise errors.AppError(80002, "Dates, Retailer or Store UUID parameters missing")
-    logger.debug(params)
-    count = Product\
-        .get_count_by_store(params['r'],
-            params['sid'], params['date_start'],
-            params['date_end'])
-    if not count:
-        raise errors.AppError(80005,  "Issues fetching store results")
-    return jsonify(count)
+@mod.route('/count_by_store/submit', methods=['POST'])
+@asynchronize(Product.count_by_store_task)
+def count_by_store():
+    logger.info("Submited Count by store task...")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
+
+
 
 @mod.route('/count_by_store_hours', methods=['GET'])
 def count_by_store_hours():
     """ Get the prices of all items 
         of certain store for the past X hours
-
-        TODO: Make it work
     """
     logger.info("Fetching Prices per Store in last X hours")
     params = request.args.to_dict()
@@ -176,6 +165,7 @@ def count_by_store_hours():
     if not count:
         raise errors.AppError(80005,  "Issues fetching store results")
     return jsonify(count)
+
 
 @mod.route('/byfile', methods=['GET'])
 def get_today_prices_by_file():
@@ -199,18 +189,17 @@ def get_today_prices_by_file():
         headers={
             "Content-disposition":
                 "attachment; filename={}_{}.csv"\
-                    .format(retailer.upper(),
-                            store_name)}
+                    .format(params['ret'].upper(),
+                            params['stn'])}
         )
 
 @mod.route('/retailer/submit', methods=['POST'])
+@asynchronize(Product.start_retailer_task)
 def get_prices_by_ret():
     """ Get Today's prices from an 
         specific retailer and products
-
-        TODO: Make it work as Async 
     """
-    logger.info("Fetching product' prices by Retailer ")
+    '''logger.info("Fetching product' prices by Retailer ")
     # Verify Request Params
     item_uuid, prod_uuid = None, None
     params = request.args.to_dict()
@@ -242,16 +231,22 @@ def get_prices_by_ret():
                     .format(retailer.upper(), _fname)})
     else:
         # Return a JSONified Response
-        return jsonify(prod)
+        return jsonify(prod)'''
+
+    logger.info("Submited History Product Retailer task...")
+    return jsonify({
+        'status': 'ok', 
+        'module': 'history_product',
+        'task_id' : request.async_id
+    })
 
 @mod.route('/compare/details/submit', methods=['POST'])
+@asynchronize(Product.start_compare_details_task)
 def compare_retailer_item():
     """ Compare prices from a fixed pair retailer-item
         with additional pairs
-
-        TODO: Make it work Async
     """
-    logger.info("Comparing pairs Retailer-Item")
+    '''logger.info("Comparing pairs Retailer-Item")
     # Verify Params
     params = request.get_json()
     if 'fixed_segment' not in params:
@@ -278,51 +273,30 @@ def compare_retailer_item():
         logger.warning("Not able to fetch prices.")
         raise errors.AppError(80009,
             "No prices with that Retailer and item combination.")
-    return jsonify(prod)
+    return jsonify(prod)'''
+
+    logger.info("Submited History Product Retailer task...")
+    return jsonify({
+        'status': 'ok', 
+        'module': 'history_product',
+        'task_id' : request.async_id
+    })
 
 @mod.route('/compare/history/submit', methods=['POST'])
-def compare_store_item():
-    """ Compare prices from a fixed pair store-item
-        in time with additional pairs
-        
-        TODO: Make it work async
-    """
-    logger.info("Comparing pairs Store-Item")
-    # Verify Params
-    params = request.get_json()    
-    # Existance verif
-    if 'fixed_segment' not in params:
-        raise errors.AppError(80002, "Fixed Segment missing")
-    if 'added_segments' not in params:
-        raise errors.AppError(80002, "Added Segments missing")
-    # Datatype verif
-    if not isinstance(params['fixed_segment'], dict):
-        raise errors.AppError(80010, "Wrong Format: Fixed Segment")
-    if not isinstance(params['added_segments'], list):
-        raise errors.AppError(80010, "Wrong Format: Added Segments")
-    # Dates verif
-    if ('date_ini' not in params) or ('date_fin' not in params):
-        raise errors.AppError(80002, "Missing Dates params")
-    if 'interval' in params:
-        if params['interval'] not in ['day','week','month']:
-            raise errors.AppError(80010, "Wrong Format: interval type")
-    else:
-        params['interval'] = 'day'
-    # Call function to fetch prices
-    prod = Product\
-        .get_pairs_store_item(params['fixed_segment'],
-            params['added_segments'], params)
-    if not prod:
-        raise errors.AppError(80009,
-            "No products with that Store and item combination.")
-    return jsonify(prod)
+@asynchronize(Product.compare_store_item_task)
+def counmpare_hist():
+    logger.info("Submited Compare store item task...")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
+
 
 @mod.route('/stats', methods=['GET'])
 def get_stats_by_item():
     """ Today's max, min & avg price 
         from an specific item_uuid  or product_uuid
-
-        TODO: Make it work
     """
     logger.info("Fetching product stats by item")
     # Validate UUIDs
@@ -341,59 +315,26 @@ def get_stats_by_item():
     return jsonify(prod)
 
 
-@mod.route('/count_by_store_engine', methods=['GET'])
+@mod.route('/count_by_store_engine/submit', methods=['POST'])
+@asynchronize(Product.count_by_store_engine_task)
 def get_count_by_store_engine():
-    """
-        Get Count from store
-
-        @Params:
-         - "retailer" : retailer_key
-         - "store_uuid" : store_uuid
-         - "date" : date
-         - "env" : env
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
-
-        TODO: Make it work
-    """
     logger.info("Fetching counts by store")
-    # Verify Request Params
-    params = request.args
-    if 'retailer' not in params :
-        raise errors.ApiError("invalid_request", "retailer key missing")
-    if 'store_uuid' not in params:
-        raise errors.ApiError("invalid_request", "store_uuid key missing")
-    if 'date' not in params:
-        raise errors.ApiError("invalid_request", "date key missing")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
 
-    retailer = params.get('retailer')
-    store_uuid = params.get('store_uuid')
-    date = params.get('date')
-    env = params.get('env')
-    # Call function to fetch prices
-    prod = Product.count_by_store_engine(retailer, store_uuid, date)
-    return jsonify(prod)
 
-@mod.route('/count_by_retailer_engine', methods=['GET'])
+@mod.route('/count_by_retailer_engine/submit', methods=['POST'])
+@asynchronize(Product.count_by_retailer_engine_task)
 def get_count_by_retailer_engine():
     """ Get Count by engine
-
-        TODO: Make it work
     """
-    logger.info("Fetching counts by store")
-    # Verify Request Params
-    params = request.args.to_dict()
-    if 'retailer' not in params :
-        raise errors.ApiError(80002,
-            "Retailer param missing")
-    if 'date' not in params:
-        raise errors.ApiError(80002,
-            "Date param missing")
-    logger.debug(params)
-    # Call function to fetch prices
-    prod = Product\
-        .count_by_retailer_engine(params['retailer'],
-            params['date'])
-    return jsonify(prod)
+    logger.info("Fetching counts by retailer")
+    return jsonify({
+        'status':'ok', 
+        'module': 'task',
+        'task_id' : request.async_id
+    })
 

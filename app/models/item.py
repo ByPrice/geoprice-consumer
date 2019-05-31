@@ -36,7 +36,7 @@ class Item(object):
         # Iterate over batches of lenght: _k
         for i in range(0, len(p_uuids), _k):
             _pbatch = p_uuids[i: i+_k]
-            url = SRV_CATALOGUE + \
+            url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
                 '/product/by/puuid?keys={item}&ipp={ipp}&cols={cols}'\
                 .format(item=','.join(_pbatch),
                         ipp=_k,
@@ -72,8 +72,8 @@ class Item(object):
             products : list
                 List requested of products
         """
-        url = SRV_PROTOCOL + "://" + \
-            SRV_CATALOGUE + \
+
+        url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))
@@ -111,7 +111,7 @@ class Item(object):
         """
         # Fetch uuids from filters in ITEM
         payload  = json.dumps(filters)
-        url = 'http://'+SRV_CATALOGUE+'/item/filtered'
+        url = SRV_PROTOCOL + '://'+SRV_CATALOGUE+'/item/filtered'
         headers = {'content-type':'application/json'}
         logger.debug(url)
         try:
@@ -143,7 +143,7 @@ class Item(object):
         
         items = []
         
-        url = SRV_CATALOGUE + \
+        url = SRV_PROTOCOL + "://" + SRV_CATALOGUE + \
             '/product/by/puuid?keys=''&p={p}&ipp={ipp}&orderby=name'\
             .format(p=ip,
                     ipp=_ipp)

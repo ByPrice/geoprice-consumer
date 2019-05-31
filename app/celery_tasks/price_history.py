@@ -29,7 +29,7 @@ def fetch_from_item(filters):
     """
     # Fetch uuids from filters in ITEM
     payload  = json.dumps(filters)
-    url = 'http://'+config.SRV_ITEM+'/item/filtered'
+    url = SRV_PROTOCOL + "://" + config.SRV_ITEM + '/item/filtered'
     headers = {'content-type':'application/json'}
     logger.debug(url)
     try:
@@ -58,7 +58,7 @@ def fetch_stores(rets):
         # Fetch Stores by retailer
         try:
             stores_j = requests\
-                .get("http://"+config.SRV_GEOLOCATION+"/store/retailer?key="+retailer)\
+                .get(SRV_PROTOCOL + "://" + config.SRV_GEOLOCATION + "/store/retailer?key=" + retailer)\
                 .json()
             logger.debug("Fetched {} stores!".format(retailer))
         except Exception as e:
