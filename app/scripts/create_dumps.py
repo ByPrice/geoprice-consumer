@@ -7,29 +7,16 @@ import json
 import datetime
 import pandas as pd
 from collections import OrderedDict
-import boto3
-from io import StringIO
 from functools import wraps
 from app.utils.helpers import tuplize
 from tqdm import tqdm
+from app.models.geo_dump import Dump
 
 # Logger
 logger = applogger.get_logger()
 
 # Aux vars
-DATA_DIR = BASE_DIR+"/data/"
-ROWS_SAVE = 5000
 SOURCES = [] if not TASK_ARG_CREATE_DUMPS else TASK_ARG_CREATE_DUMPS.split(",")
-BUCKET='geoprice'
-
-template = {
-    "gtin" : [],
-    "name" : [],
-    "retailer" : [],
-    "price_avg" : [],
-    "price_max" : [],
-    "price_min" : []
-}
 
 def with_context(original_function):
     """ Flask Context decorator for inside execution
@@ -166,86 +153,10 @@ def get_stats(products, retailers):
             continue
     return result 
 
-def df_to_s3(df, source):
-    """ Save dataframe directly to s3, for quick access
-         to the most recent information
-        File Path:   s3://<BUCKET>/<ENV>/<SOURCE>_stats_aggregate.csv
-
-        Params:
-        ----
-        df: pd.DataFrame
-            Data DataFrame
-        source: str
-            Source key
-    """
-    now = datetime.datetime.utcnow()
-    # Key for bucket
-    filename = ENV.lower() \
-        + "/" + source + "_stats_aggregate.csv"
-    bucket = BUCKET
-    try:
-        # Generate buffer
-        csv_buffer = StringIO()
-        df.to_csv(csv_buffer)
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
-        )
-        # Put object
-        s3.put_object(
-            Bucket=bucket,
-            Key=filename,
-            Body=csv_buffer.getvalue()
-        )
-        logger.info("Correctly stored file in S3!")
-        return True
-    except Exception as e:
-        logger.warning("Could not save file to s3!")
-        logger.error(e)
-        return False
 
 
-def df_to_s3_historic(df, source):
-    """ Save dataframe directly to s3 to save history
-        File Path:   s3://<BUCKET>/<ENV>/<YEAR>/<MONTH>/<DAY>/<SOURCE>_stats_aggregate.csv
 
-        Params:
-        ----
-        df: pd.DataFrame
-            Data DataFrame
-        source: str
-            Source key
-    """
-    now = datetime.datetime.utcnow()
-    # Key for bucket
-    filename = ENV.lower() \
-        + "/" + now.strftime("%Y")\
-        + "/" + now.strftime("%m") \
-        + "/" + now.strftime("%d") \
-        + "/" + source + "_stats_aggregate.csv"
-    bucket = BUCKET
-    try:
-        # Generate buffer
-        csv_buffer = StringIO()
-        df.to_csv(csv_buffer)
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY
-        )
-        # Put object
-        s3.put_object(
-            Bucket=bucket,
-            Key=filename,
-            Body=csv_buffer.getvalue()
-        )
-        logger.info("Correctly stored historic file in S3!")
-        return True
-    except Exception as e:
-        logger.warning("Could not save historic file to s3!")
-        logger.error(e)
-        return False
+
 
 
 @with_context
@@ -277,6 +188,6 @@ def start():
         stats = get_stats(total_products, retailers)
         # Build dataframe and save to s3
         dframe = pd.DataFrame(stats)
-        df_to_s3(dframe, src)
-        df_to_s3_historic(dframe, src)
+        Dump.df_to_s3(dframe, src)
+        Dump.df_to_s3_historic(dframe, src)
     logger.info("Finished creating dumps!")

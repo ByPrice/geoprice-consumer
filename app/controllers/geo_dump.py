@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, jsonify, request, Response
+from flask import Blueprint, jsonify, request, Response, g
 from app import errors, logger
 from app.models.response import download_dataframe
 from app.models.item import Item
@@ -13,6 +13,7 @@ import os.path
 import datetime
 import json
 from collections import OrderedDict
+from app.models.geo_dump import Dump
 
 # Blueprint instance
 mod = Blueprint('geo_dump', __name__)
@@ -39,9 +40,9 @@ def dump_download():
     # Data source
     data_source = request.args.get("data_source","ims")
     # Define Dump format
-    fmt = request.args.get("format","csv")
+    fmt = request.args.get("format", "csv")
     rets = request.args.get("retailers", None)
-    fname = DATA_DIR + data_source + "_stats_aggregate.csv"
+    fname = data_source + "_stats_aggregate.csv"
 
     # Count the times downloaded
     with open(DATA_DIR+'/downloads.json','r') as file:
@@ -49,31 +50,27 @@ def dump_download():
     count_file['count'] += 1
     with open(DATA_DIR+'/downloads.json','w') as file:
         file.write(json.dumps(count_file))
-
-    # Check if file exists
-    if not os.path.isfile(fname):
-        logger.error("File not found: {}".format(fname))
-        raise errors.AppError("no_file","File does not exist",4008)
-
+    # Get all retailers from geo
+    logger.info("Requesting all retailers")
+    total_rets = g._geolocation.get_retailers()
+    retailer_names = { r['key'] : r['name'] for r in total_rets }
     # Get the requested retailers
     if rets:
         retailers = rets.split(",")
     else:
-        # Get all retailers from geo
-        logger.info("Requesting all retailers")
-        total_rets = g._geolocation.get_retailers()
-        retailer_names = { r['key'] : r['name'] for r in total_rets }
         retailers = retailer_names.keys()
 
     # Adjust dataframe
-    logger.info("Reading csv file")
-    _df = pd.read_csv(fname)
+    logger.info("Reading csv file from S3")
+    _df = Dump.get_recent_from_s3(fname)
+    if _df.empty:
+        raise errors.AppError("no_file", "No available dump file found!")
     cols = ['gtin','name']
     for ret in retailers:
         cols.append(ret+"_max")
         cols.append(ret+"_min")
         cols.append(ret+"_avg")
-    df = _df[cols]
+    df = _df[cols].copy()
 
     # Rename the columns
     logger.info("Renaming columns")
@@ -87,10 +84,9 @@ def dump_download():
         }, inplace=True)
 
     # Drop rows without prices
-    df.set_index('gtin',inplace=True)
+    df.set_index('gtin', inplace=True)
     result_df = df.dropna(thresh=3).replace(np.nan, '-')
-
-    logger.info("Building output")
+    logger.info("Building output CSV")
     return download_dataframe(result_df, fmt=fmt, name="prices_retailers_"+datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
 
