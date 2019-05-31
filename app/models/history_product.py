@@ -719,9 +719,52 @@ class Product(object):
         iocsv = fdf.to_csv(_buffer)
         _buffer.seek(0)
         return _buffer
+
+    @staticmethod
+    def start_retailer_task(task_id, params):
+        """ Start history product retailer task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Product Response
+        """
+        logger.info('inside retailer task')
+        # Verify Request Params
+        item_uuid, prod_uuid = None, None
+        if 'retailer' not in params:
+            raise errors.AppError(80002, "Retailer parameter missing")
+        if 'item_uuid' not in params:
+            if 'prod_uuid' not in params:
+                raise errors.AppError(80002, "Item/Product UUID parameter missing")
+            prod_uuid = params['prod_uuid']
+        else:
+            item_uuid = params['item_uuid']    
+        export = params['export'] if 'export' in params else False
+        logger.debug(params)
+        # Call function to fetch prices
+        prod = Product\
+            .get_prices_by_retailer(task_id, params['retailer'],
+                item_uuid, prod_uuid, export)
+        if not prod:
+            raise errors.AppError(80009,
+                "No prices in selected Retailer-Product pair")
+        return {
+            'data' : prod,
+            'msg' : 'Retailer Task completed'
+        }
+
     
     @staticmethod
-    def get_prices_by_retailer(retailer, item_uuid, prod_uuid, export=False):
+    def get_prices_by_retailer(task_id, retailer, item_uuid, prod_uuid, export=False):
         """ Queries a product and returns its prices
             from each store of the requested retailer
             and general stats
@@ -746,6 +789,12 @@ class Product(object):
             stores : dict
                 Store prices info
         """
+
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         logger.debug('Fetching from {} ...'\
             .format(retailer))
         # If item_uuid is passed, call to retrieve
@@ -756,6 +805,7 @@ class Product(object):
         else: 
             prod_uuids = [str(prod_uuid)]
         logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        task.progress = 20
         # Generate days
         _days = tupleize_date(datetime.date.today(), 2)
         # Fetch Stores by retailer
@@ -764,6 +814,7 @@ class Product(object):
         if not stores_j:
             return None
         logger.debug("Found {} stores".format(len(stores_j)))
+        task.progress = 40
         # Execute Cassandra Query
         cass_query = """
             SELECT product_uuid, store_uuid,
@@ -786,6 +837,7 @@ class Product(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         logger.info("Fetched {} prices".format(len(qs)))
+        task.progress = 80
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
@@ -837,6 +889,8 @@ class Product(object):
         iocsv = resp_df[['name','price', 'lat', 'lng']]\
             .to_csv(_buffer)
         _buffer.seek(0)
+        task.progress = 100
+        logger.info('Finished computing {}!'.format(task_id))
         return _buffer
 
     @staticmethod

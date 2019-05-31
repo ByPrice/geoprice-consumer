@@ -194,13 +194,12 @@ def get_today_prices_by_file():
         )
 
 @mod.route('/retailer/submit', methods=['POST'])
+@asynchronize(Product.start_retailer_task)
 def get_prices_by_ret():
     """ Get Today's prices from an 
         specific retailer and products
-
-        TODO: Make it work as Async 
     """
-    logger.info("Fetching product' prices by Retailer ")
+    '''logger.info("Fetching product' prices by Retailer ")
     # Verify Request Params
     item_uuid, prod_uuid = None, None
     params = request.args.to_dict()
@@ -232,7 +231,14 @@ def get_prices_by_ret():
                     .format(retailer.upper(), _fname)})
     else:
         # Return a JSONified Response
-        return jsonify(prod)
+        return jsonify(prod)'''
+
+    logger.info("Submited History Product Retailer task...")
+    return jsonify({
+        'status': 'ok', 
+        'module': 'history_product',
+        'task_id' : request.async_id
+    })
 
 @mod.route('/compare/details/submit', methods=['POST'])
 def compare_retailer_item():
