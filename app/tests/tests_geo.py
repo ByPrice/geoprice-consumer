@@ -61,7 +61,6 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
     
-    @unittest.skip("TO DO ")
     def test_01_geo_check_root_path(self):
         """ Test price Geo Check Root path
         """
@@ -192,6 +191,18 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
+    def test_06_geo_check_stores_method(self):
+        """ Test Geo Check Stores Method
+        """
+        print(">>>>>", "Test Geo Check Stores Method")
+        retailer = "la_comer"
+        _res = self.app.get('/geo/check/stores/'+retailer)
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
           
 
 if __name__ == '__main__':

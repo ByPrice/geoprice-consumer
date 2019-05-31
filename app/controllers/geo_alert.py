@@ -78,8 +78,6 @@ def check_prices_geolocated():
 				: date to get the prices from
 			- variation
 			- variation_type
-
-        TODO: Make it Work
 	"""
 	logger.info('Alert geolocated endpoint...')
 	params = request.get_json()
