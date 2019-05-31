@@ -95,7 +95,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
             pass
         self.assertEqual(_res.status_code, 200)
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_03_complete_task_history_alarm(self):
         """ Test price Alarm
         """
@@ -118,7 +118,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
 
         self.assertIsInstance(resp, dict)
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_04_history_product_bystore(self):
         """ Test price History Product bystore
         """
@@ -130,7 +130,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_05_history_product_bystore_history(self):
         """ Test price History Product bystore history
         """
@@ -142,7 +142,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
           
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_06_history_product_catalogue(self):
         """ Test price History Product Catalogue
         """
@@ -150,7 +150,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         _res = self.app.get("/history/product/catalogue?r=walmart&sid=1e3d5b76-7ace-11e7-9b9f-0242ac110003")
         print('Got Response')
             
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_06_history_product_ticket(self):
         """ Test price History Product ticket
         """
@@ -167,7 +167,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_07_complete_task_count_by_source(self):
         """ Test count by source task
         """
@@ -204,7 +204,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog,100)
         
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_08_history_product_count_st_hours(self):
         """ Test price History Product Count by Store hours
         """
@@ -224,7 +224,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_09_complete_task_compare_store_item(self):
         """ Test compare store item
         """
@@ -274,7 +274,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         self.assertEqual(prog,100)
 
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_10_complete_task_count_by_store_engine(self):
         """ Test count by store engine
         """
@@ -311,7 +311,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         self.assertEqual(prog,100)
  
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_11_complete_task_count_by_retailer_engine(self):
         """ Test count by retailer engine
         """
@@ -347,7 +347,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         self.assertEqual(prog,100)
 
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_12_complete_byfile(self):
         """ Test price History Product byfile
         """
