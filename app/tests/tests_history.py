@@ -373,7 +373,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         except:
             pass
 
-    # @unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_13_complete_task_history_product_retailer(self):
         """ Test Price History Product Retailer
         """
@@ -389,6 +389,48 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         }
 
         celery_task = main_task.apply_async(args=(Product.start_retailer_task, params))        
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        time.sleep(2)
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            print(task.task_id)
+            print(task.progress)
+            print(task.status)
+            time.sleep(1)
+
+        prog = task.status['progress']
+        print("Final progress: {}".format(prog))
+        print("Result keys: {} ".format(list(task.result.keys())))
+        self.assertEqual(prog,100)
+
+    # @unittest.skip("Already tested")
+    def test_14_complete_task_history_product_compare_details(self):
+        """ Test Price History Product Compare Details
+        """
+        print(">>>>>", "Test Price History Product Compare Details")
+        # Import celery task
+        from app.celery_app import main_task
+        from app.models.history_product import Product
+
+        # Filters for the task
+        params = {
+            "date":"2019-05-30",
+            "fixed_segment":{
+                "item_uuid":"c9b175c8-460c-4969-a3b6-dd14d9a169dd",
+                "retailer":"walmart"
+            },
+            "added_segments":[
+                {"item_uuid":"d4cae6a5-ea9e-40c9-b1d5-6a2ed6656fc5","retailer":"soriana"}
+            ],
+            "territory":[]
+        }
+
+        celery_task = main_task.apply_async(args=(Product.start_compare_details_task, params))        
         print("Submitted Task: ", celery_task.id)
         # Get the task from the celery task
         time.sleep(2)
