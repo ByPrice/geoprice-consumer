@@ -174,3 +174,45 @@ class Catalogue(object):
             result = prods
 
         return result
+    
+    def get_by_source(self, data_source, cols=[]):
+        """ Request and build a source's items
+            catalogue.
+
+            Params:
+            -----
+            data_source: str
+                Data source or retailer
+        """
+        # Build the query
+        q = "?keys="+data_source
+        # Pagination
+        p=1
+        ipp=500
+        catalogue = []
+        nxt = True
+        # Columns
+        if cols:
+            cols_fmt = ','.join(cols)
+        else:
+            cols_fmt = ""
+        while nxt:  
+            logger.debug("Getting page: {}".format(p))
+            try:
+                r = requests.get(self.base_url \
+                    + "/product/by/source"\
+                    + q \
+                    + "&p={}&ipp={}&cols={}".format(p,ipp, cols_fmt)
+                )
+            except:
+                logger.warning("Issues connecting to Catalogue Service!")
+                break
+            if r.status_code != 200:
+                logger.warning("Could not fetch data_source catalogue")
+                break
+            page_items = r.json()['products'] 
+            if not page_items:
+                nxt = False
+            catalogue += page_items
+            p+=1
+        return catalogue

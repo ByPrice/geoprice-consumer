@@ -28,18 +28,24 @@ def dump_status():
 @mod.route('/download')
 def dump_download():
     """ Download dump
+
+        Request Params:
+        -----
+        data_source : Type of Download given the source catalogue
+        format : Downloadable format (csv |  excel)
+        retailers : Comma Separated Retailers 
     """
+    logger.info("Starting to download dumps.. ")
     # Data source
     data_source = request.args.get("data_source","ims")
-    
+    # Define Dump format
     fmt = request.args.get("format","csv")
-    rets = request.args.get("retailers",None)
-    fname = DATA_DIR+data_source+"_stats_aggregate.csv"
+    rets = request.args.get("retailers", None)
+    fname = DATA_DIR + data_source + "_stats_aggregate.csv"
 
     # Count the times downloaded
     with open(DATA_DIR+'/downloads.json','r') as file:
         count_file = json.load(file)
-
     count_file['count'] += 1
     with open(DATA_DIR+'/downloads.json','w') as file:
         file.write(json.dumps(count_file))
@@ -51,8 +57,7 @@ def dump_download():
 
     # Get all retailers from geo
     logger.info("Requesting all retailers")
-    resp = requests.get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION + "/retailer/all")
-    total_rets = resp.json()
+    total_rets = g._geolocation.get_retailers()
     retailer_names = { r['key'] : r['name'] for r in total_rets }
 
     # Get the requested retailers
@@ -69,7 +74,6 @@ def dump_download():
         cols.append(ret+"_max")
         cols.append(ret+"_min")
         cols.append(ret+"_avg")
-
     df = _df[cols]
 
     # Rename the columns
@@ -93,10 +97,9 @@ def dump_download():
 
 @mod.route('/catalogue', methods=['GET'])
 def dump_catalogue():
+    """ Get the entire catalogue of a retailer and download it
     """
-        Get the entire catalogue of a retailer and download it
-    """
-    logger.debug("Start retreiving catalogue")
+    logger.info("Start retreiving catalogue")
     retailer = request.args.get("retailer", None)
     retailer_name = request.args.get("retailer_name",retailer)
     store_uuid = request.args.get("store_uuid",None)
