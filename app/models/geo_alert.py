@@ -37,66 +37,8 @@ class Alert(Alarm):
         pass
 
     @staticmethod
-    def get_geolocated(params):
-        """
-            @Params:
-                - stores
-                - items
-                - retailers
-                - date
-        """
-        items = []
-        stores = []
-        size_items = 100
-        size_stores = 100
-
-        # Divide in chunks
-        _stores = [ s[0] for s in params['stores'] ]
-        _items = [ s[0] for s in params['items'] ]
-        _retailers = params['retailers']
-
-        chunks_items = [ _items[i:i+size_items] for i in range(0, len(_items), size_items)]
-        chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]
-        rows = []
-
-        # Loop stores
-        for ch_items in chunks_items:
-            # Loop items
-            for ch_stores in chunks_stores:
-                # Get the
-                rows += g._db.execute("""
-                    select item_uuid, retailer, store_uuid, price, time, promo
-                    from price_details
-                    where item_uuid in ({})
-                    and store_uuid in ({})
-                    and retailer in  ({})
-                    and time >= '{}'
-                    and time < '{}'
-                """.format(
-                    """, """.join(ch_items),
-                    """, """.join(ch_stores),
-                    """, """.join( [""" '{}' """.format(r) for r in _retailers] ),
-                    params['date'],
-                    datetime.datetime.strptime(
-                        params['date'],
-                    '%Y-%m-%d') + datetime.timedelta(days=1)
-                ))
-
-        # reference price
-        ref = { it[0] : it[1] for it in params['items'] }
-
-        def get_ref(x):
-            """ Get reference price with
-                error handling in case
-                of KeyError
-            """
-            try:
-                return ref[str(x)]
-            except:
-                return None
-
-        def breaks_rule(row,v,vt):
-            """ Check if the row breaks the price rule
+    def breaks_rules_geolocated(row,v,vt):
+            """ Check if the row breaks the price rule geolocated
                 if so returns true or false
             """
             price_ref = float(row['reference'])
@@ -115,23 +57,106 @@ class Alert(Alarm):
             else:
                 return False
 
+    @staticmethod
+    def get_geolocated(params):
+        """  Fetch geolocated prices for alerts
+            @Params:
+            -----
+            - stores: (list) (Store uuid, retailer) tuples
+            - items: (list) (Item uuid, price) tuples
+            - retailers: (list)  Retailer keys
+            - date: (str) Date 
+        """
+        items, stores, size_items, size_stores = [], [], 100, 100
+
+        # Divide in chunks of 100 to avoid Cassandra saturation
+        _stores = [ s[0] for s in params['stores'] ]
+        _items = [ s[0] for s in params['items'] ]
+        _retailers = params['retailers']
+        chunks_items = [ _items[i:i+size_items] \
+            for i in range(0, len(_items), size_items)]
+        chunks_stores = [ _stores[i:i+size_stores] \
+            for i in range(0, len(_stores), size_stores)]
+        # Fetch prices and prods
+        prods, rows = Alert.prices_by_chunks(params, chunks_items, chunks_stores, "geolocated")
+        # Reference price
+        ref = { it[0] : it[1] for it in params['items'] }
         if not rows:
+            logger.warning("No prices found for geolocated alerts")
             return []
+        # Format response
         df = DataFrame(rows)
-        df['reference'] = df['item_uuid'].apply(lambda x: get_ref(x))
+        df['product_uuid'] = df['product_uuid'].astype(str)
+        df['store_uuid'] = df['store_uuid'].astype(str) 
+        prods_by_uuid = { p['product_uuid']: p['item_uuid'] for p in prods}
+        df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuid[z])
+        df['reference'] = df['item_uuid'].astype(str).apply(lambda x: ref[x])
         df.dropna(subset=['reference'],inplace=True)
-
         # Change types of item_uuid, store_uuid, date
-        df['activate'] = df.apply(
-            lambda x: breaks_rule(
-                x,
-                params['variation'],
-                params['variation_type']
-            ),
-            axis=1
+        df['activate'] = df\
+            .apply(lambda x: Alert\
+                    .breaks_rules_geolocated(x,
+                                            params['variation'],
+                                            params['variation_type']
+            ), axis=1
         )
-
+        df['day'] = df['time'].apply(lambda z: z.strftime("%Y-%m-%d"))
+        logger.info("Serving geo alert geolocated")
         return df[df['activate'] == True].to_dict(orient='records')
+    
+    @staticmethod
+    def prices_by_chunks(params, chunks_items, chunks_stores, alert_type="price_compare"):
+        """ Retrieve prices and products given chunks
+
+            Params:
+            -----
+            params: dict 
+                Request parameters
+            chunk_items: list
+                List of lists of Item UUIDs
+            chunk_stores: list
+                List of lists of Store UUIDs
+            alert_type: str
+                Type of Alert
+        """
+        # Define Chunk dates
+        chunks_dates = [int(params['date'].replace('-',''))]
+        aux_date = datetime.datetime.strptime(params['date'],'%Y-%m-%d').date()
+        if alert_type == 'price_compare':
+            for _d in range((datetime.date.today() - aux_date).days):
+                chunks_dates.append(
+                    int((aux_date + datetime.timedelta(days=1)).strftime('%Y%m%d'))
+                )
+        else:
+            chunks_dates.append(
+                    int((aux_date + datetime.timedelta(days=1)).strftime('%Y%m%d'))
+            )
+        # Fetch Products from Item UUIDs
+        prods, rows = [], []
+        # Loop stores
+        for ch_items in chunks_items:
+            # Loop items
+            _temp_prods = []
+            for _chi in ch_items:
+                _temp_prods += g._catalogue.get_products_by_item(_chi, 
+                    cols=['product_uuid', 'name', 'item_uuid', 'gtin', 'source']) 
+                prods += _temp_prods
+            ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
+            for ch_stores in chunks_stores:
+                # Get prices from Cassandra
+                rows += g._db.query("""SELECT product_uuid, 
+                                source as retailer, time,
+                                store_uuid, price, promo
+                            FROM price_by_product_store
+                            WHERE product_uuid IN {}
+                            AND store_uuid IN {}
+                            AND date IN {}
+                            """.format(
+                                tuplize(ch_prods, is_uuid=True),
+                                tuplize(ch_stores, is_uuid=True),
+                                tuplize(chunks_dates)
+                            ))
+        return prods, rows
 
     @staticmethod
     def breaks_rules(row):
@@ -180,39 +205,10 @@ class Alert(Alarm):
 
         chunks_items = [ _items[i:i+size_items] for i in range(0, len(_items), size_items)]
         chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]        
-        # Define Chunk dates
-        chunks_dates = [int(params['date'].replace('-',''))]
-        aux_date = datetime.datetime.strptime(params['date'],'%Y-%m-%d').date()
-        for _d in range((datetime.date.today() - aux_date).days):
-            chunks_dates.append(
-                int((aux_date + datetime.timedelta(days=1)).strftime('%Y%m%d'))
-            )
-        # Fetch Products from Item UUIDs
-        prods, rows = [], []
-        # Loop stores
-        for ch_items in chunks_items:
-            # Loop items
-            _temp_prods = []
-            for _chi in ch_items:
-                _temp_prods += g._catalogue.get_products_by_item(_chi, 
-                    cols=['product_uuid', 'name', 'item_uuid', 'gtin', 'source']) 
-                prods += _temp_prods
-            ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
-            for ch_stores in chunks_stores:
-                # Get prices from Cassandra
-                rows += g._db.query("""SELECT product_uuid, 
-                                source as retailer, 
-                                store_uuid, price, promo
-                            FROM price_by_product_store
-                            WHERE product_uuid IN {}
-                            AND store_uuid IN {}
-                            AND date IN {}
-                            """.format(
-                                tuplize(ch_prods, is_uuid=True),
-                                tuplize(ch_stores, is_uuid=True),
-                                tuplize(chunks_dates)
-                            ))
+        # Query by chunks
+        prods, rows = Alert.prices_by_chunks(params, chunks_items, chunks_stores)
         prices_df = pd.DataFrame(rows).drop_duplicates()
+        prices_df.drop(['time'], axis=1, inplace=True)
         if len(prices_df) == 0:
             return []
         logger.info("Found {} prices ".format(len(prices_df)))
