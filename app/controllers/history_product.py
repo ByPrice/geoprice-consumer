@@ -241,13 +241,12 @@ def get_prices_by_ret():
     })
 
 @mod.route('/compare/details/submit', methods=['POST'])
+@asynchronize(Product.start_compare_details_task)
 def compare_retailer_item():
     """ Compare prices from a fixed pair retailer-item
         with additional pairs
-
-        TODO: Make it work Async
     """
-    logger.info("Comparing pairs Retailer-Item")
+    '''logger.info("Comparing pairs Retailer-Item")
     # Verify Params
     params = request.get_json()
     if 'fixed_segment' not in params:
@@ -274,7 +273,14 @@ def compare_retailer_item():
         logger.warning("Not able to fetch prices.")
         raise errors.AppError(80009,
             "No prices with that Retailer and item combination.")
-    return jsonify(prod)
+    return jsonify(prod)'''
+
+    logger.info("Submited History Product Retailer task...")
+    return jsonify({
+        'status': 'ok', 
+        'module': 'history_product',
+        'task_id' : request.async_id
+    })
 
 @mod.route('/compare/history/submit', methods=['POST'])
 @asynchronize(Product.compare_store_item_task)
