@@ -41,7 +41,7 @@ CASSANDRA_KEYSPACE = os.getenv('CASSANDRA_KEYSPACE','prices')
 CASSANDRA_PORT = os.getenv('CASSANDRA_PORT', 9042)
 CASSANDRA_USER = os.getenv('CASSANDRA_USER','')
 CASSANDRA_PASSWORD = os.getenv('CASSANDRA_PASSWORD','')
-CASSANDRA_TTL = int(os.getenv('CASSANDRA_TTL', 60*60*24*31*2)) # Default TTL : 2 months
+CASSANDRA_TTL = int(os.getenv('CASSANDRA_TTL', 60*60*24*31*3)) # Default TTL : 3 months
 if int(CASSANDRA_TTL) < (60*60*24*10):
     raise Exception("TTL too short, minimum valid TTL is 2 weeks")
 # Split contact points

@@ -229,7 +229,7 @@ def day_migration(day, limit, conf, stores):
 
 
 if __name__ == '__main__':
-    logger.info("Starting Migration script (AWS Geoprice KS -> GCP GeoPrice KS)")
+    logger.info("Starting Migration script (AWS Geoprice KS -> Athena)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
     # Retrieve products from Geolocation
