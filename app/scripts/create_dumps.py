@@ -267,7 +267,7 @@ def start():
         total_items = g._catalogue.get_by_source(src, ['item_uuid', 'gtin'])
         logger.info(len(total_items))
         total_products = g._catalogue.get_product_details(
-            [_ti['item_uuid'] for _ti in total_items],
+            [_ti['item_uuid'] for _ti in total_items if _ti['item_uuid']],
             cols=['item_uuid', 'gtin'],
             loop_size=50
         )
@@ -279,4 +279,4 @@ def start():
         dframe = pd.DataFrame(stats)
         df_to_s3(dframe, src)
         df_to_s3_historic(dframe, src)
-        #dframe.to_csv(DATA_DIR+src+"_stats_aggregate.csv", encoding="utf-8")
+    logger.info("Finished creating dumps!")

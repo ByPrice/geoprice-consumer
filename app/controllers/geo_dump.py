@@ -55,15 +55,14 @@ def dump_download():
         logger.error("File not found: {}".format(fname))
         raise errors.AppError("no_file","File does not exist",4008)
 
-    # Get all retailers from geo
-    logger.info("Requesting all retailers")
-    total_rets = g._geolocation.get_retailers()
-    retailer_names = { r['key'] : r['name'] for r in total_rets }
-
     # Get the requested retailers
     if rets:
         retailers = rets.split(",")
     else:
+        # Get all retailers from geo
+        logger.info("Requesting all retailers")
+        total_rets = g._geolocation.get_retailers()
+        retailer_names = { r['key'] : r['name'] for r in total_rets }
         retailers = retailer_names.keys()
 
     # Adjust dataframe
