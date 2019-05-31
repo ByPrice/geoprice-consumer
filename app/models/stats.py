@@ -1,21 +1,16 @@
-import datetime
 from uuid import UUID
 from io import StringIO
-import math
-import json
+
 import itertools
-from collections import OrderedDict
 from collections import defaultdict
 from flask import g
-import pandas as pd
-import numpy as np
-import requests
-from app import errors, logger
-from config import *
+from app import errors
 from app.models.item import Item
 from app.utils.helpers import *
+from app.models.task import Task
 
-dd=lambda:defaultdict(dd)
+
+dd = lambda: defaultdict(dd)
 
 def dd_to_dict(dd):
     if isinstance(dd, defaultdict):
@@ -229,7 +224,7 @@ class Stats(object):
         return df
 
     @staticmethod
-    def get_actual_by_ret(params):
+    def get_actual_by_retailer_task(task_id, params):
         """ Retrieve current prices given a set of filters
             and sources to query from.
 
@@ -244,17 +239,25 @@ class Stats(object):
             formatted : list
                 List of formatted values
         """
+        if not params['filters']:
+            raise errors.TaskError("Not filters requested!")
+        params = params['filters']
         logger.info('Entered Current by Retailer..')
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Retailers from service
         rets = Stats.fetch_rets(params)
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
+            raise errors.TaskError("No retailers found.")
         # Items from service
         filt_items = Stats.fetch_from_catalogue(params, rets)
+        task.progress = 10
         if not filt_items:
             logger.warning("No Products found!")
-            return []
+            raise errors.TaskError("No products found")
         logger.info("Got filtered items..")
         _now = datetime.datetime.utcnow()
         # Products query
@@ -268,6 +271,7 @@ class Stats(object):
         df_curr.rename(columns={'avg_price':'avg',
             'max_price':'max', 'min_price': 'min',
             'mode_price': 'mode'}, inplace=True)
+        task.progress = 35
         df_prev = Stats\
             .get_cassandra_by_ret(filt_items,
                 rets,
@@ -275,11 +279,12 @@ class Stats(object):
                 _now - datetime.timedelta(days=2)])\
                 .sort_values(by=['date'], ascending=False)\
             .drop_duplicates(subset=['product_uuid'], keep='first') # yesterday
+        task.progress = 50
         # If queried lists empty
         if df_curr.empty:
             # Return empty set
             logger.warning('Empty set from query...')
-            return []
+            raise errors.TaskError("Empty set from query...")
         if df_prev.empty:
             # Create a  copy of previous and set everything to zero
             df_prev = df_curr.copy()\
@@ -298,6 +303,7 @@ class Stats(object):
                 "max_price": "prev_max",
                 "mode_price": "prev_mode"
                 }, inplace=True)
+        task.progress = 60
         # Add product attributes to Current prices DF
         info_df = pd.DataFrame(filt_items,
             columns=['item_uuid', 'product_uuid',
@@ -316,6 +322,7 @@ class Stats(object):
         df = df[~(df['item_uuid'].isnull()) & 
             (df['item_uuid'] != '')]
         formatted = []
+        task.progress = 65
         for i, prdf in df.groupby(by=['item_uuid']):
             _first = prdf[:1].reset_index()
             tmp = {
@@ -341,7 +348,8 @@ class Stats(object):
                 })
             formatted.append(tmp)
         logger.info('Got actual!!')
-        return formatted
+        task.progress = 100
+        return {"data": formatted, "msg": "Task completed"}
 
     @staticmethod
     def add_empty_interval(intd, date_groups, rets, params):

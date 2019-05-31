@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify, request, Response
 from app.models.stats import Stats
 from app import errors, logger
-import datetime
+from app.models.task import asynchronize
 
 mod = Blueprint('stats', __name__)
 
@@ -59,36 +59,34 @@ def market_file(prod):
                      "attachment; filename=mercados.csv"})
 
 
-@mod.route('/current/submit', methods=['POST'])
+@mod.route('/retailer/current/submit', methods=['POST'])
+@asynchronize(Stats.get_actual_by_retailer_task)
 def get_current():
     """
         Controller to get item avg prices by filters
-
         {
-        "filters" : [
-            { "category" : "9406" },
-            { "retailer" : "superama" },
-            { "retailer" : "ims" },
-            { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }
-        ],
-        "export":true
+            "filters": [
+                {"item":"98440d28-64be-4994-8244-2b2aa57b0c1a"},
+                {"item":"56e67b35-d27e-4cac-9e91-533e0578b59c"},
+                {"item":"3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
+                {"item":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                {"retailer":"san_pablo"},
+                {"retailer":"chedraui"},
+                {"retailer":"walmart"},
+                {"retailer":"superama"}
+            ],
+            "export":false
         }
-
-        # TODO: Make it work async, but without `export`
     """
-    logger.debug("Fetching needed filters...")
-    filters = request.get_json()
-    if not filters['filters']:
-        raise errors.AppError(10000, "Not filters requested!")
-    prod = Stats.get_actual_by_ret(filters['filters'])
-    if 'export' in filters:
-        if filters['export']:
-            return actual_file(prod)
-    return jsonfier(prod)
+    logger.info("Fetching counts by store")
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })
 
 
 @mod.route('/compare', methods=['POST'])
-
 def compare():
     """
         Controller to get item avg prices by filters compared to all others
@@ -120,7 +118,6 @@ def compare():
 
 
 @mod.route('/direct_compare', methods=['POST'])
-
 def direct_compare():
     """
         Controller to get price average of all products inside a category and count

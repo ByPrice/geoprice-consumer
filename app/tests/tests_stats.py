@@ -88,7 +88,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         print("Result keys: {} ".format(list(task.result.keys())))
         self.assertEqual(prog, 100)
 
-    @unittest.skip('TODO')
+
     def test_02_retailer_current_submit(self):
         """ Test /stats/current/submit endpoint
         """
