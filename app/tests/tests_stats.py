@@ -124,10 +124,11 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         progress = task.status['progress']
         print("Final progress: {}".format(progress))
 
+        self.assertEqual(progress, 100)
         self.assertIn('metrics', task.result['data'])
         self.assertNotIn('error', task.result['data'])
 
-    @unittest.skip('TODO')
+    #@unittest.skip('TODO')
     def test_04_stats_category(self):
         """ Test /stats/category endpoint
         """
@@ -141,29 +142,27 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
                 {"item": "3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
                 {"item": "decd74df-6a9d-4614-a0e3-e02fe13d1542"},
                 {"item": "62ec9ad5-2c26-483e-8413-83499d5eef04"},
-                {"retailer": "san_pablo"},
-                {"retailer": "comercial_mexicana"},
-                {"retailer": "farmatodo"},
                 {"retailer": "f_ahorro"},
-                {"retailer": "soriana"},
-                {"retailer": "superama"},
-                {"retailer": "la_comer"},
-                {"retailer": "walmart"}
+                {"retailer": "la_comer"}
             ]
         }
-        _res = self.app.post('/stats/category',
-                             data=json.dumps(params),
-                             headers={'content-type': 'application/json'}
-                             )
-        try:
-            _jr = json.loads(_res.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_res.status_code, 200)
 
-        self.assertNotIn('error', _jr)
-        self.assertIn('name', _jr[0])
+        celery_task = main_task.apply_async(args=(Stats.get_count_by_cat, params))
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            time.sleep(1)
+            print(task.task_id, task.progress, task.status['stage'])
+
+        progress = task.status['progress']
+        print("Final progress: {}".format(progress))
+        self.assertEqual(progress, 100)
+        self.assertIn('name', task.result['data'][0])
 
     #@unittest.skip('TODO')
     def test_05_stats_direct_compare(self):
@@ -208,6 +207,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         progress = task.status['progress']
         print("Final progress: {}".format(progress))
         print(task.result)
+        self.assertEqual(progress, 100)
         self.assertNotIn('error', task.result)
         self.assertIn('items', task.result['data'])
 

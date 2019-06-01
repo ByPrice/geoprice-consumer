@@ -184,7 +184,8 @@ def get_actual():
     })
 
 
-@mod.route('/category', methods=["POST"])
+@mod.route('/retailer/category/submit', methods=["POST"])
+@asynchronize(Stats.get_count_by_cat)
 def get_category_count():
     """
         Controller to get price average of all products inside a category and count
@@ -200,13 +201,10 @@ def get_category_count():
                 {"retailer": "la_comer"}
             ]
         }
-        # TODO: Make it work async
     """
-    logger.debug("Fetching category counts...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(10010, "No parameters passed!")
-    if 'filters' not in params:
-        raise errors.AppError(10011, "No filters param passed!")
-    cat_count = Stats.get_count_by_cat(params['filters'])
-    return jsonfier(cat_count)
+    logger.debug("Fetching needed by filters...")
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })

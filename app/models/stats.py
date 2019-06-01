@@ -809,7 +809,7 @@ class Stats(object):
         return {"data": result, "msg": "Task completed"}
 
     @staticmethod 
-    def get_count_by_cat(filters):
+    def get_count_by_cat(task_id, params):
         """ Retrieve all the count of the 
             elements in a categ  (given the 
             list of items).
@@ -824,36 +824,51 @@ class Stats(object):
             ccat : list
                 List of Retailers with Category stats
         """
+        if not params:
+            raise errors.TaskError("No parameters passed!")
+        if 'filters' not in params:
+            raise errors.TaskError("No filters param passed!")
+        if not ['filters']:
+            raise errors.TaskError("No filters param passed!")
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
+        params = params['filters']
         logger.debug("Retrieving stats by Retailer by given categ..")
         # Retailers from service
-        rets = Stats.fetch_rets(filters)
+        rets = Stats.fetch_rets(params)
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
+            raise errors.TaskError("No retailers found.")
+        task.progress = 10
         # Map item and item_uuid as products keys
-        items = [{'item_uuid': iu['item']} for iu in filters if 'item' in iu ]
-        filters += items
+        items = [{'item_uuid': iu['item']} for iu in params if 'item' in iu]
+        params += items
         # Products from service
         filt_items = Stats\
-            .fetch_from_catalogue(filters, rets)
+            .fetch_from_catalogue(params, rets)
+        task.progress = 30
         if not filt_items:
             logger.warning("No Products found!")
-            return []
+            raise errors.TaskError("No Products found!")
         # Set dates and retrieve info
         _dates = [datetime.datetime.utcnow()]
         _dates.append(_dates[0] - datetime.timedelta(days=1))
         df = Stats\
             .get_cassandra_by_ret(filt_items,
                 rets, _dates)
+        task.progress = 50
         if df.empty:
             logger.warning('No prices found!')
-            return []
+            raise errors.TaskError("No prices found!")
         # Products DF 
         info_df = pd.DataFrame(filt_items,
             columns=['item_uuid', 'product_uuid',
                 'name', 'gtin', 'source'])
         df = pd.merge(df, info_df,
             on='product_uuid', how='left')
+        task.progress = 70
         ### TODO:
         # Add rows with unmatched products!
         non_matched = df[df['item_uuid'].isnull() | 
@@ -861,6 +876,7 @@ class Stats(object):
         # Format only products with matched results
         df = df[~(df['item_uuid'].isnull()) & 
             (df['item_uuid'] != '')]
+        task.progress = 75
         # Perform aggregates
         ccat, counter, digs = [], 1, 1
         for i,row in df.groupby('source'):
@@ -883,10 +899,12 @@ class Stats(object):
             # Save biggest number of digits 
             digs = digs if digs > len(str(prod_count)) else len(str(prod_count))
         # Scaling x for plot upon the number of digits
+        task.progress = 95
         for i,xc in enumerate(ccat):
             ccat[i]['x'] = xc['x']*(10**(digs))    
         logger.info('Got Category counts')
-        return ccat
+        task.progress = 100
+        return {"data": ccat, "msg": "Task completed"}
 
 
     @staticmethod
