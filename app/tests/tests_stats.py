@@ -123,10 +123,9 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
 
         progress = task.status['progress']
         print("Final progress: {}".format(progress))
-
+        print(task.result)
         self.assertEqual(progress, 100)
         self.assertIn('metrics', task.result['data'])
-        self.assertNotIn('error', task.result['data'])
 
     #@unittest.skip('TODO')
     def test_04_stats_category(self):

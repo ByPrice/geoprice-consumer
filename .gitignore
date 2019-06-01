@@ -3,6 +3,7 @@ env/
 __pycache__/
 *.pyc
 .vscode/
+.idea/
 Dockerfile.local
 *.log
 *.local
