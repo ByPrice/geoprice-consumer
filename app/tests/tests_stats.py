@@ -49,7 +49,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         # Dropping flask ctx
         self.ctx.pop()
 
-    # @unittest.skip('TODO')
+    #@unittest.skip('TODO')
     def test_01_retailer_current_submit(self):
         """ Test /stats/current/submit endpoint
         """
@@ -160,7 +160,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', _jr)
         self.assertIn('name', _jr[0])
 
-    @unittest.skip('TODO')
+    #@unittest.skip('TODO')
     def test_05_stats_direct_compare(self):
         """ Test /stats/direct_compare endpoint
         """
@@ -169,7 +169,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         # Filters for the task
         params = {
             "client": " ",
-            "export": True,
+            "export": False,
             "filters": [
                 {
                     "retailer": "san_pablo"
@@ -188,19 +188,23 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
             "ends": False,
             "interval": "day"
         }
-        _res = self.app.post('/stats/direct_compare',
-                             data=json.dumps(params),
-                             headers={'content-type': 'application/json'}
-                             )
-        try:
-            _jr = json.loads(_res.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_res.status_code, 200)
+        celery_task = main_task.apply_async(args=(Stats.get_matched_items_task, params))
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        task = Task(celery_task.id)
+        print('Created task instance!')
 
-        self.assertNotIn('error', _jr)
-        self.assertIn('items', _jr)
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            time.sleep(1)
+            print(task.task_id, task.progress, task.status['stage'])
+
+        progress = task.status['progress']
+        print("Final progress: {}".format(progress))
+        print(task.result)
+        self.assertNotIn('error', task.result)
+        self.assertIn('items', task.result['data'])
 
     #@unittest.skip('TODO')
     def test_06_stats_compare(self):

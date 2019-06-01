@@ -1027,6 +1027,12 @@ class Stats(object):
             raise errors.TaskError("No parameters passed!")
         if 'filters' not in params:
             raise errors.TaskError("No filters param passed!")
+        if not ['filters']:
+            raise errors.TaskError("No filters param passed!")
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
 
         items = [{'item_uuid': iu['item']} for iu in params['filters'] if 'item' in iu]
         rets = Stats.fetch_rets(params)
@@ -1039,10 +1045,11 @@ class Stats(object):
         logger.debug('Got grouping dates')
         # Query over all range
         range_dates = [date_groups[0][0], date_groups[-1][-1]]
-        qres = Stats.get_cassandra_by_ret(
+        qres = Stats.get_cassandra_by_retailers_and_period(
             filt_items,
             rets,
             range_dates)  # today
+        task.progress = 10
         if len(qres) == 0:
             logger.warning('No prices found!')
             raise errors.TaskError("No prices found!")
@@ -1050,6 +1057,7 @@ class Stats(object):
         prods_by_uuids = {p['product_uuid']: p for p in filt_items}
         df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['item_uuid'])
         df['retailer'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['source'])
+        task.progress = 15
         # For every item, check availability in every retaliers
         # If not, delete from set
         filtered = []
@@ -1071,7 +1079,7 @@ class Stats(object):
 
         if rejected:
             df_new = df[~df['item_uuid'].isin(rejected)]
-
+        task.progress = 50
         # logger.debug(df.head())
         ccat, counter, digs = [], 1, 1
         data = {}
@@ -1100,10 +1108,12 @@ class Stats(object):
             counter += 1
 
         logger.info('Got Category counts')
-
-        return {
+        task.progress = 100
+        result = {
             "graph": ccat,
             "items": list(set([str(iu) for iu in list(df_new['item_uuid'])])),
             "data": dd_to_dict(prices_per_retailer)
         }
+
+        return {"data": result, "msg": "Task completed"}
 
