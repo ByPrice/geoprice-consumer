@@ -86,38 +86,39 @@ def get_current():
     })
 
 
-@mod.route('/compare', methods=['POST'])
+@mod.route('/retailer/compare/submit', methods=['POST'])
+@asynchronize(Stats.get_comparison_task)
 def compare():
     """
         Controller to get item avg prices by filters compared to all others
         {
-            "client": "walmart",
-            "date_start" : "2017-08-08",
-            "date_end" : "2017-08-10",
-            "filters" : [
-                { "category" : "9406" },
-                { "retailer" : "superama" },
-                { "retailer" : "ims" },
-                { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }
+            "client": " ",
+            "export": true,
+            "filters": [
+                {"retailer": "san_pablo"},
+                {"retailer": "soriana"},
+                {"item": "98440d28-64be-4994-8244-2b2aa57b0c1a"},
+                {"item": "56e67b35-d27e-4cac-9e91-533e0578b59c"},
+                {"item": "3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
+                {"item": "decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                {"item": "62ec9ad5-2c26-483e-8413-83499d5eef04"}
             ],
-            "ends": true,
-            interval: "day",
-            "export": true
+            "date_start": "2019-05-30",
+            "date_end": "2019-06-05",
+            "ends": false,
+            "interval": "day"
         }
-        # TODO: Make it work async, but without `export`
     """
-    logger.debug("Fetching needed by filters...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(10000, "Not filters requested!")
-    prod = Stats.get_comparison(params)
-    if 'export' in params:
-        if params['export']:
-            return market_file(prod)
-    return jsonfier(prod)
+    logger.info("Fetching counts by store")
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })
 
 
 @mod.route('/direct_compare', methods=['POST'])
+@asynchronize(Stats.get_matched_items_task)
 def direct_compare():
     """
         Controller to get price average of all products inside a category and count
@@ -130,16 +131,11 @@ def direct_compare():
         # TODO: Make it work async, but without `export`
     """
     logger.debug("Direct compare data...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(10010, "No parameters passed!")
-    if 'filters' not in params:
-        raise errors.AppError(10011, "No filters param passed!")
-
-    logger.info("Filters: {}".format(params['filters']))
-    cat_count = Stats.get_matched_items(params)
-    print(cat_count)
-    return jsonfier(cat_count)
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })
 
 
 @mod.route('/history', methods=['POST'])

@@ -1,6 +1,7 @@
 from uuid import UUID
 from io import StringIO
-
+import json
+import datetime
 import itertools
 from collections import defaultdict
 from flask import g
@@ -11,6 +12,15 @@ from app.models.task import Task
 
 
 dd = lambda: defaultdict(dd)
+
+
+def datetime_converter(o):
+    if isinstance(o, datetime.datetime):
+        return o.date().__str__()
+
+
+def jsonify(dict_):
+    return json.loads(json.dumps(dict_, default=datetime_converter))
 
 def dd_to_dict(dd):
     if isinstance(dd, defaultdict):
@@ -334,7 +344,8 @@ class Stats(object):
             for j, row in prdf.iterrows():
                 _r = row.to_dict()
                 del _r['source']
-                del _r['date']
+                del _r['date_x']
+                del _r['date_y']
                 tmp['prices'].update({
                     row['source']: _r
                 })
@@ -425,7 +436,7 @@ class Stats(object):
         return tmp2
 
     @staticmethod
-    def get_comparison(params):
+    def get_comparison_task(task_id, params):
         """ Retrieve current prices given a set 
             of filters and sources to compare them 
             against a fixed source
@@ -441,27 +452,38 @@ class Stats(object):
             formatted : list
                 List of formatted values
         """
+        if not params:
+            raise errors.TaskError("Not params requested!")
+        if not params['filters']:
+            raise errors.TaskError("Not filters requested!")
         logger.debug("Entered to Compare by period...")
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
+
         # Retailers from service
         rets = Stats.fetch_rets(params['filters'])
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
+            raise errors.TaskError("No retailers found.")
         # Products from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
-            return []
+            raise errors.TaskError("No Products found!")
+        task.progress = 20
         # Date Grouping
         date_groups = grouping_periods(params)
         logger.info('Found grouped dates')
         # Retrieve prices from
-        df = Stats.get_cassandra_by_ret(filt_items,
+        df = Stats.get_cassandra_by_retailers_and_period(filt_items,
             rets, [date_groups[0][0], date_groups[-1][-1]])
+        task.progress = 60
         if df.empty:
             logger.warning('Empty set from query...')
-            return []
+            raise errors.TaskError("Empty set from query...")
         # Parse datapoint date
         df['date'] = df['date'].apply(get_datetime())
         df['day'] = df['date'].apply(lambda x: x.day)
@@ -471,10 +493,12 @@ class Stats(object):
         grouping_cols = {'day': ['year', 'month', 'day'],
                          'month': ['year', 'month'],
                          'week': ['year', 'week']}
+        task.progress = 65
         # Obtain all total amount of intervals
         interval_to_have = []
         for ii, row_df in df.groupby(grouping_cols[params['interval']]):
             interval_to_have.append(ii)
+        task.progress = 75
         # Set Products DF
         info_df = pd.DataFrame(filt_items,
             columns=['item_uuid', 'product_uuid',
@@ -490,8 +514,15 @@ class Stats(object):
         df = df[~(df['item_uuid'].isnull()) & 
             (df['item_uuid'] != '')]
         # Group by item and them depending on Date Range
+        task.progress = 85
+
         interv_list = []
-        for i, tdf in df.groupby('item_uuid'):
+        item_uuid_groupby = df.groupby('item_uuid')
+        loops_total = len(item_uuid_groupby)
+        block_weight_total = 15
+        delta = block_weight_total / loops_total
+        block_progress = 0
+        for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
             tmp = {'item_uuid': i,
                     'name': tdf['name'][0],
@@ -585,7 +616,11 @@ class Stats(object):
                     tmp['intervals'].append(tmp2)
                     en += 1
             interv_list.append(tmp)
-        return interv_list
+            block_progress += delta
+            #task.progress = 85 + int(block_progress)
+        task.progress = 100
+        interv_list = jsonify(interv_list)
+        return {"data": interv_list, "msg": "Task completed"}
 
     @staticmethod
     def convert_csv_actual(prod):
@@ -977,7 +1012,7 @@ class Stats(object):
 
 
     @staticmethod
-    def get_matched_items(params):
+    def get_matched_items_task(task_id, params):
         """
             Method to get all the count of the elements in a categ (given the list of items of it)
             Params:
@@ -988,13 +1023,18 @@ class Stats(object):
                 { x: 1, y: 180.7, z: 200, name: 'Superama',retailer: 'Superama' }
             ]
         """
+        if not params:
+            raise errors.TaskError("No parameters passed!")
+        if 'filters' not in params:
+            raise errors.TaskError("No filters param passed!")
+
         items = [{'item_uuid': iu['item']} for iu in params['filters'] if 'item' in iu]
         rets = Stats.fetch_rets(params)
         filt_items = Stats \
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
-            return []
+            raise errors.TaskError("No Products found!")
         date_groups = grouping_periods(params)
         logger.debug('Got grouping dates')
         # Query over all range
@@ -1005,7 +1045,7 @@ class Stats(object):
             range_dates)  # today
         if len(qres) == 0:
             logger.warning('No prices found!')
-            return []
+            raise errors.TaskError("No prices found!")
         df = pd.DataFrame(qres)
         prods_by_uuids = {p['product_uuid']: p for p in filt_items}
         df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['item_uuid'])
