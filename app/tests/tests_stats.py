@@ -87,7 +87,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', task.result['data'])
         self.assertIsInstance(task.result['data'], list)
 
-    @unittest.skip('TODO')
+    #@unittest.skip('TODO')
     def test_03_stats_history(self):
         """ Test /stats/history endpoint
         """
@@ -109,18 +109,23 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
             "date_end": "2019-06-30",
             "interval": "day"
         }
-        _res = self.app.post('/stats/history',
-                             data=json.dumps(params),
-                             headers={'content-type': 'application/json'}
-                             )
-        try:
-            _jr = json.loads(_res.data.decode('utf-8'))
-            print(_jr)
-        except:
-            pass
-        self.assertEqual(_res.status_code, 200)
-        self.assertIn('metrics', _jr)
-        self.assertNotIn('error', _jr)
+        celery_task = main_task.apply_async(args=(Stats.get_historics, params))
+        print("Submitted Task: ", celery_task.id)
+        # Get the task from the celery task
+        task = Task(celery_task.id)
+        print('Created task instance!')
+
+        # Check result of task
+        while task.is_running():
+            print("Waiting for task to finish")
+            time.sleep(1)
+            print(task.task_id, task.progress, task.status['stage'])
+
+        progress = task.status['progress']
+        print("Final progress: {}".format(progress))
+
+        self.assertIn('metrics', task.result['data'])
+        self.assertNotIn('error', task.result['data'])
 
     @unittest.skip('TODO')
     def test_04_stats_category(self):

@@ -153,42 +153,35 @@ def direct_compare():
     })
 
 
-@mod.route('/history', methods=['POST'])
+@mod.route('/retailer/history/submit', methods=['POST'])
+@asynchronize(Stats.get_historics)
 def get_actual():
     """
         Controller to get item avg prices by filters for charts rendering
 
         {
-            "date_start" : "2017-08-08",
-            "date_end" : "2017-08-10",
-            "filters" : [
-                { "category" : "9406" },
-                { "retailer" : "superama" },
-                { "retailer" : "ims" },
-                { "item" : "08cdcbaf-0101-440f-aab3-533e042afdc7" }
+            "filters":
+            [
+                {"product":"3c9beac2-a944-4f05-871c-7cee6afd47d6"},
+                {"item": "930d055d-d781-40bd-8f9c-93e9722046bd"},
+                {"retailer":"superama"},
+                {"retailer":"walmart"},
+                {"retailer":"san_pablo"},
+                {"retailer":"chedraui"}
             ],
-            interval: "day",
-            "export": true
+            "client": "chedraui",
+            "date_start" : "2019-05-27",
+            "date_end" : "2019-06-30",
+            "interval" : "day"
         }
-        # TODO: Make it work async, but without `export`
     """
-    # Set Python datetime to JS timetamp
-    """
-    dt = tuple(int(x) if i!= 1 else int(x)+1\
-        for i,x in enumerate(d.isoformat().split('-')))+(0,0)
-    d_js = datetime.datetime(*dt)
-    ts_js = (d_js - datetime.datetime(1970, 1, 1,0,0))\
-            datetime.timedelta(seconds=1)*1000
-    """
+
     logger.debug("Fetching needed by filters...")
-    params = request.get_json()
-    if not params:
-        raise errors.AppError(10000, "Not filters requested!")
-    prod = Stats.get_historics(params)
-    if 'export' in params:
-        if params['export']:
-            return market_file(prod)
-    return jsonfier(prod)
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })
 
 
 @mod.route('/category', methods=["POST"])

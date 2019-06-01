@@ -670,7 +670,7 @@ class Stats(object):
         return _buffer
 
     @staticmethod
-    def get_historics(params):
+    def get_historics(task_id, params):
         """ Retrieve historic prices given a set 
             of filters and sources to compare them 
             against a fixed source
@@ -686,28 +686,42 @@ class Stats(object):
             formatted : list
                 List of formatted values
         """
+        if not params:
+            raise errors.TaskError("No parameters passed!")
+        if 'filters' not in params:
+            raise errors.TaskError("No filters param passed!")
+        if not ['filters']:
+            raise errors.TaskError("No filters param passed!")
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         logger.debug("Entered to extract Historic by period...")
         # Retailers from service
         rets = Stats.fetch_rets(params['filters'])
         if not rets:
-            raise errors.AppError(80011,
-                "No retailers found.")
+            raise errors.TaskError("No retailers found.")
+        task.progress = 10
         # Products from service
         filt_items = Stats\
             .fetch_from_catalogue(params['filters'], rets)
         if not filt_items:
             logger.warning("No Products found!")
-            return []
+            raise errors.TaskError("No Products found!")
+        task.progress = 20
         # Date Grouping with not only ends
         params.update({'ends': False})
         date_groups = grouping_periods(params)
         logger.debug('Got grouping dates')
         # Query over all range
         range_dates = [date_groups[0][0],date_groups[-1][-1]]
+        task.progress = 30
         df = Stats.get_cassandra_by_retailers_and_period(
             filt_items, rets, range_dates)
         if df.empty:
-            return []
+            raise errors.TaskError("No Prices found!")
+        task.progress = 40
         # Products DF 
         info_df = pd.DataFrame(filt_items,
             columns=['item_uuid', 'product_uuid',
@@ -720,11 +734,13 @@ class Stats(object):
         df['month'] = df['date'].apply(lambda x : x.month)
         df['year'] = df['date'].apply(lambda x : x.year)
         df['week'] = df['date'].apply(lambda x : x.isocalendar()[1])
+        task.progress = 50
         grouping_cols = {'day':['year','month','day'],
                         'month':['year','month'],
                         'week': ['year','week']}
         df_n = pd.merge(df, info_df,
             on='product_uuid', how='left')
+        task.progress = 60
         ### TODO:
         # Add rows with unmatched products!
         # Review the use of the variables: non_matched and df
@@ -752,6 +768,7 @@ class Stats(object):
                 df_t['max_price'].mean(),
                 df_t['avg_price'].mean()
             ])
+        task.progress = 80
         logger.info('Got Metrics...')
         # --- Compute for Retailers
         retailers = []
@@ -775,19 +792,21 @@ class Stats(object):
             + ', '.join([' '.join([rsp[0].upper() + rsp[1:] \
                                     for rsp in rt.split('_')]) \
                         for rt in rets]) + '.'
-        return {
-                'title': 'Tendencia de Precios',
-                'subtitle': '<b>Periodo</b>: {} - {} <br> {}'\
-                    .format(range_dates[0].isoformat(),
-                            range_dates[1].isoformat(),
-                            sub_str),
-                'metrics': {
-                    'avg':avg_l,
-                    'min':min_l,
-                    'max':max_l
-                },
-                'retailers': retailers
-                }
+        result = {
+            'title': 'Tendencia de Precios',
+            'subtitle': '<b>Periodo</b>: {} - {} <br> {}'.format(
+                range_dates[0].isoformat(),
+                range_dates[1].isoformat(),
+                sub_str),
+            'metrics': {
+                'avg': avg_l,
+                'min': min_l,
+                'max': max_l
+            },
+            'retailers': retailers
+            }
+        task.progress = 100
+        return {"data": result, "msg": "Task completed"}
 
     @staticmethod 
     def get_count_by_cat(filters):
