@@ -69,7 +69,6 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         print(_res.status_code)
         print(_res.data)
     
-    @unittest.skip("TO DO ")
     def test_02_geo_dump_root_path(self):
         """ Test price Geo Dump Root path
         """
@@ -200,6 +199,22 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         try:
             _jr = json.loads(_res.data.decode('utf-8'))
             print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
+    
+    def test_07_geo_dump_download_method(self):
+        """ Test Geo Download Method
+        """
+        print(">>>>>", "Test Geo Download Method")
+        retailers = "walmart,san_pablo"
+        dsource = 'ims'
+        _res = self.app.get('/geo/dump/download?data_source={}&retailers={}'\
+                .format(dsource, retailers )
+        )
+        try:
+            _jr = _res.data.decode('utf-8')
+            print(_jr[:100])
         except:
             pass
         self.assertEqual(_res.status_code, 200)

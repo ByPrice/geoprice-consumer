@@ -282,6 +282,46 @@ def compare_retailer_item():
         'task_id' : request.async_id
     })
 
+@mod.route('/compare/stores/submit', methods=['POST'])
+@asynchronize(Product.start_compare_stores_task)
+def compare_stores_item():
+    """
+        Compare prices from a fixed pair retailer-stores
+        
+        @Request:
+        {
+            "date": "2017-11-01",
+            "fixed_segment" : {
+                "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                "retailer": "chedraui"
+                },
+            "added_segments": [
+                { 
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "walmart"
+                },
+                {
+                    "item_uuid": "ffea803e-1aba-413c-82b2-f18455bc5f83",
+                    "retailer": "soriana"
+                }
+            ],
+            "territory": [
+                "17128984-7ace-11e7-9b9f-0242ac110003", 
+                "197591da-7ace-11e7-9b9f-0242ac110003"
+            ]
+        }
+
+        @Returns:
+         - (flask.Response) JSONified response
+    """
+    logger.info("Submited History Product Compare Stores task...")
+    return jsonify({
+        'status': 'ok', 
+        'module': 'history_product',
+        'task_id' : request.async_id
+    })
+
+
 @mod.route('/compare/history/submit', methods=['POST'])
 @asynchronize(Product.compare_store_item_task)
 def counmpare_hist():
