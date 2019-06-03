@@ -8,6 +8,7 @@ import math
 from ByHelpers import applogger
 import warnings
 from uuid import UUID
+import pandas as pd
 
 # Database connection:  db.session
 logger = applogger.get_logger()
@@ -648,3 +649,50 @@ class Price(object):
                         continue
         logger.info("Returning C* prices")
         return result     
+
+    @staticmethod
+    def get_by_store(st_uuid, hours):
+        """ Get prices from a given store
+            from the past X hours.
+            
+            Params:
+            -----
+            st_uuid : str
+                Store UUID
+            hours : int
+                Past hours to consult
+            
+            Returns:
+            -----
+            list:
+                Unique prices
+        """ 
+        now = datetime.datetime.utcnow()
+        then = _date = now - datetime.timedelta(hours=abs(hours))
+        logger.debug("Getting prices from {}".format(then))
+        _prices = []
+        # Query all prices
+        while _date.date() <= now.date():
+            rows = g._db.query("""SELECT product_uuid,
+                        store_uuid, price, time,
+                        price_original, promo
+                    FROM price_by_store
+                    WHERE store_uuid = %s
+                    AND date = %s """,
+                    (UUID(st_uuid), int(_date.strftime("%Y%m%d")) )
+            )
+            if rows:
+                _prices += rows
+            # add to date 
+            _date += datetime.timedelta(days=1)
+        if not _prices:
+            logger.warning("Not prices found!")
+            return []
+        # Remove duplicated prices
+        _df = pd.DataFrame(_prices)\
+                .sort_values('time', ascending=False)\
+                .drop_duplicates(['product_uuid', 'store_uuid'])
+        # Cast UUIDs
+        _df['product_uuid'] = _df.product_uuid.astype(str)
+        _df['store_uuid'] = _df.store_uuid.astype(str)
+        return _df.to_dict(orient='records')
