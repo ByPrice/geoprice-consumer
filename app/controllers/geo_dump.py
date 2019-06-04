@@ -8,7 +8,6 @@ from config import *
 import requests
 import pandas as pd
 import numpy as np
-from pandas import DataFrame, Series
 import os.path
 import datetime
 import json
@@ -94,11 +93,11 @@ def dump_download():
 def dump_catalogue():
     """ Get the entire catalogue of a retailer and download it
     """
-    logger.info("Start retreiving catalogue")
+    logger.info("Start retrieving catalogue")
     retailer = request.args.get("retailer", None)
     retailer_name = request.args.get("retailer_name",retailer)
     store_uuid = request.args.get("store_uuid",None)
-    store_name = request.args.get("store_name","Default")
+    store_name = request.args.get("store_name", "Default")
     fmt = request.args.get("fmt","csv")
     data_source = request.args.get("data_source",None)
     
@@ -112,24 +111,31 @@ def dump_catalogue():
         extras =[]
 
     # If not retailer or store, raise app error
-    if not retailer or not store_uuid:
-        raise errors.AppError("dump_error","Missing parameters in request")
+    if not retailer and not store_uuid:
+        raise errors.AppError("dump_error",
+            "Missing parameters in request")
 
     # Get all the items
     logger.debug("Getting total items from {}".format(data_source))
-    items = Item.get_total_items(
+    items = g._catalogue.get_by_source(
         data_source=data_source, 
-        extras=extras
+        cols=extras+['item_uuid'],
+        qsize=2000
     )
-    _uuids = {i['item_uuid'] : i for i in items}
+    items_ret = g._catalogue.get_by_source(
+        data_source=retailer, 
+        cols=extras+['item_uuid', 'gtin'],
+        qsize=2000
+    )
+    _uuids = set(i['item_uuid'] for i in items)
+    _uuids_ret = {i['product_uuid'] : i for i in items_ret}
 
     # Get all the prices of the retailer
     logger.debug("Got {} total items".format(len(items)))
-    logger.debug("Getting prices from C* form the las {} hours".format(hours))
+    logger.debug("Getting prices from C* form the last {} hours".format(hours))
     catalogue = Price.get_by_store(
-        retailer=retailer, 
-        store_uuid=store_uuid, 
-        hours=hours
+        store_uuid, 
+        hours
     )
 
     # Only the items that are permitted
@@ -138,27 +144,30 @@ def dump_catalogue():
     logger.debug("Looping through catalogue")
     for c in catalogue:
         try:
-            tmp = _uuids[c['item_uuid']]
+            tmp = _uuids_ret[c['product_uuid']]
+            # Filter to not return products from outside the data source
+            if tmp['item_uuid'] not in _uuids:
+                continue
+            # Format
             ord_d = OrderedDict([
-                ("gtin" , _uuids[c['item_uuid']]['gtin']),
-                ("name" , _uuids[c['item_uuid']]['name']),
+                ("gtin" , tmp['gtin']),
+                ("name" , tmp['name']),
                 ("price" , c['price']),
                 ("price_original" , c['price_original']),
                 ("discount" , (c['price']-c['price_original'])),
                 ("promo" , c['promo']),
                 ("retailer" , retailer_name),
-                ("store" , store_name),
-                ("name" , _uuids[c['item_uuid']]['name']),
+                ("store" , store_name)
             ])
             for ex in extras:
-                ord_d.update([(ex, _uuids[c['item_uuid']][ex] )])
+                ord_d.update([(ex, tmp[ex] )])
             valid.append(ord_d)
-        except:
-            pass
+        except Exception as e:
+            logger.error(e)
     
     # Build dataframe
-    df = DataFrame(valid)
-    print(df.head())
+    df = pd.DataFrame(valid)
+    logger.info("Serving catalogue - {} prods".format(len(df)))
     return download_dataframe(
         df, 
         fmt=fmt, 

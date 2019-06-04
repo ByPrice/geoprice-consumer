@@ -158,10 +158,27 @@ def daily_stats(_day):
     aggregate_daily(daily)
 
 def start():
+    """ Start Method for `flask script --name=<script>` command
+    """ 
     logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
                 .format(CASSANDRA_KEYSPACE))
     date = datetime.date.today() 
     logger.debug(date)
+    # Call to perform stats
+    daily_stats(date)
+    logger.info("Finished creating daily stats ({})".format(date))
+
+
+if __name__ == '__main__':
+    """ Main Method for to run as:
+        `python -m app.scripts.create_stats YYYY-MM-DD`
+    """ 
+    logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
+                .format(CASSANDRA_KEYSPACE))
+    if len(sys.argv) < 2:
+        raise Exception("Missing date to perform stats (YYYY-MM-DD)!")
+    date = datetime.datetime.strptime(sys.argv[1], '%Y-%m-%d').date()
+    logger.info("Running for: {}".format(date))
     # Call to perform stats
     daily_stats(date)
     logger.info("Finished creating daily stats ({})".format(date))

@@ -218,6 +218,23 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_res.status_code, 200)
+
+    def test_08_geo_dump_catalogue_method(self):
+        """ Test Geo Catalogue Method
+        """
+        print(">>>>>", "Test Geo Catalogue Method")
+        retailer = "walmart"
+        store = "16faeaf4-7ace-11e7-9b9f-0242ac110003"
+        dsource = 'ims'
+        _res = self.app.get('/geo/dump/catalogue?data_source={}&retailer={}&store_uuid={}'\
+                .format(dsource, retailer, store)
+        )
+        try:
+            _jr = _res.data
+            print(_jr[:100])
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
           
 
 if __name__ == '__main__':
