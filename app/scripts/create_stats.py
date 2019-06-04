@@ -76,7 +76,7 @@ def get_daily_data(_day):
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
     _day = int(_day.isoformat().replace('-', ''))
-    for _st in stores.store_uuid.tolist():
+    for _st in tqdm(stores.store_uuid.tolist(), desc="Store Prices"):
         try:
             q = g._db.query(cass_qry, (_day, UUID(_st)), timeout=200)
             if not q:
