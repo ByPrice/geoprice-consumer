@@ -119,13 +119,20 @@ def dump_catalogue():
     logger.debug("Getting total items from {}".format(data_source))
     items = g._catalogue.get_by_source(
         data_source=data_source, 
-        cols=extras
+        cols=extras+['item_uuid'],
+        qsize=2000
     )
-    _uuids = {i['product_uuid'] : i for i in items}
+    items_ret = g._catalogue.get_by_source(
+        data_source=retailer, 
+        cols=extras+['item_uuid', 'gtin'],
+        qsize=2000
+    )
+    _uuids = set(i['item_uuid'] for i in items)
+    _uuids_ret = {i['product_uuid'] : i for i in items_ret}
 
     # Get all the prices of the retailer
     logger.debug("Got {} total items".format(len(items)))
-    logger.debug("Getting prices from C* form the las {} hours".format(hours))
+    logger.debug("Getting prices from C* form the last {} hours".format(hours))
     catalogue = Price.get_by_store(
         store_uuid, 
         hours
@@ -137,7 +144,11 @@ def dump_catalogue():
     logger.debug("Looping through catalogue")
     for c in catalogue:
         try:
-            tmp = _uuids[c['product_uuid']]
+            tmp = _uuids_ret[c['product_uuid']]
+            # Filter to not return products from outside the data source
+            if tmp['item_uuid'] not in _uuids:
+                continue
+            # Format
             ord_d = OrderedDict([
                 ("gtin" , tmp['gtin']),
                 ("name" , tmp['name']),
@@ -151,12 +162,12 @@ def dump_catalogue():
             for ex in extras:
                 ord_d.update([(ex, tmp[ex] )])
             valid.append(ord_d)
-        except:
-            pass
+        except Exception as e:
+            logger.error(e)
     
     # Build dataframe
     df = pd.DataFrame(valid)
-    logger.info("Serving catalogue")
+    logger.info("Serving catalogue - {} prods".format(len(df)))
     return download_dataframe(
         df, 
         fmt=fmt, 

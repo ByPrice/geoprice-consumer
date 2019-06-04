@@ -238,7 +238,7 @@ class Catalogue(object):
 
         return result
     
-    def get_by_source(self, data_source, cols=[]):
+    def get_by_source(self, data_source, cols=[], qsize=None):
         """ Request and build a source's items
             catalogue.
 
@@ -246,12 +246,19 @@ class Catalogue(object):
             -----
             data_source: str
                 Data source or retailer
+            cols: list
+                List of columns to retrieve
+            qsize: int
+                Size of query (default: NoneType)
         """
         # Build the query
         q = "?keys="+data_source
         # Pagination
         p=1
-        ipp=500
+        if qsize:
+            ipp=qsize
+        else:
+            ipp=500
         catalogue = []
         nxt = True
         # Columns

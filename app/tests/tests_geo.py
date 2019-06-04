@@ -230,7 +230,7 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
                 .format(dsource, retailer, store)
         )
         try:
-            _jr = _res.data.decode('utf-8')
+            _jr = _res.data
             print(_jr[:100])
         except:
             pass
