@@ -176,8 +176,6 @@ def aggregate_daily(daily_files):
         on="product_uuid",
         how="left"
     )
-    print(all_aggr_stats.head())
-    input("BREAKPOINT")
     # Load each element into C*
     for elem in tqdm(all_aggr_stats.to_dict(orient='records'), desc="Writing.."):
         Price.save_stats_by_product(elem)
