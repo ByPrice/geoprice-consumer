@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, jsonify, request, Response, g
+from flask import Blueprint, jsonify, request, Response, g, stream_with_context
 from app import errors, logger
 from app.models.response import download_dataframe
 from app.models.item import Item
@@ -214,26 +214,24 @@ def dump_items():
     if 'interval' not in params:
         # In case interval is not explicit, set to day
         params['interval'] = 'day' 
-    raise errors.AppError("not_implemented_yet",
-        "Endpoint still in development!")
     # Fetch Prices
-    # prices =  Dump.get_compare_by_store(
-    #     params['filters'],
-    #     params['retailers'],
-    #     params['date_start'],
-    #     params['date_end'],
-    #     params['interval']
-    # )
-    # def generate():
-    #     yield '['
-    #     for i,row in enumerate(prices):
-    #         if i+1 < len(prices):
-    #             yield json.dumps(row)+","
-    #         else:
-    #             yield json.dumps(row)
-    #     yield ']'
-
-    # return Response(
-    #         stream_with_context(generate()), 
-    #         content_type='application/json'
-    #     )
+    prices =  Dump.get_compare_by_store(
+        params['filters'],
+        params['retailers'],
+        params['date_start'],
+        params['date_end'],
+        params['interval']
+    )
+    def generate():
+        yield '['
+        for i,row in enumerate(prices):
+            if i+1 < len(prices):
+                yield json.dumps(row)+","
+            else:
+                yield json.dumps(row)
+        yield ']'
+    logger.info("Serving dump items!")
+    return Response(
+            stream_with_context(generate()), 
+            content_type='application/json'
+        )

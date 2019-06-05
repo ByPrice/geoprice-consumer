@@ -235,6 +235,38 @@ class GeopriceGeoServicesTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_res.status_code, 200)
+    
+    def test_09_geo_dump_items_prices_method(self):
+        """ Test Geo Dump Items Method
+        """
+        print(">>>>>", "Test Geo Dump Items Method")
+
+        params= {
+            "filters" : [
+                {"item_uuid" : "fd960578-71ae-463e-84d5-0e451d184597"},
+                {"item_uuid" : "7f177768-cd76-45e4-92ac-9bab4ec8d8b3"},
+                {"item_uuid" : "63aa59b6-04a7-45ed-99df-8f6d1403c4de"},
+                {"item_uuid" : "facdc537-d80f-447e-9d6e-0266e0e9d082"},
+                {"retailer" : "walmart"}
+            ],
+            "retailers" : {
+                "walmart" : "Walmart",
+                "superama" : "Superama"
+            },
+            "date_start" : "2019-05-19",
+            "date_end" : "2019-05-21",
+            "interval" : "day"
+        }
+        _res = self.app.post('/geo/dump/items',
+                    data=json.dumps(params),
+                    headers={'content-type': 'application/json'}
+        )
+        try:
+            _jr = json.loads(_res.data.decode('utf-8'))
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_res.status_code, 200)
           
 
 if __name__ == '__main__':
