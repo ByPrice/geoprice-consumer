@@ -173,3 +173,67 @@ def dump_catalogue():
         fmt=fmt, 
         name="catalogue_{}_{}".format(retailer, datetime.datetime.utcnow().strftime("%Y-%m-%d"))
     )
+
+@mod.route('/items', methods=['POST'])
+def dump_items():
+    """ Endpoint to query items and stores by daterange and filters:
+        Price by Item IDs and Stores retrieval
+
+        @Params:
+        - (dict) : Form data with following structure
+        {
+            "filters": [
+                {"item": "452iub4-54o3iu6b3o4b-46i54362"},
+                {"item": "452iub4-54o3iu6b3o4b-46i54362"},
+                {"store": "452iub4-54o3iu6b3o4b-46i54362"},
+                {"store": "452iub4-54o3iu6b3o4b-46i54362"}
+            ],
+            "retailers": {
+                "chedraui": "Chedraui",
+                "walmart": "Walmart",
+            },
+            "date_start": "2017-10-01",
+            "date_end": "2018-01-12",
+            "interval": "day" // "month", "week" or "day"
+        }
+
+        Returns:
+        - <dict>
+
+    """
+    params = request.get_json()
+    # Params validation
+    if 'filters' not in params:
+            raise errors.AppError(40003, "Filters param Missing!", 400)
+    if 'retailers' not in params:
+        raise errors.AppError(40003, "Retailers param Missing!", 400)
+    if 'date_start' not in params:
+        raise errors.AppError(40003, "Start Date param Missing!", 400)
+    if 'date_end' not in params:
+        raise errors.AppError(40003, "End Date param Missing!", 400)
+    if 'interval' not in params:
+        # In case interval is not explicit, set to day
+        params['interval'] = 'day' 
+    raise errors.AppError("not_implemented_yet",
+        "Endpoint still in development!")
+    # Fetch Prices
+    # prices =  Dump.get_compare_by_store(
+    #     params['filters'],
+    #     params['retailers'],
+    #     params['date_start'],
+    #     params['date_end'],
+    #     params['interval']
+    # )
+    # def generate():
+    #     yield '['
+    #     for i,row in enumerate(prices):
+    #         if i+1 < len(prices):
+    #             yield json.dumps(row)+","
+    #         else:
+    #             yield json.dumps(row)
+    #     yield ']'
+
+    # return Response(
+    #         stream_with_context(generate()), 
+    #         content_type='application/json'
+    #     )

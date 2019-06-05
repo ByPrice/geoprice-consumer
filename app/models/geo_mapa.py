@@ -95,14 +95,19 @@ class Map(object):
 
             Params:
             -----
-                - task_id: (str) Celery Task ID to keep track of the progress
-                - filters: (list) Item Filters 
-                    [item_uuids, store_uuids, retailers]
-                - rets: (list) List of posible retailers to query depending
-                        on the client configurations
-                - date_start: (str) ISO format Start Date
-                - date_end: (str) ISO format End Date 
-                - interval: (str) Time interval  
+                - task_id: (str) 
+                    Celery Task ID to keep track of the progress
+                - filters: (list) 
+                    Item Filters [item_uuids, store_uuids, retailers]
+                - rets: (list) 
+                    List of posible retailers to query depending
+                    on the client configurations
+                - date_start: (str) 
+                    ISO format Start Date
+                - date_end: (str) 
+                    ISO format End Date 
+                - interval: (str) 
+                    Time interval  
 
             Returns:
             -----

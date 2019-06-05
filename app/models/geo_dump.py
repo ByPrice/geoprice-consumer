@@ -121,3 +121,112 @@ class Dump(object):
             logger.warning("Could not save historic file to s3!")
             logger.error(e)
             return False
+
+        
+    @staticmethod
+    def get_compare_by_store(filters, rets, _ini, _fin, _inter):
+        """ Query cassandra and grop response by items vs stores
+
+            Params:
+            -----
+            - filters: (list) 
+                Item Filters [item_uuids, store_uuids, retailers]
+            - rets: (list) List of posible retailers to query depending
+                    on the client configurations
+            - date_start: (str) 
+                ISO format Start Date
+            - date_end: (str) 
+                ISO format End Date 
+            - interval: (str) 
+                Time interval  
+        """
+        # Validate Params
+        filters += [{'retailer': _ret} for _ret in rets.keys()]
+        items = fetch_items(filters)
+        stores = fetch_stores([r for r in rets.keys()])
+        
+        # Create Stores DF 
+        stores_df = pd.DataFrame(stores)
+        stores_df.rename(columns={'name': 'store', 'uuid' : 'store_uuid'}, inplace=True)
+        stores_df['store_uuid'] = stores_df.store_uuid.apply(lambda x: str(x))
+        
+        # Filter stores by filters <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        if ('store' in [list(_fil.keys())[0] for _fil in filters]):
+            _sids = [ _su['store'] for _su in filters if 'store' in _su]
+            stores_df = stores_df[stores_df['store_uuid'].isin(_sids)]
+
+        logger.info('Filtering over {} stores'.format(len(stores_df)))
+        # Start fetching prices
+        prices = Price.fetch_prices(
+            [r for r in rets.keys()],
+            stores_df.store_uuid.tolist(),
+            [i['item_uuid'] for i in items],
+            _ini,
+            _fin)
+
+        if not prices:
+            # Put an empty result
+            raise Exception('Could not fetch Prices!')
+        
+        # Load DF and filter results
+        prices_df = pd.DataFrame(prices)
+        prices_df.item_uuid = prices_df.item_uuid.apply(lambda x: str(x))
+        prices_df.store_uuid = prices_df.store_uuid.apply(lambda x: str(x))
+        
+        # Remove Duplicates by day, take more recent
+        prices_df.sort_values(['time'], ascending=False, inplace=True)
+        prices_df.drop_duplicates(
+            ['item_uuid', 'store_uuid', 'date'],
+            keep='first',
+            inplace=True)
+
+        logger.info('Droping duplicates and starting to format..')
+        # Merge with item and stores DF
+        items_df = pd.DataFrame(items)
+        items_df.item_uuid = items_df.item_uuid.apply(lambda x: str(x))
+        prices_df = pd.merge(
+            prices_df,
+            items_df,
+            on='item_uuid',
+            how='left')
+        prices_df = pd.merge(
+            prices_df,
+            stores_df[['store_uuid','store']],
+            on='store_uuid',
+            how='left')
+        #prices_df.retailer_name = prices_df.retailer.apply(lambda x: rets[x])
+        prices_df['retailer_name'] = prices_df['retailer'].apply(lambda x: rets[x])
+        
+        # Add Grouping dates
+        prices_df['day'] = prices_df['time'].apply(lambda x: x.day)
+        prices_df['month'] = prices_df['time'].apply(lambda x: x.month)
+        prices_df['year'] = prices_df['time'].apply(lambda x: x.year)
+        prices_df['week'] = prices_df['time'].apply(lambda x: x.isocalendar()[1])
+
+        # Verify if **grouping_periods** is needed
+        logger.info('Finished format, writing result..')
+        table_result = {}
+
+        # Group by retailer
+        table_result = []
+        # Group by intervals, item and store
+        for temp_int, i_df in prices_df.groupby(
+            Price.grouping_cols[_inter] + ['item_uuid', 'store_uuid']
+        ):
+            table_result.append({
+                'gtin': i_df.gtin.tolist()[0],
+                'item_uuid' : i_df.item_uuid.tolist()[0],
+                'store_uuid' : i_df.store_uuid.tolist()[0],
+                'retailer' : i_df.retailer.tolist()[0],
+                'retailer_name' : i_df.retailer_name.tolist()[0],
+                'name': i_df.name.tolist()[0],
+                'promo': i_df.promo.tolist()[0],
+                'store': "{} - {}".format(
+                    i_df.retailer_name.tolist()[0],
+                    i_df.store.tolist()[0]
+                ),
+                'price': round(i_df.price.mean(), 2),
+                'date': i_df.time.tolist()[0].date().isoformat()
+            })
+    
+        return table_result
