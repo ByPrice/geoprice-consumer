@@ -154,6 +154,7 @@ class Dump(object):
         f_retailers = [ f['retailer'] for f in filters if 'retailer' in f ]
         f_stores = [ f['store_uuid'] for f in filters if 'store_uuid' in f ]
         f_items = [ f['item_uuid'] for f in filters if 'item_uuid' in f ]
+        f_items += [ f['item'] for f in filters if 'item' in f ]
         logger.debug("Filters for the task: {}".format(filters))
         # Dates
         dates = []
