@@ -176,7 +176,10 @@ def aggregate_daily(daily_files):
         on="product_uuid",
         how="left"
     )
+    # Cast
     all_aggr_stats['datapoints'] = all_aggr_stats['datapoints'].astype(int)
+    all_aggr_stats['product_uuid'] = all_aggr_stats['product_uuid'].apply(lambda y: UUID(y))
+    all_aggr_stats['date'] = all_aggr_stats['date'].astype(int)
     # Load each element into C*
     for elem in tqdm(all_aggr_stats.to_dict(orient='records'), desc="Writing.."):
         Price.save_stats_by_product(elem)
