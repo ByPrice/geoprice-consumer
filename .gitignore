@@ -10,3 +10,4 @@ Dockerfile.local
 missing_items.csv
 data/
 Endpoints*
+app/scripts/migration_prices.py
