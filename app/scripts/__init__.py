@@ -17,6 +17,9 @@ def start_script(script):
     elif script == 'create_dumps':
         from app.scripts import create_dumps as module
         module.start()
+    elif script == 'create_backups':
+        from app.scripts import create_backups as module
+        module.start()
     else:
         # raise
         logger.error("Could not find the specified module...")

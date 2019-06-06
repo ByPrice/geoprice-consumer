@@ -28,34 +28,6 @@ logger = applogger.get_logger()
 # Number of Batches to separate data
 NUM_BATCHES = 100
 
-def stats_args():
-    """ Parse Create Stats Script args
-
-        Returns:
-        -----
-        conf : dict
-            Configuration parameters to migrate from
-    """
-    parser = argparse\
-        .ArgumentParser(description='Aggregates Daily data in C* ({}.stats_by_product)'
-                        .format(CASSANDRA_KEYSPACE))
-    parser.add_argument('--date', help='Migration date')
-    args = dict(parser.parse_args()._get_kwargs())
-    # Validation of variables
-    if args['date']:
-        try:
-            args['date'] = datetime\
-                .datetime\
-                .strptime(str(args['date']), '%Y-%m-%d')\
-                .date()
-        except:
-            logger.error("Wrong arg: Date must be in format [YYYY-MM-DD]")
-            sys.exit()
-    else:
-        args['date'] = datetime.date.today()
-    return args
-
-
 def get_daily_data(_day):
     """ Query for a certain date data 
         from `price_by_date_parted` (PUUID, price, date)
@@ -75,7 +47,9 @@ def get_daily_data(_day):
     cass_qry = """SELECT product_uuid, price, date, source
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
-    _day = int(_day.isoformat().replace('-', ''))
+    # Fetch Data from a Day before for todays Aggregates
+    _day = int((_day - datetime.timedelta(days=1))\
+                .isoformat().replace('-', ''))
     _daily_count, st_list, _tfiles = 0, stores.store_uuid.tolist(), []
     # Generate N tmp files depending on the param
     for _j in range(0, len(stores), NUM_BATCHES):
@@ -102,7 +76,7 @@ def get_daily_data(_day):
     return _tfiles
 
 
-def aggregate_daily(daily_files):
+def aggregate_daily(daily_files, _day):
     """ Aggregate data to compute statistics
         and batch load it in to C* table
 
@@ -110,6 +84,8 @@ def aggregate_daily(daily_files):
         -----
         daily : list
             Daily prices tmp files 
+        day : datetime.date
+            Date to set in aggregates
     """
     def _mode(x):
         try:
@@ -179,7 +155,8 @@ def aggregate_daily(daily_files):
     # Cast
     all_aggr_stats['datapoints'] = all_aggr_stats['datapoints'].astype(int)
     all_aggr_stats['product_uuid'] = all_aggr_stats['product_uuid'].apply(lambda y: UUID(y))
-    all_aggr_stats['date'] = all_aggr_stats['date'].astype(int)
+    # Set the date passed
+    all_aggr_stats['date'] = int(_day.strftime('%Y%m%d'))
     # Load each element into C*
     for elem in tqdm(all_aggr_stats.to_dict(orient='records'), desc="Writing.."):
         Price.save_stats_by_product(elem)
@@ -201,8 +178,6 @@ def daily_stats(_day):
         -----
         _day : datetime.date
             Querying date
-        max_batch : int
-            Max batch size to load into C*
     """
     # Retrieve daily data
     daily_files = get_daily_data(_day)
@@ -210,7 +185,7 @@ def daily_stats(_day):
     if not daily_files:
         logger.warning("No prices available!!")
         return
-    aggregate_daily(daily_files)
+    aggregate_daily(daily_files, _day)
 
 def start():
     """ Start Method for `flask script --name=<script>` command
