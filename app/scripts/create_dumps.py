@@ -10,7 +10,7 @@ from collections import OrderedDict
 from functools import wraps
 from app.utils.helpers import tuplize
 from tqdm import tqdm
-from app.models.geo_dump import Dump
+from app.models.geo_dump import Dump, BUCKET
 
 # Logger
 logger = applogger.get_logger()
@@ -152,12 +152,6 @@ def get_stats(products, retailers):
             logger.warning("Issues adding result for in item: " + str(iuuid))
             continue
     return result 
-
-
-
-
-
-
 
 @with_context
 def start():
