@@ -16,6 +16,7 @@ from ByHelpers import applogger
 from app.utils.simple_cassandra import SimpleCassandra
 from app.utils.helpers import get_all_stores
 import json
+import random
 import boto3
 
 # Logger
@@ -139,13 +140,15 @@ def fetch_day_prices(day, _ret, limit, conf, stores, prods_by_uuid):
     return dtr
 
 
-def send_prices_parquet(data):
+def send_prices_parquet(data, _part):
     """ Generate local parquet and send it to AWS S3
 
         Params:
         -----
         data : pd.DataFrame
             All needed data to generate parquet
+        _part : int
+            Partition number
     """
     # Format data
     data['date'] = data.date.astype(dtype=np.int32)
@@ -162,17 +165,18 @@ def send_prices_parquet(data):
     data['promo'] = data['promo'].fillna('')
     data['retailer'] = data['source']
     data['item_uuid'] = ''
-    data = data.drop(['source', 'url', 'currency'], axis=1)
+    data = data.drop(['source', 'url', 'currency'], axis=1, errors='ignore')
     # Iterate by source
     for gk, gdf in data.groupby(['date', 'retailer']):
-        parq_fname = "data/{}_{}_all.parquet".format(*gk)
+        parq_fname = "data/{}_{}_{}_{}.parquet"\
+            .format(*gk, _part, random.randint(1,9999))
         # write local parquet file
         gdf.to_parquet(parq_fname)
         # Send to S3
-        write_pandas_parquet_to_s3(parq_fname, 'byprice-prices', gk[1], gk[0])
+        write_pandas_parquet_to_s3(parq_fname, 'byprice-prices', gk[1], gk[0], _part)
         
 
-def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
+def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date, _part):
     """ Send to AWS S3 given a parquet local file
 
         Params:
@@ -185,6 +189,8 @@ def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
             Retailer key
         _date: int
             Date in (YYYYMMDD) format
+        _part: int
+            Partition number
     """
     # init S3
     s3 = boto3.client(
@@ -192,12 +198,13 @@ def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date):
         aws_access_key_id=AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY
     )
-    key_name = "{}/retailer={}/date={}/geop_{}_{}_all.parquet".format(BUCKET_DIR,retailer, _date, retailer, _date)
+    key_name = "{}/retailer={}/date={}/geop_{}_{}_{}.parquet".format(BUCKET_DIR,retailer, _date, retailer, _date, _part)
     with open(parq_file, 'rb') as f:
        object_data = f.read()
        s3.put_object(Body=object_data, Bucket=bucket_name, Key=key_name)
-       logger.info("Correctly uploaded {} {} ".format(retailer, _date))
+       logger.info("Correctly uploaded {} {} - {} ".format(retailer, _date, _part))
     os.remove(parq_file)
+
 @with_context 
 def day_migration(day, limit, conf, stores):
     """ Retrieves all data available requested day
@@ -218,15 +225,13 @@ def day_migration(day, limit, conf, stores):
     logger.debug("Retrieving info for migration on ({})".format(day))
     # Retrieve data from AWS Prices KS (prices.price_by_retailer)
     _rets = ["kelloggs_walmart", "kelloggs_chedraui", "farmapronto"]
-    for _ret in _rets:
+    for _part, _ret in enumerate(_rets):
         _prods = get_prods_by_ret(_ret)
         data = fetch_day_prices(day, _ret, limit, conf, stores, _prods)
         if data.empty:
             logger.debug("No prices to migrate in {} - {}!".format(day, _ret))
             continue
-        print(data.head())
-        sys.exit()
-        send_prices_parquet(data)
+        send_prices_parquet(data, _part)
     logger.info("Finished populating tables")
 
 
@@ -265,7 +270,7 @@ def get_prods_by_ret(_ret):
 
 
 if __name__ == '__main__':
-    logger.info("Starting Migration script (AWS Geoprice KS -> GCP GeoPrice KS)")
+    logger.info("Starting External Data Migration script (AWS Prices KS -> AWS Athena)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
     # Connect to C*

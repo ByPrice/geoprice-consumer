@@ -266,7 +266,7 @@ def get_prods_by_ret(_ret):
 
 
 if __name__ == '__main__':
-    logger.info("Starting Migration script (AWS Geoprice KS -> GCP GeoPrice KS)")
+    logger.info("Starting External Data Migration script (AWS Prices KS -> GCP GeoPrice KS)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
     # Connect to C*

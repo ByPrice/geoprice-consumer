@@ -26,7 +26,7 @@ import random
 logger = applogger.get_logger()
 # Bucket 
 BUCKET_DIR= '{}price_retailer'.format(
-    '' if ENV == 'PROD' else 'dev/'
+    'dev/' if ENV == 'PROD' else 'dev/'
 )
 
 def backup_daily_data(_day):
@@ -74,7 +74,9 @@ def backup_daily_data(_day):
         dtr['source'] = dtr['source'].fillna('')
         # Count amount of prices
         _daily_count += len(dtr)
-        # Send to S3
+        # Empty issues avoidance
+        if len(dtr) == 0:
+            continue
         try:
             send_prices_parquet(dtr, _part)
         except Exception as e:
