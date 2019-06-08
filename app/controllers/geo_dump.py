@@ -16,7 +16,7 @@ from app.models.geo_dump import Dump
 
 # Blueprint instance
 mod = Blueprint('geo_dump', __name__)
-DATA_DIR = BASE_DIR+"/data/"
+DATA_DIR = BASE_DIR+"/data"
 
 @mod.route('/')
 def dump_status():

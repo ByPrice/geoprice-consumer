@@ -113,7 +113,6 @@ class Price(object):
     def as_dict(self):
         ''' Dictionary representation for saving to cassandra '''
         return {
-            'price_uuid' : uuid.uuid4(),
             'product_uuid' : uuid.UUID(self.product_uuid),
             'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
@@ -563,7 +562,9 @@ class Price(object):
             `promo_by_store`
         """ 
         try:
+            print("Before execution!")
             elem = list(self.loc_generator())[0]
+            print("POST execution")
             self.session.execute(
                 """
                 BEGIN BATCH
@@ -610,6 +611,8 @@ class Price(object):
             return True
         except Exception as e:
             logger.error(e)
+            logger.warning(self.__dict__)
+            print('REMOVE THIS')
             return False
 
 
