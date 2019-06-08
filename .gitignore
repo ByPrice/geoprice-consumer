@@ -10,3 +10,6 @@ Dockerfile.local
 missing_items.csv
 data/
 Endpoints*
+app/scripts/migration_prices.py
+app/scripts/migration_prices_athena.py
+!data/downloads.json
