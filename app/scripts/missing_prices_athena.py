@@ -130,7 +130,7 @@ def fetch_day_prices(day, _ret, limit, conf, stores, prods_by_uuid):
                 stores[['store_uuid', 'source', 'zip', 
                     'city','state', 'lat','lng']], 
                 on='store_uuid', how='left')
-            dtr['source'] = dtr['source'].fillna('')
+            dtr['source'] = _ret
             logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _ret))
             
         logger.info("""Got {} prices cleaned in {} - {}""".format(len(dtr), day, _ret))
