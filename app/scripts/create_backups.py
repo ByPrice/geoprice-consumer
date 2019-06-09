@@ -26,7 +26,7 @@ import random
 logger = applogger.get_logger()
 # Bucket 
 BUCKET_DIR= '{}price_retailer'.format(
-    'dev/' if ENV == 'PROD' else 'dev/'
+    '' if ENV == 'PROD' else 'dev/'
 )
 
 def backup_daily_data(_day):

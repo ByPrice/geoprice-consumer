@@ -22,8 +22,8 @@ import boto3
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
-LIMIT = 100
-BUCKET_DIR= 'dev/price_retailer'
+LIMIT = None
+BUCKET_DIR= 'price_retailer'
 
 # Connect to C*
 cdb = None
