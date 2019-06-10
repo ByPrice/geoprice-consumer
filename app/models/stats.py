@@ -578,7 +578,7 @@ class Stats(object):
                 # Retailers computation
                 for k, df_r in df_t.groupby(['source']):
                     tmp2['retailers'].append({
-                        'source': ' '.join([ik[0].upper() + ik[1:]
+                        'retailer': ' '.join([ik[0].upper() + ik[1:]
                                               for ik in k.split('_')]),
                         'price': df_r['avg_price'].mean(),
                         'difference': (tmp2['client']-df_r['avg_price'].mean()
@@ -598,7 +598,7 @@ class Stats(object):
                             in [x['source'] for x in tmp2['retailers']]:
                         continue
                     tmp2['retailers'].append({
-                        'source': ' '.join([ik[0].upper() + ik[1:]
+                        'retailer': ' '.join([ik[0].upper() + ik[1:]
                                              for ik in r.split('_')]),
                         'price': '-',
                         'difference': '-'
