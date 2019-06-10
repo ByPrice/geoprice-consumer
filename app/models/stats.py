@@ -206,7 +206,7 @@ class Stats(object):
             _days = _days + (date_start,)
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
-                mode_price, date
+                mode_price, date, source as retailer
                 FROM stats_by_product
                 WHERE product_uuid = %s
                 AND date = %s"""
@@ -579,7 +579,7 @@ class Stats(object):
                 # Retailers computation
                 for k, df_r in df_t.groupby(['source']):
                     tmp2['retailers'].append({
-                        'source': ' '.join([ik[0].upper() + ik[1:]
+                        'retailer': ' '.join([ik[0].upper() + ik[1:]
                                               for ik in k.split('_')]),
                         'price': df_r['avg_price'].mean(),
                         'difference': (tmp2['client']-df_r['avg_price'].mean()
@@ -596,10 +596,10 @@ class Stats(object):
                         continue
                     if (' '.join([ik[0].upper() + ik[1:]
                         for ik in r.split('_')])) \
-                            in [x['source'] for x in tmp2['retailers']]:
+                            in [x['retailer'] for x in tmp2['retailers']]:
                         continue
                     tmp2['retailers'].append({
-                        'source': ' '.join([ik[0].upper() + ik[1:]
+                        'retailer': ' '.join([ik[0].upper() + ik[1:]
                                              for ik in r.split('_')]),
                         'price': '-',
                         'difference': '-'
