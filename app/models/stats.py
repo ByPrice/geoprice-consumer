@@ -206,7 +206,7 @@ class Stats(object):
             _days = _days + (date_start,)
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
-                mode_price, date
+                mode_price, date, source as retailer
                 FROM stats_by_product
                 WHERE product_uuid = %s
                 AND date = %s"""
