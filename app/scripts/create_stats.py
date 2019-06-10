@@ -22,6 +22,7 @@ from app.models.price import Price
 from app.utils.helpers import get_all_stores
 from uuid import UUID
 from tqdm import tqdm
+import math
 
 # Logger
 logger = applogger.get_logger()
@@ -137,7 +138,7 @@ def aggregate_daily(daily_files, _day):
             "avg_price": ((z.avg_price * z.datapoints).sum() / z.datapoints.sum()) \
                 if z.datapoints.sum() else 0.0,
             "datapoints": z.datapoints.sum(),
-            "std_price": ((z.std_price * z.std_price * z.datapoints).sum() / z.datapoints.sum()) \
+            "std_price": math.sqrt((z.std_price * z.std_price * z.datapoints).sum() / z.datapoints.sum()) \
                 if z.datapoints.sum() else 0.0,
             "mode_price": _mode(z.mode_price.tolist())
         })
