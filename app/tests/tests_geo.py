@@ -13,7 +13,7 @@ task_id = None
 class GeopriceGeoServicesTestCase(unittest.TestCase):
     """ Test Case for Geoprice Geo Services
 
-        TODO: Set up all the tests of the 
+        Set up all the tests of the 
             - alert
             - check
             - dump
