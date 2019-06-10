@@ -595,7 +595,7 @@ class Stats(object):
                         continue
                     if (' '.join([ik[0].upper() + ik[1:]
                         for ik in r.split('_')])) \
-                            in [x['source'] for x in tmp2['retailers']]:
+                            in [x['retailer'] for x in tmp2['retailers']]:
                         continue
                     tmp2['retailers'].append({
                         'retailer': ' '.join([ik[0].upper() + ik[1:]
