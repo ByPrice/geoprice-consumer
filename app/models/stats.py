@@ -473,6 +473,7 @@ class Stats(object):
         if not filt_items:
             logger.warning("No Products found!")
             raise errors.TaskError("No Products found!")
+        logger.debug(filt_items)
         task.progress = 20
         # Date Grouping
         date_groups = grouping_periods(params)

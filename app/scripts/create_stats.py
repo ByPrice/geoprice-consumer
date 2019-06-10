@@ -134,9 +134,11 @@ def aggregate_daily(daily_files, _day):
         return pd.Series({
             "max_price": z.max_price.max(),
             "min_price": z.min_price.min(),
-            "avg_price": (z.avg_price * z.datapoints).mean(),
+            "avg_price": ((z.avg_price * z.datapoints).sum() / z.datapoints.sum()) \
+                if z.datapoints.sum() else 0.0,
             "datapoints": z.datapoints.sum(),
-            "std_price": (z.std_price * z.std_price * z.datapoints).mean(),
+            "std_price": ((z.std_price * z.std_price * z.datapoints).sum() / z.datapoints.sum()) \
+                if z.datapoints.sum() else 0.0,
             "mode_price": _mode(z.mode_price.tolist())
         })
     # Aggregate data to compute max
