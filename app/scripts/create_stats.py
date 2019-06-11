@@ -27,7 +27,7 @@ import math
 # Logger
 logger = applogger.get_logger()
 # Number of Batches to separate data
-NUM_BATCHES = 100
+NUM_BATCHES = 50
 
 def get_daily_data(_day):
     """ Query for a certain date data 
