@@ -160,11 +160,13 @@ class PagedHandler(object):
         )
 
     def finished_event(self):
-        print("Finihsed event")
+        #print("Finished event")
+        pass
 
     def handle_page(self, rows):
         for row in rows:
-            print(row)
+            #print(row)
+            pass
 
         if self.future.has_more_pages:
             self.future.start_fetching_next_page()
