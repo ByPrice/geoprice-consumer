@@ -629,10 +629,11 @@ class Price(object):
         """
         logger.info("Querying prices in C*")
         # Order dates
-        dates.sort()
+        #dates.sort()
         result = []
         # Nested loops
         for d in dates:
+            logger.debug(d)
             for s in stores:
                 for p in products:
                     try:
