@@ -632,35 +632,25 @@ class Price(object):
         #dates.sort()
         result = []
         # Nested loops
-        print("Iterations", len(dates)*len(stores)*len(products))
         for d in dates:
-            logger.debug(d)
-            for s in stores:
-                logger.debug(s)
-                for p in products:
-                    logger.debug(p)
-                    try:
-                        rows = g._db.query("""
-                            SELECT source as retailer,
-                            product_uuid, price_original,
-                            store_uuid, price, lat,
-                            lng, time, date, promo
-                            FROM price_by_product_store 
-                            WHERE product_uuid=%s 
-                            AND store_uuid=%s
-                            AND date=%s
-                        """, (UUID(p), UUID(s), d) )
-                        if rows:
-                            result += list(rows)
-                            logger.debug("Found Prods...")
-                        else:
-                            logger.info("No prices")
-                    except Exception as e:
-                        logger.error(e)
-                        break
-                        continue
-                break
-            break
+            for p in products:
+                try:
+                    rows = g._db.query("""
+                        SELECT source as retailer,
+                        product_uuid, price_original,
+                        store_uuid, price, lat,
+                        lng, time, date, promo
+                        FROM price_by_product_date
+                        WHERE product_uuid=%s 
+                        AND date=%s
+                    """, (UUID(p), d) )
+                    if rows:
+                        for _tr in rows: 
+                            if str(_tr.store_uuid) in stores:
+                                result.append(_tr)
+                except Exception as e:
+                    logger.error(e)
+                    continue
         logger.info("Returning C* prices")
         return result     
 
