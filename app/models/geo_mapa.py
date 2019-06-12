@@ -185,7 +185,10 @@ class Map(object):
         # If no prices, end task...
         if not prices:
             logger.warning("No prices found!")
-            raise Exception("No se encontraron precios, intenta nuevamente")
+            return {
+                'data' : {"table": {}, "map": {}},
+                'msg' : 'Task completed'
+            }
         logger.info("Got prices from DB !")
 
         # Append data to create dataframe
