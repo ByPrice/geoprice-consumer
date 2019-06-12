@@ -86,6 +86,11 @@ def dump_download():
     df.set_index('gtin', inplace=True)
     result_df = df.dropna(thresh=3).replace(np.nan, '-')
     logger.info("Building output CSV")
+    if fmt == 'json':
+        # Transform to dict
+        table_head = list(result_df.columns)
+        table_body = [ list(v) for v in list(result_df.values) ]
+        return jsonify({"columns":table_head,"records":table_body})
     return download_dataframe(result_df, fmt=fmt, name="prices_retailers_"+datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
 
