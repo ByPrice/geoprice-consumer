@@ -648,7 +648,8 @@ class Price(object):
                         """, (UUID(p), UUID(s), d) )
                         if rows:
                             result += list(rows)
-                    except:
+                    except Exception as e:
+                        logger.error(e)
                         continue
         logger.info("Returning C* prices")
         return result     
