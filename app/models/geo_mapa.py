@@ -168,15 +168,6 @@ class Map(object):
         # Get products per item and then prices to build the main DF
         table = []
         prices = []
-        # for i,it in enumerate(items):
-        #     # Get product of the item
-        #     # prods += g._catalogue.get_intersection(
-        #     #     item_uuid=[it['item_uuid']], 
-        #     #     source=list(retailers_by_key.keys()),
-        #     #     cols=['item_uuid','product_uuid','source','gtin','name'],
-        #     # )
-        #     prods += get_product_details()
-        # Get details of all items requested
         prods = g._catalogue.get_product_details(
             values=f_items, 
             cols=['item_uuid','gtin','name', 'product_uuid', 'source']
@@ -260,7 +251,7 @@ class Map(object):
         
         task.progress = 90
         logger.info("Built map result: ")
-
+        logger.debug(result['map'])
         # Groped stats for the table
         result['table'] = {}
         df.sort_values(by=['retailer'], ascending=True, inplace=True)
@@ -270,7 +261,7 @@ class Map(object):
             # New list value
             result['table'][retailer] = []
             # Interval
-            for interval, df_interval in df_retailer.groupby(grouping_cols[interval] + ['item_uuid','store_uuid']): 
+            for t_intv, df_interval in df_retailer.groupby(grouping_cols[interval] + ['item_uuid','store_uuid']): 
                 result['table'][retailer].append({
                     "gtin" : df_interval['gtin'].tolist()[0],
                     "name" : df_interval['name'].tolist()[0],
