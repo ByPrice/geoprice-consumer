@@ -205,6 +205,8 @@ class Map(object):
         df['gtin'] = df.item_uuid.apply(lambda z: items_by_uuid[z]['gtin'])
         df['name'] = df.product_uuid.apply(lambda z: prods_by_uuid[z]['name'])
         df['store'] = df.store_uuid.apply(lambda z: stores_by_uuid[z]['name'])
+        df['lat'] = df.store_uuid.apply(lambda z: stores_by_uuid[z]['lat'])
+        df['lng'] = df.store_uuid.apply(lambda z: stores_by_uuid[z]['lng'])
         df['retailer_name'] = df.retailer.apply(lambda z: retailers_by_key[z])
         df['promo'] = df.promo.fillna('')
         df['currency'] = 'MXN'

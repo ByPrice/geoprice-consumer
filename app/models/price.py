@@ -638,8 +638,7 @@ class Price(object):
                     rows = g._db.query("""
                         SELECT source as retailer,
                         product_uuid, price_original,
-                        store_uuid, price, lat,
-                        lng, time, date, promo
+                        store_uuid, price, time, date, promo
                         FROM price_by_product_date
                         WHERE product_uuid=%s 
                         AND date=%s
