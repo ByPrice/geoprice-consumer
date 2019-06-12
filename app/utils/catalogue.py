@@ -218,6 +218,7 @@ class Catalogue(object):
                     url = "{}/product/intersection{}&p={}&ipp={}".format(
                         self.base_url, qry, p, ipp
                     )
+                    logger.debug(url)
                     r = requests.get(url)
                     if r.status_code != 200:
                         raise Exception("Could not fetch product intersection")
