@@ -85,12 +85,13 @@ def dump_download():
     # Drop rows without prices
     df.set_index('gtin', inplace=True)
     result_df = df.dropna(thresh=3).replace(np.nan, '-')
-    logger.info("Building output CSV")
+    logger.info("Building output")
     if fmt == 'json':
         # Transform to dict
         result_df.reset_index(inplace=True)
         table_head = list(result_df.columns)
         table_body = [ list(v) for v in list(result_df.values) ]
+        logger.info("Serving JSON")
         return jsonify({"columns":table_head,"records":table_body})
     # If direct download reomve Item uuid
     result_df.drop('item_uuid', axis=1, inplace=True)
@@ -159,6 +160,7 @@ def dump_catalogue():
             # Format
             ord_d = OrderedDict([
                 ("gtin" , tmp['gtin']),
+                ("item_uuid" , tmp.get('item_uuid', None)),
                 ("name" , tmp['name']),
                 ("price" , c['price']),
                 ("price_original" , c['price_original']),
@@ -180,7 +182,10 @@ def dump_catalogue():
         # Transform to dict
         table_head = list(df.columns)
         table_body = [ list(v) for v in list(df.values) ]
+        logger.info("Serving JSON")
         return jsonify({"columns":table_head,"records":table_body})
+    # If direct download, drop item_uuid
+    df.drop('item_uuid', axis=1, inplace=True)
     return download_dataframe(
         df, 
         fmt=fmt, 
