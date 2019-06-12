@@ -136,7 +136,8 @@ def dump_catalogue():
         cols=extras+['item_uuid', 'gtin'],
         qsize=2000
     )
-    _uuids = set(i['item_uuid'] for i in items)
+    # Fetch UUIDS only with existing Item  UUID
+    _uuids = set(i['item_uuid'] for i in items if i['item_uuid'])
     _uuids_ret = {i['product_uuid'] : i for i in items_ret}
 
     # Get all the prices of the retailer
