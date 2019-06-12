@@ -157,13 +157,14 @@ class Map(object):
         else:
             stores_by_uuid = { s['uuid'] : s for s in stores }
         logger.info("Got stores from filters ")
-        print(stores_by_uuid)
         # Get details of all items requested
         items = g._catalogue.get_items_details(
             values=f_items, 
             cols=['item_uuid','gtin','name']
         )
         items_by_uuid = { i['item_uuid'] : i for i in items }
+        logger.info("Got items from filters")
+        print(items_by_uuid)
         task.progress = 20
 
         # Get products per item and then prices to build the main DF
@@ -177,6 +178,8 @@ class Map(object):
                 source=list(retailers_by_key.keys()),
                 cols=['item_uuid','product_uuid','source','gtin','name'],
             )
+        print("Prods")
+        print(prods)
         # All prods by uuid
         prods_by_uuid = { p['product_uuid'] : p for p in prods }
         logger.info("Got products from filters")
