@@ -204,31 +204,25 @@ def handle_api_error(error):
 from app.controllers import geo_mapa, task, history_product, geo_alert, geo_check, geo_dump,\
                         geo_historia, history_alarm, stats
 
-# Flask blueprint registration
+# Flask blueprint registration+
+# Register Mapa module
 app.register_blueprint(geo_mapa.mod, url_prefix='/geo/mapa')
+# Register Task module
 app.register_blueprint(task.mod, url_prefix='/task')
-
-# TODO: Uncomment to register Stats module
+# Register Stats module
 app.register_blueprint(stats.mod, url_prefix='/stats')
-
-# TODO: Uncomment to register History Alarm module
+# Register History Alarm module
 app.register_blueprint(history_alarm.mod, url_prefix='/history/alarm')
-
-# TODO: Uncomment to register History Product module
+# Register History Product module
 app.register_blueprint(history_product.mod, url_prefix='/history/product')
-
-# TODO: Uncomment to register Geo Alert module
+# Register Geo Alert module
 app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')
-
-# TODO: Uncomment to register Geo Check module
+# Register Geo Check module
 app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
-
-# TODO: Uncomment to register Geo Dump module
+# Register Geo Dump module
 app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
-
-# TODO: Uncomment to register Geo Historia
+# Register Geo Historia
 app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
-
 #app.register_blueprint(promos.mod, url_prefix='/promos')
 
 
