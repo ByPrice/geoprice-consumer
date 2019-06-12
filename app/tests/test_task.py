@@ -169,7 +169,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
 
         self.assertEqual(prog,100)
 
-    @unittest.skip("Already tested")
+    #@unittest.skip("Already tested")
     def test_07_complete_task_price_map_decorator(self):
         """ Test price Map Decorator
         """
@@ -236,8 +236,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
             "date_end" : "2019-01-13",
             "interval" : "day"
         }
-
-        celery_task = main_task.apply_async(args=(Map.start_task,params))        
+        celery_task = main_task.apply_async(args=(Map.start_task, params))        
         task = Task(celery_task.id)
         print("Submitted Task: ", celery_task.id) 
         # Check result of task
@@ -250,7 +249,7 @@ class GeopriceTaskTestCase(unittest.TestCase):
         
         self.assertEqual(prog,-1)
 
-    #@unittest.skip("Already tested")
+    @unittest.skip("Already tested")
     def test_09_complete_task_price_historia_decorator(self):
         """ Test price Geo Historia Decorator
         """

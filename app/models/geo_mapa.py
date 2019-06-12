@@ -141,7 +141,6 @@ class Map(object):
             dates.append(int(moment.strftime("%Y%m%d")))
             moment = moment + datetime.timedelta(days=1)
         logger.info("Dates list: {}".format(dates))
-
         # Get retailers and its details
         retailers = rets if type(rets) == dict else { r['key'] : r for r in rets }
         if f_retailers:
@@ -164,7 +163,6 @@ class Map(object):
         )
         items_by_uuid = { i['item_uuid'] : i for i in items }
         logger.info("Got items from filters")
-        print(items_by_uuid)
         task.progress = 20
 
         # Get products per item and then prices to build the main DF
@@ -184,9 +182,8 @@ class Map(object):
             cols=['item_uuid','gtin','name', 'product_uuid', 'source']
         )
         # All prods by uuid
-        prods_by_uuid = { p['product_uuid'] : p for p in prods }
+        prods_by_uuid = { p['product_uuid'] : p for p in prods  if p['source'] in retailers_by_key}
         logger.info("Got products from filters")
-        print(prods_by_uuid)
         # Get prices of all the products
         prices = Price.query_by_product_store(
             stores=list(stores_by_uuid.keys()),

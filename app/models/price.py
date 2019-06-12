@@ -632,10 +632,13 @@ class Price(object):
         #dates.sort()
         result = []
         # Nested loops
+        print("Iterations", len(dates)*len(stores)*len(products))
         for d in dates:
             logger.debug(d)
             for s in stores:
+                logger.debug(s)
                 for p in products:
+                    logger.debug(p)
                     try:
                         rows = g._db.query("""
                             SELECT source as retailer,
@@ -649,9 +652,15 @@ class Price(object):
                         """, (UUID(p), UUID(s), d) )
                         if rows:
                             result += list(rows)
+                            logger.debug("Found Prods...")
+                        else:
+                            logger.info("No prices")
                     except Exception as e:
                         logger.error(e)
+                        break
                         continue
+                break
+            break
         logger.info("Returning C* prices")
         return result     
 
