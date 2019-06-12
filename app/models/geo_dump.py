@@ -188,16 +188,14 @@ class Dump(object):
         items_by_uuid = { i['item_uuid'] : i for i in items }
 
         # Get products per item and then prices to build the main DF
-        prods = []
-        for i,it in enumerate(items):
-            # Get product of the item
-            prods += g._catalogue.get_intersection(
-                item_uuid=[it['item_uuid']], 
-                source=list(retailers_by_key.keys()),
-                cols=['item_uuid','product_uuid','source','gtin','name'],
-            )
+        prods = g._catalogue.get_product_details(
+            values=f_items, 
+            cols=['item_uuid','gtin','name', 'product_uuid', 'source']
+        )
         # All prods by uuid
-        prods_by_uuid = { p['product_uuid'] : p for p in prods }
+        prods_by_uuid = { p['product_uuid'] : p \
+            for p in prods  \
+            if p['source'] in retailers_by_key }
         logger.info("Got products from filters")
         # Return elements
         return dates, retailers, retailers_by_key, \

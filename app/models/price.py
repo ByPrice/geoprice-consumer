@@ -562,9 +562,7 @@ class Price(object):
             `promo_by_store`
         """ 
         try:
-            print("Before execution!")
             elem = list(self.loc_generator())[0]
-            print("POST execution")
             self.session.execute(
                 """
                 BEGIN BATCH
@@ -611,8 +609,6 @@ class Price(object):
             return True
         except Exception as e:
             logger.error(e)
-            logger.warning(self.__dict__)
-            print('REMOVE THIS')
             return False
 
 

@@ -251,7 +251,6 @@ class Map(object):
         
         task.progress = 90
         logger.info("Built map result: ")
-        logger.debug(result['map'])
         # Groped stats for the table
         result['table'] = {}
         df.sort_values(by=['retailer'], ascending=True, inplace=True)

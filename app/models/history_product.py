@@ -496,7 +496,6 @@ class Product(object):
          - (flask.Response)  # if export: Mimetype else: JSON
 
         """
-        print(task_id, params)
         # Param validation
         Product.validate_count_engine(params)
 
@@ -594,7 +593,6 @@ class Product(object):
             flask.Response
                 Prod Response
         """
-        print(task_id, params)
         # Param validation
         Product.validate_count(params)
 
@@ -1431,7 +1429,6 @@ class Product(object):
 
     @staticmethod
     def count_by_retailer_engine_task(task_id, params):
-        print(task_id, params)
         # Validate params
         Product.validate_count_ret_eng_params(params)
         # Parse and start task

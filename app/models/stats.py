@@ -550,7 +550,6 @@ class Stats(object):
                         # Security Break
                         if en >= len(interval_to_have):
                             break
-                #print(i, j)
                 # Client Price and competition average computation
                 try:
                     client = float(client)
@@ -567,7 +566,6 @@ class Stats(object):
                 # Temporal dict update
                 tmp2 = {}
                 d_belong = find_date_interval(df_t['date'].min(), date_groups)
-                #print(d_belong)
                 tmp2.update({
                     'date_start': d_belong[0],
                     'date_end': d_belong[1],
