@@ -160,7 +160,7 @@ class Map(object):
         # Get details of all items requested
         items = g._catalogue.get_items_details(
             values=f_items, 
-            cols=['item_uuid','gtin','name']
+            cols=['item_uuid','gtin','name', 'product_uuid', 'source']
         )
         items_by_uuid = { i['item_uuid'] : i for i in items }
         logger.info("Got items from filters")
@@ -170,18 +170,17 @@ class Map(object):
         # Get products per item and then prices to build the main DF
         table = []
         prices = []
-        prods = []
-        for i,it in enumerate(items):
-            # Get product of the item
-            prods += g._catalogue.get_intersection(
-                item_uuid=[it['item_uuid']], 
-                source=list(retailers_by_key.keys()),
-                cols=['item_uuid','product_uuid','source','gtin','name'],
-            )
-        print("Prods")
-        print(prods)
+        # for i,it in enumerate(items):
+        #     # Get product of the item
+        #     # prods += g._catalogue.get_intersection(
+        #     #     item_uuid=[it['item_uuid']], 
+        #     #     source=list(retailers_by_key.keys()),
+        #     #     cols=['item_uuid','product_uuid','source','gtin','name'],
+        #     # )
+        #     prods += get_product_details()
+
         # All prods by uuid
-        prods_by_uuid = { p['product_uuid'] : p for p in prods }
+        prods_by_uuid = { p['product_uuid'] : p for p in items }
         logger.info("Got products from filters")
         print(prods_by_uuid)
         # Get prices of all the products
