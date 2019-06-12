@@ -176,6 +176,11 @@ def dump_catalogue():
     # Build dataframe
     df = pd.DataFrame(valid)
     logger.info("Serving catalogue - {} prods".format(len(df)))
+    if fmt == 'json':
+        # Transform to dict
+        table_head = list(df.columns)
+        table_body = [ list(v) for v in list(df.values) ]
+        return jsonify({"columns":table_head,"records":table_body})
     return download_dataframe(
         df, 
         fmt=fmt, 
