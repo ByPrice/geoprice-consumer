@@ -142,6 +142,7 @@ def get_stats(products, retailers):
             _item = OrderedDict()
             _item['gtin'] = gdf['gtin'].fillna('').sort_values(ascending=False).tolist()[0]
             _item['name'] = gdf['name'].fillna('').sort_values(ascending=False).tolist()[0]
+            _item['item_uuid'] = iuuid
             for r_key, r_name in retailers.items():
                 _item[r_key+'_max'] = _prices[r_key]['max']
                 _item[r_key+'_min'] = _prices[r_key]['min']
@@ -171,6 +172,7 @@ def start():
         logger.info("Getting total items for {}".format(src))
         total_items = g._catalogue.get_by_source(src, ['item_uuid', 'gtin'])
         logger.info(len(total_items))
+        # Fetch products with item_uuid
         total_products = g._catalogue.get_product_details(
             [_ti['item_uuid'] for _ti in total_items if _ti['item_uuid']],
             cols=['item_uuid', 'gtin'],
