@@ -160,7 +160,7 @@ class Map(object):
         # Get details of all items requested
         items = g._catalogue.get_items_details(
             values=f_items, 
-            cols=['item_uuid','gtin','name', 'product_uuid', 'source']
+            cols=['item_uuid','gtin','name']
         )
         items_by_uuid = { i['item_uuid'] : i for i in items }
         logger.info("Got items from filters")
@@ -178,9 +178,13 @@ class Map(object):
         #     #     cols=['item_uuid','product_uuid','source','gtin','name'],
         #     # )
         #     prods += get_product_details()
-
+        # Get details of all items requested
+        prods = g._catalogue.get_product_details(
+            values=f_items, 
+            cols=['item_uuid','gtin','name', 'product_uuid', 'source']
+        )
         # All prods by uuid
-        prods_by_uuid = { p['product_uuid'] : p for p in items }
+        prods_by_uuid = { p['product_uuid'] : p for p in prods }
         logger.info("Got products from filters")
         print(prods_by_uuid)
         # Get prices of all the products
