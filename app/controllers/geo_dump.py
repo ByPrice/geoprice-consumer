@@ -64,7 +64,7 @@ def dump_download():
     _df = Dump.get_recent_from_s3(fname)
     if _df.empty:
         raise errors.AppError("no_file", "No available dump file found!")
-    cols = ['gtin','name']
+    cols = ['gtin','name', 'item_uuid']
     for ret in retailers:
         cols.append(ret+"_max")
         cols.append(ret+"_min")
@@ -88,9 +88,12 @@ def dump_download():
     logger.info("Building output CSV")
     if fmt == 'json':
         # Transform to dict
+        result_df.reset_index(inplace=True)
         table_head = list(result_df.columns)
         table_body = [ list(v) for v in list(result_df.values) ]
         return jsonify({"columns":table_head,"records":table_body})
+    # If direct download reomve Item uuid
+    result_df.drop('item_uuid', axis=1, inplace=True)
     return download_dataframe(result_df, fmt=fmt, name="prices_retailers_"+datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
 
