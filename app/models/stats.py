@@ -456,12 +456,17 @@ class Stats(object):
             raise errors.TaskError("Not params requested!")
         if not params['filters']:
             raise errors.TaskError("Not filters requested!")
+        if not params['interval']:
+            raise errors.TaskError("Not interval requested!")
+        if not params['date_start']:
+            raise errors.TaskError("Not Start Date requested!")
+        if not params['date_end']:
+            raise errors.TaskError("Not Start Date requested!")
         logger.debug("Entered to Compare by period...")
 
         task = Task(task_id)
         task.task_id = task_id
         task.progress = 1
-
 
         # Retailers from service
         rets = Stats.fetch_rets(params['filters'])
@@ -475,13 +480,6 @@ class Stats(object):
             raise errors.TaskError("No Products found!")
         logger.debug(filt_items)
         task.progress = 20
-        # Add Dates
-        if  'date_start' not in params:
-            params['date_start'] = (datetime.date.today()
-                        + datetime.timedelta(days=-1))
-        if  'date_end' not in params:
-            params['date_end'] = datetime.date.today().__str__()
-        logger.info("Added dates in case there were not any!")
         # Date Grouping
         date_groups = grouping_periods(params)
         logger.info('Found grouped dates')
