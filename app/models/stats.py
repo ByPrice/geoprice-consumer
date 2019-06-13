@@ -1090,8 +1090,10 @@ class Stats(object):
         items = [{'item_uuid': iu['item']}
                  for iu in params['filters'] if 'item' in iu]
         rets = Stats.fetch_rets(params)
+        logger.debug("Fetching data for: {}".format(rets))
         filt_items = Stats \
             .fetch_from_catalogue(params['filters'], rets)
+        logger.debug("Product data : {}".format(rets))
         if not filt_items:
             logger.warning("No Products found!")
             raise errors.TaskError("No Products found!")
