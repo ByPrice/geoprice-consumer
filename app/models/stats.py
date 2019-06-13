@@ -476,11 +476,12 @@ class Stats(object):
         logger.debug(filt_items)
         task.progress = 20
         # Add Dates
-        if 'date_ini' not in params and 'date_start' not in params:
+        if  'date_start' not in params:
             params['date_ini'] = datetime.date.today().__str__()
-        if 'date_fin' not in params and 'date_end' not in params:
-            params['date_ini'] = (datetime.date.today()
+        if  'date_end' not in params:
+            params['date_fin'] = (datetime.date.today()
                         + datetime.timedelta(days=-1))
+        logger.info("Added dates in case there were not any!")
         # Date Grouping
         date_groups = grouping_periods(params)
         logger.info('Found grouped dates')
