@@ -477,10 +477,10 @@ class Stats(object):
         task.progress = 20
         # Add Dates
         if  'date_start' not in params:
-            params['date_ini'] = datetime.date.today().__str__()
-        if  'date_end' not in params:
-            params['date_fin'] = (datetime.date.today()
+            params['date_start'] = (datetime.date.today()
                         + datetime.timedelta(days=-1))
+        if  'date_end' not in params:
+            params['date_end'] = datetime.date.today().__str__()
         logger.info("Added dates in case there were not any!")
         # Date Grouping
         date_groups = grouping_periods(params)
