@@ -190,7 +190,7 @@ class Alert(Alarm):
         """
         # Aux assignation
         items, _stores, _items, _retailers = [], [], [], []
-        size_items, size_stores = 20, 20
+        size_items, size_stores = 30, 30
 
         # Alerts DF
         alerts_df = pd.DataFrame(params['alerts'])
