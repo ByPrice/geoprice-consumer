@@ -155,7 +155,7 @@ class Alert(Alarm):
                                 tuplize(ch_prods, is_uuid=True),
                                 tuplize(ch_stores, is_uuid=True),
                                 tuplize(chunks_dates)
-                            ))
+                            ), timeout=60)
         return prods, rows
 
     @staticmethod
@@ -190,7 +190,7 @@ class Alert(Alarm):
         """
         # Aux assignation
         items, _stores, _items, _retailers = [], [], [], []
-        size_items, size_stores = 100, 100
+        size_items, size_stores = 50, 50
 
         # Alerts DF
         alerts_df = pd.DataFrame(params['alerts'])
