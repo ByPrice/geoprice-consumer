@@ -14,7 +14,6 @@ class Item(object):
         self.products = []
         pass
 
-
     @staticmethod
     def get_by_product(p_uuids, cols=['item_uuid']):
         """ Get list item_uuids from an item,
@@ -26,7 +25,7 @@ class Item(object):
                 List of Product UUIDs
             cols : list
                 List of additional columns to call
-            
+
             Returns: 
             -----
             items : list
@@ -51,8 +50,8 @@ class Item(object):
                 items += r.json()['products']
             except Exception as e:
                 logger.error(e)
-        logger.info("Found {} products from Catalogue"\
-            .format(len(items)))
+        logger.info("Found {} products from Catalogue"
+                    .format(len(items)))
         return items
 
     @staticmethod
@@ -66,7 +65,7 @@ class Item(object):
                 Item UUID
             cols : list
                 List of requested table columns
-            
+
             Returns: 
             -----
             products : list
@@ -91,16 +90,15 @@ class Item(object):
         products = []
         for p in r.json()['products']:
             products.append(
-                {j:x for j, x in p.items() \
+                {j: x for j, x in p.items()
                     if j in cols}
             )
         return products
 
-    
     @staticmethod
     def get_item_details(filters):
         """ Get item details from catalogue service
-            
+
             Params:
             -----
             - filters: (list) Item Filters
@@ -110,20 +108,19 @@ class Item(object):
             (list) List of Items with Name and GTIN
         """
         # Fetch uuids from filters in ITEM
-        payload  = json.dumps(filters)
+        payload = json.dumps(filters)
         url = SRV_PROTOCOL + '://'+SRV_CATALOGUE+'/item/filtered'
-        headers = {'content-type':'application/json'}
+        headers = {'content-type': 'application/json'}
         logger.debug(url)
         try:
             resp = requests.request("POST", url, data=payload, headers=headers)
-            logger.debug(resp.status_code) 
+            logger.debug(resp.status_code)
             return resp.json()
         except Exception as e:
             logger.error(e)
-            g.error = {'code': 10001,'message':'Issues fetching info...'}
+            g.error = {'code': 10001, 'message': 'Issues fetching info...'}
             return False
-            
-    
+
     @staticmethod
     def get_all_items(ip=1, _ipp=500):
         """ Get the number of items from the catalogue
@@ -134,15 +131,15 @@ class Item(object):
                 page number
             ipp : int
                 number of results
-            
+
             Returns: 
             -----
             items : list
                 List of product with respective cols
         """
-        
+
         items = []
-        
+
         url = SRV_PROTOCOL + "://" + SRV_CATALOGUE + \
             '/product/by/puuid?keys=''&p={p}&ipp={ipp}&orderby=name'\
             .format(p=ip,
@@ -157,7 +154,7 @@ class Item(object):
             items = r.json()['products']
         except Exception as e:
             logger.error(e)
-            
-        logger.info("Found {} products from Catalogue"\
-            .format(len(items)))
+
+        logger.info("Found {} products from Catalogue"
+                    .format(len(items)))
         return items

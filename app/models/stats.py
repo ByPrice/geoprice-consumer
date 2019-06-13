@@ -11,7 +11,7 @@ from app.utils.helpers import *
 from app.models.task import Task
 
 
-dd = lambda: defaultdict(dd)
+def dd(): return defaultdict(dd)
 
 
 def datetime_converter(o):
@@ -22,13 +22,15 @@ def datetime_converter(o):
 def jsonify(dict_):
     return json.loads(json.dumps(dict_, default=datetime_converter))
 
+
 def dd_to_dict(dd):
     if isinstance(dd, defaultdict):
         aux = dict(dd)
-        aux = {k:dd_to_dict(val) for k, val in aux.items()}
+        aux = {k: dd_to_dict(val) for k, val in aux.items()}
         return aux
     else:
         return dd
+
 
 class Stats(object):
     """ Class perform query methods 
@@ -61,15 +63,15 @@ class Stats(object):
         prods = []
         # Fetch uuids from filters in Catalogue
         _cols = ['product_uuid', 'item_uuid',
-            'gtin', 'name', 'source']     
-        _iuuids = [f['item_uuid'] for f in filters\
-            if 'item_uuid' in f]
+                 'gtin', 'name', 'source']
+        _iuuids = [f['item_uuid'] for f in filters
+                   if 'item_uuid' in f]
         _iuuids += [f['item'] for f in filters if 'item' in f]
         logger.debug(_iuuids)
-        _puuids = [f['product_uuid'] for f in filters\
-            if 'product_uuid' in f]
-        _puuids += [f['product'] for f in filters \
-                   if 'product' in f]
+        _puuids = [f['product_uuid'] for f in filters
+                   if 'product_uuid' in f]
+        _puuids += [f['product'] for f in filters
+                    if 'product' in f]
         logger.debug(_puuids)
         # Get by item uuid
         for _iu in _iuuids:
@@ -82,8 +84,8 @@ class Stats(object):
         if prods.empty:
             return []
         return prods[prods['source'].isin(rets)]\
-                .to_dict(orient='records')
-        
+            .to_dict(orient='records')
+
     @staticmethod
     def fetch_rets(params):
         """ Retrieve retailers info
@@ -106,21 +108,21 @@ class Stats(object):
         # Fetching retailers from GEO
         if not rets:
             try:
-                rets = [r['key'] \
-                    for r in requests\
-                            .get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION+'/retailer/all')\
-                            .json()]
+                rets = [r['key']
+                        for r in requests
+                        .get(SRV_PROTOCOL + "://" + SRV_GEOLOCATION+'/retailer/all')
+                        .json()]
             except Exception as e:
                 logger.error(e)
                 raise errors.AppError(80005,
-                    'No Retailers found  Geolocation Service')
+                                      'No Retailers found  Geolocation Service')
                 return []
         return rets
 
     @staticmethod
     def get_cassandra_by_ret(prods, rets, dates):
         """ Query prices of aggregated table 
-            
+
             Params:
             -----
             prods : list
@@ -129,7 +131,7 @@ class Stats(object):
                 List of source/retailer keys
             dates : list
                 List of dates
-            
+
             Returns
             -----
             df : pandas.DataFrame
@@ -154,9 +156,9 @@ class Stats(object):
         # Iterate for each product-date combination
         for _p, _d in itertools.product(puuids, _days):
             try:
-                q = g._db.query(cass_query, 
-                    (UUID(_p), _d),
-                    timeout=100)
+                q = g._db.query(cass_query,
+                                (UUID(_p), _d),
+                                timeout=100)
                 if not q:
                     continue
                 qs += list(q)
@@ -167,12 +169,11 @@ class Stats(object):
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
-            return pd.DataFrame({'date':[], 'product_uuid':[]})
+            return pd.DataFrame({'date': [], 'product_uuid': []})
         # Load Response into a DF
         df = pd.DataFrame(qs)
         df['product_uuid'] = df.product_uuid.astype(str)
         return df
-
 
     @staticmethod
     def get_cassandra_by_retailers_and_period(prods, rets, dates):
@@ -215,8 +216,8 @@ class Stats(object):
         for _p, _d in itertools.product(puuids, _days):
             try:
                 q = g._db.query(cass_query,
-                    (UUID(_p), _d),
-                    timeout=100)
+                                (UUID(_p), _d),
+                                timeout=100)
                 if not q:
                     continue
                 qs += list(q)
@@ -227,7 +228,7 @@ class Stats(object):
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
-            return pd.DataFrame({'date':[], 'product_uuid':[]})
+            return pd.DataFrame({'date': [], 'product_uuid': []})
         # Load Response into a DF
         df = pd.DataFrame(qs)
         df['product_uuid'] = df.product_uuid.astype(str)
@@ -243,7 +244,7 @@ class Stats(object):
             params: dict
                 Params with filters including
                 (retailer, item, or category)
-            
+
             Returns:
             -----
             formatted : list
@@ -262,8 +263,10 @@ class Stats(object):
         rets = Stats.fetch_rets(params)
         if not rets:
             raise errors.TaskError("No retailers found.")
+        logger.debug("Fetching data for: {}".format(rets))
         # Items from service
         filt_items = Stats.fetch_from_catalogue(params, rets)
+        logger.debug("Prices of:  {}".format(filt_items))
         task.progress = 10
         if not filt_items:
             logger.warning("No Products found!")
@@ -273,22 +276,22 @@ class Stats(object):
         # Products query
         df_curr = Stats\
             .get_cassandra_by_ret(filt_items,
-                rets,
-                [_now,
-                _now - datetime.timedelta(days=1)])\
+                                  rets,
+                                  [_now,
+                                   _now - datetime.timedelta(days=1)])\
             .sort_values(by=['date'], ascending=False)\
-            .drop_duplicates(subset=['product_uuid'], keep='first') # today
-        df_curr.rename(columns={'avg_price':'avg',
-            'max_price':'max', 'min_price': 'min',
-            'mode_price': 'mode'}, inplace=True)
+            .drop_duplicates(subset=['product_uuid'], keep='first')  # today
+        df_curr.rename(columns={'avg_price': 'avg',
+                                'max_price': 'max', 'min_price': 'min',
+                                'mode_price': 'mode'}, inplace=True)
         task.progress = 35
         df_prev = Stats\
             .get_cassandra_by_ret(filt_items,
-                rets,
-                [_now - datetime.timedelta(days=1),
-                _now - datetime.timedelta(days=2)])\
-                .sort_values(by=['date'], ascending=False)\
-            .drop_duplicates(subset=['product_uuid'], keep='first') # yesterday
+                                  rets,
+                                  [_now - datetime.timedelta(days=1),
+                                   _now - datetime.timedelta(days=2)])\
+            .sort_values(by=['date'], ascending=False)\
+            .drop_duplicates(subset=['product_uuid'], keep='first')  # yesterday
         task.progress = 50
         # If queried lists empty
         if df_curr.empty:
@@ -299,11 +302,11 @@ class Stats(object):
             # Create a  copy of previous and set everything to zero
             df_prev = df_curr.copy()\
                 .drop(['avg', 'min',
-                        'max', 'date',
-                        'mode'],
-                    axis=1)
+                       'max', 'date',
+                       'mode'],
+                      axis=1)
             _ = ['prev_avg', 'prev_min',
-                'prev_max', 'prev_mode']
+                 'prev_max', 'prev_mode']
             for j in _:
                 df_prev[j] = '-'
         else:
@@ -312,33 +315,33 @@ class Stats(object):
                 "min_price": "prev_min",
                 "max_price": "prev_max",
                 "mode_price": "prev_mode"
-                }, inplace=True)
+            }, inplace=True)
         task.progress = 60
         # Add product attributes to Current prices DF
         info_df = pd.DataFrame(filt_items,
-            columns=['item_uuid', 'product_uuid',
-                'name', 'gtin', 'source'])
+                               columns=['item_uuid', 'product_uuid',
+                                        'name', 'gtin', 'source'])
         df_curr = pd.merge(df_curr, info_df,
-            on='product_uuid', how='left')
+                           on='product_uuid', how='left')
         # Merge Current with prev to retrieve previous prices
         df = pd.merge(df_curr, df_prev,
-            on='product_uuid', how='left')
+                      on='product_uuid', how='left')
         df.fillna('-', axis=0, inplace=True)
-        ### TODO:
+        # TODO:
         # Add rows with unmatched products!
-        non_matched = df[df['item_uuid'].isnull() | 
-            (df['item_uuid'] == '')].copy()
+        non_matched = df[df['item_uuid'].isnull() |
+                         (df['item_uuid'] == '')].copy()
         # Format only products with matched results
-        df = df[~(df['item_uuid'].isnull()) & 
-            (df['item_uuid'] != '')]
+        df = df[~(df['item_uuid'].isnull()) &
+                (df['item_uuid'] != '')]
         formatted = []
         task.progress = 65
         for i, prdf in df.groupby(by=['item_uuid']):
             _first = prdf[:1].reset_index()
             tmp = {
-                'item_uuid': _first.loc[0,'item_uuid'],
-                'name': _first.loc[0,'name'],
-                'gtin': _first.loc[0,'gtin'],
+                'item_uuid': _first.loc[0, 'item_uuid'],
+                'name': _first.loc[0, 'name'],
+                'gtin': _first.loc[0, 'gtin'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
@@ -351,11 +354,11 @@ class Stats(object):
                 })
             for r in (set(rets) - tmp['prices'].keys()):
                 tmp['prices'].update({
-                    r: { 'avg': '-', 'min': '-',
+                    r: {'avg': '-', 'min': '-',
                         'max': '-', 'mode': '-',
                         'prev_avg': '-', 'prev_min': '-',
                         'prev_max': '-', 'prev_mode': '-'
-                    }
+                        }
                 })
             formatted.append(tmp)
         logger.info('Got actual!!')
@@ -385,26 +388,26 @@ class Stats(object):
         """
         try:
             if params['interval'] == 'week':
-                intd = [int(dtt) \
-                    for dtt in pd\
-                                .to_datetime('{}-{}'\
-                                            .format(intd[0],
-                                                    str(intd[1]).zfill(2))\
-                                            + '-0', format='%Y-%W-%w')\
-                                .date().__str__().split('-')]
+                intd = [int(dtt)
+                        for dtt in pd
+                        .to_datetime('{}-{}'
+                                     .format(intd[0],
+                                             str(intd[1]).zfill(2))
+                                     + '-0', format='%Y-%W-%w')
+                        .date().__str__().split('-')]
             elif params['interval'] == 'month':
                 lday = calendar.monthrange(*intd)[1]
-                intd = [int(dtt) \
-                    for dtt in pd\
-                                .to_datetime('{}-{}'\
-                                            .format(intd[0],
-                                                    str(intd[1]).zfill(2)) \
-                                            + '-{}'.format(lday), format='%Y-%m-%d')\
-                                .date().__str__().split('-')]
+                intd = [int(dtt)
+                        for dtt in pd
+                        .to_datetime('{}-{}'
+                                     .format(intd[0],
+                                             str(intd[1]).zfill(2))
+                                     + '-{}'.format(lday), format='%Y-%m-%d')
+                        .date().__str__().split('-')]
             else:
                 # day
                 pass
-            d_belong = find_date_interval(pd.tslib\
+            d_belong = find_date_interval(pd.tslib
                                             .Timestamp(*(intd)),
                                           date_groups)
             tmp2 = {
@@ -424,7 +427,7 @@ class Stats(object):
             if r == params['client']:
                 continue
             if (' '.join([ik[0].upper() + ik[1:]
-                for ik in r.split('_')]))\
+                          for ik in r.split('_')]))\
                     in [x['source'] for x in tmp2['retailers']]:
                 continue
             tmp2['retailers'].append({
@@ -446,7 +449,7 @@ class Stats(object):
             params: dict
                 Params with filters including
                 (retailer, item, or category)
-            
+
             Returns:
             -----
             formatted : list
@@ -485,7 +488,7 @@ class Stats(object):
         logger.info('Found grouped dates')
         # Retrieve prices from
         df = Stats.get_cassandra_by_retailers_and_period(filt_items,
-            rets, [date_groups[0][0], date_groups[-1][-1]])
+                                                         rets, [date_groups[0][0], date_groups[-1][-1]])
         task.progress = 60
         if df.empty:
             logger.warning('Empty set from query...')
@@ -507,18 +510,18 @@ class Stats(object):
         task.progress = 75
         # Set Products DF
         info_df = pd.DataFrame(filt_items,
-            columns=['item_uuid', 'product_uuid',
-                'name', 'gtin', 'source'])
+                               columns=['item_uuid', 'product_uuid',
+                                        'name', 'gtin', 'source'])
         # Add product info
         df = pd.merge(df, info_df,
-                on='product_uuid', how='left')
-        ### TODO:
+                      on='product_uuid', how='left')
+        # TODO:
         # Add rows with unmatched products!
-        non_matched = df[df['item_uuid'].isnull() | 
-            (df['item_uuid'] == '')].copy()
+        non_matched = df[df['item_uuid'].isnull() |
+                         (df['item_uuid'] == '')].copy()
         # Format only products with matched results
-        df = df[~(df['item_uuid'].isnull()) & 
-            (df['item_uuid'] != '')]
+        df = df[~(df['item_uuid'].isnull()) &
+                (df['item_uuid'] != '')]
         # Group by item and them depending on Date Range
         task.progress = 85
 
@@ -531,10 +534,10 @@ class Stats(object):
         for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
             tmp = {'item_uuid': i,
-                    'name': tdf['name'][0],
-                    'gtin': tdf['gtin'][0],
-                    'interval_name': params['interval'],
-                    'intervals': []}
+                   'name': tdf['name'][0],
+                   'gtin': tdf['gtin'][0],
+                   'interval_name': params['interval'],
+                   'intervals': []}
             # Grouping by Time interval columns
             en = 0
             prev_rets = {z: 0 for z in rets}
@@ -589,7 +592,7 @@ class Stats(object):
                                        if ((isinstance(tmp2['client'], float))
                                            or (isinstance(tmp2['client'], int))
                                            and (tmp2['client'] > 0)) else '-')
-                        })
+                    })
                     # Assign prev prices for next analysis
                     prev_rets[k] = df_r['avg_price'].mean()
                 # All retailers completion
@@ -598,12 +601,12 @@ class Stats(object):
                     if r == params['client']:
                         continue
                     if (' '.join([ik[0].upper() + ik[1:]
-                        for ik in r.split('_')])) \
+                                  for ik in r.split('_')])) \
                             in [x['retailer'] for x in tmp2['retailers']]:
                         continue
                     tmp2['retailers'].append({
                         'retailer': ' '.join([ik[0].upper() + ik[1:]
-                                             for ik in r.split('_')]),
+                                              for ik in r.split('_')]),
                         'price': '-',
                         'difference': '-'
                     })
@@ -615,8 +618,8 @@ class Stats(object):
                 while en < (len(interval_to_have)):
                     logger.info('Setting new empty interval')
                     tmp2 = Stats.add_empty_interval(interval_to_have[en],
-                                                       date_groups,
-                                                       rets, params)
+                                                    date_groups,
+                                                    rets, params)
                     tmp['intervals'].append(tmp2)
                     en += 1
             interv_list.append(tmp)
@@ -634,11 +637,11 @@ class Stats(object):
         logger.debug("Converting list to csv file..")
         df = pd.DataFrame()
         for crow in prod:
-            col_names = {'gtin':crow['gtin'],
-                'Nombre': crow['name']}
+            col_names = {'gtin': crow['gtin'],
+                         'Nombre': crow['name']}
             col_names.update(dictify(crow['prices']))
-            df = pd.concat([df,pd.DataFrame([col_names])])
-        df.set_index(['gtin','Nombre'],inplace=True)
+            df = pd.concat([df, pd.DataFrame([col_names])])
+        df.set_index(['gtin', 'Nombre'], inplace=True)
         #df.drop('item_uuid', axis=1, inplace=True)
         _buffer = StringIO()
         iocsv = df.to_csv(_buffer)
@@ -655,19 +658,20 @@ class Stats(object):
         for crow in prod:
             recs = []
             for ivs in crow['intervals']:
-                tmp = {'gtin':crow['gtin'],
-                    'Nombre':crow['name']}
+                tmp = {'gtin': crow['gtin'],
+                       'Nombre': crow['name']}
                 tmp.update({'Fecha Inicio': ivs['date_start'],
-                            'Fecha Final' : ivs['date_end'],
+                            'Fecha Final': ivs['date_end'],
                             'Mi Retailer': ivs['client']})
                 for rs in ivs['retailers']:
                     rrs = readfy(rs['retailer'])
-                    tmp.update({rrs:rs['price'], 
-                            rrs+' Diferencia' : rs['difference']})
+                    tmp.update({rrs: rs['price'],
+                                rrs+' Diferencia': rs['difference']})
                 recs.append(tmp)
-            df = pd.concat([df,pd.DataFrame(recs)])
-        df.set_index(['gtin','Nombre', 'Fecha Inicio', 'Fecha Final', 'Mi Retailer'],inplace=True)
-        df.replace([0,0.0],['-','-'], inplace=True)
+            df = pd.concat([df, pd.DataFrame(recs)])
+        df.set_index(['gtin', 'Nombre', 'Fecha Inicio',
+                      'Fecha Final', 'Mi Retailer'], inplace=True)
+        df.replace([0, 0.0], ['-', '-'], inplace=True)
         _buffer = StringIO()
         iocsv = df.to_csv(_buffer)
         _buffer.seek(0)
@@ -684,7 +688,7 @@ class Stats(object):
             params: dict
                 Params with filters including
                 (retailer, dates, or interval)
-            
+
             Returns:
             -----
             formatted : list
@@ -719,33 +723,33 @@ class Stats(object):
         date_groups = grouping_periods(params)
         logger.debug('Got grouping dates')
         # Query over all range
-        range_dates = [date_groups[0][0],date_groups[-1][-1]]
+        range_dates = [date_groups[0][0], date_groups[-1][-1]]
         task.progress = 30
         df = Stats.get_cassandra_by_retailers_and_period(
             filt_items, rets, range_dates)
         if df.empty:
             raise errors.TaskError("No Prices found!")
         task.progress = 40
-        # Products DF 
+        # Products DF
         info_df = pd.DataFrame(filt_items,
-            columns=['item_uuid', 'product_uuid',
-                'name', 'gtin', 'source'])
+                               columns=['item_uuid', 'product_uuid',
+                                        'name', 'gtin', 'source'])
         # Obtaining Dates and formating
         df['date'] = df['date'].apply(get_datetime())
-        df['time_js'] = df['date'].apply(lambda djs: \
-            (djs - datetime.datetime(1970, 1, 1,0,0))/datetime.timedelta(seconds=1)*1000)
-        df['day'] = df['date'].apply(lambda x : x.day)
-        df['month'] = df['date'].apply(lambda x : x.month)
-        df['year'] = df['date'].apply(lambda x : x.year)
-        df['week'] = df['date'].apply(lambda x : x.isocalendar()[1])
+        df['time_js'] = df['date'].apply(lambda djs:
+                                         (djs - datetime.datetime(1970, 1, 1, 0, 0))/datetime.timedelta(seconds=1)*1000)
+        df['day'] = df['date'].apply(lambda x: x.day)
+        df['month'] = df['date'].apply(lambda x: x.month)
+        df['year'] = df['date'].apply(lambda x: x.year)
+        df['week'] = df['date'].apply(lambda x: x.isocalendar()[1])
         task.progress = 50
-        grouping_cols = {'day':['year','month','day'],
-                        'month':['year','month'],
-                        'week': ['year','week']}
+        grouping_cols = {'day': ['year', 'month', 'day'],
+                         'month': ['year', 'month'],
+                         'week': ['year', 'week']}
         df_n = pd.merge(df, info_df,
-            on='product_uuid', how='left')
+                        on='product_uuid', how='left')
         task.progress = 60
-        ### TODO:
+        # TODO:
         # Add rows with unmatched products!
         # Review the use of the variables: non_matched and df
         # non_matched = df[df['item_uuid'].isnull() |
@@ -755,9 +759,9 @@ class Stats(object):
         #     (df['item_uuid'] != '')]
         # --- Compute for Metrics
         # Group by interval
-        avg_l,min_l, max_l = [],[],[]
-        for j,df_t in df_n.groupby(grouping_cols[params['interval']]):
-            # Compute max, min, avg            
+        avg_l, min_l, max_l = [], [], []
+        for j, df_t in df_n.groupby(grouping_cols[params['interval']]):
+            # Compute max, min, avg
             avg_l.append([
                 list(df_t['time_js'])[0],
                 df_t['avg_price'].mean()
@@ -777,15 +781,15 @@ class Stats(object):
         # --- Compute for Retailers
         retailers = []
         # Group by retailer
-        for i,df_t in df_n.groupby('source'):
+        for i, df_t in df_n.groupby('source'):
             tmp = {
-                'name': ' '\
-                    .join([rsp[0].upper() + rsp[1:] \
-                            for rsp in i.split('_')]),
-                'data':[]
+                'name': ' '
+                .join([rsp[0].upper() + rsp[1:]
+                       for rsp in i.split('_')]),
+                'data': []
             }
             # Group by time interval
-            for j,df_p in df_t.groupby(grouping_cols[params['interval']]):
+            for j, df_p in df_t.groupby(grouping_cols[params['interval']]):
                 tmp['data'].append([
                     df_p['time_js'].tolist()[0],
                     df_p['avg_price'].mean()
@@ -793,9 +797,9 @@ class Stats(object):
             retailers.append(tmp)
         logger.info('Got Retailers...')
         sub_str = "<b> Retailers:</b> " \
-            + ', '.join([' '.join([rsp[0].upper() + rsp[1:] \
-                                    for rsp in rt.split('_')]) \
-                        for rt in rets]) + '.'
+            + ', '.join([' '.join([rsp[0].upper() + rsp[1:]
+                                   for rsp in rt.split('_')])
+                         for rt in rets]) + '.'
         result = {
             'title': 'Tendencia de Precios',
             'subtitle': '<b>Periodo</b>: {} - {} <br> {}'.format(
@@ -808,11 +812,11 @@ class Stats(object):
                 'max': max_l
             },
             'retailers': retailers
-            }
+        }
         task.progress = 100
         return {"data": result, "msg": "Task completed"}
 
-    @staticmethod 
+    @staticmethod
     def get_count_by_cat(task_id, params):
         """ Retrieve all the count of the 
             elements in a categ  (given the 
@@ -861,29 +865,29 @@ class Stats(object):
         _dates.append(_dates[0] - datetime.timedelta(days=1))
         df = Stats\
             .get_cassandra_by_ret(filt_items,
-                rets, _dates)
+                                  rets, _dates)
         task.progress = 50
         if df.empty:
             logger.warning('No prices found!')
             raise errors.TaskError("No prices found!")
-        # Products DF 
+        # Products DF
         info_df = pd.DataFrame(filt_items,
-            columns=['item_uuid', 'product_uuid',
-                'name', 'gtin', 'source'])
+                               columns=['item_uuid', 'product_uuid',
+                                        'name', 'gtin', 'source'])
         df = pd.merge(df, info_df,
-            on='product_uuid', how='left')
+                      on='product_uuid', how='left')
         task.progress = 70
-        ### TODO:
+        # TODO:
         # Add rows with unmatched products!
-        non_matched = df[df['item_uuid'].isnull() | 
-            (df['item_uuid'] == '')].copy()
+        non_matched = df[df['item_uuid'].isnull() |
+                         (df['item_uuid'] == '')].copy()
         # Format only products with matched results
-        df = df[~(df['item_uuid'].isnull()) & 
-            (df['item_uuid'] != '')]
+        df = df[~(df['item_uuid'].isnull()) &
+                (df['item_uuid'] != '')]
         task.progress = 75
         # Perform aggregates
         ccat, counter, digs = [], 1, 1
-        for i,row in df.groupby('source'):
+        for i, row in df.groupby('source'):
             prod_count = row\
                 .drop_duplicates(['item_uuid'])\
                 .avg_price.count()
@@ -891,25 +895,25 @@ class Stats(object):
                 .drop_duplicates(['item_uuid'])\
                 .avg_price.mean()
             ccat.append({
-                    'x': counter, 
-                    'name': i, 
-                    'retailer': " "\
-                        .join([x[0].upper()+x[1:] \
-                                for x in i.split('_')]),
-                    'z': round(float(prod_count),2),
-                    'y': round(float(prod_avg),2)
-                    })
-            counter+=1
-            # Save biggest number of digits 
-            digs = digs if digs > len(str(prod_count)) else len(str(prod_count))
+                'x': counter,
+                'name': i,
+                'retailer': " "
+                        .join([x[0].upper()+x[1:]
+                               for x in i.split('_')]),
+                        'z': round(float(prod_count), 2),
+                        'y': round(float(prod_avg), 2)
+                        })
+            counter += 1
+            # Save biggest number of digits
+            digs = digs if digs > len(
+                str(prod_count)) else len(str(prod_count))
         # Scaling x for plot upon the number of digits
         task.progress = 95
-        for i,xc in enumerate(ccat):
-            ccat[i]['x'] = xc['x']*(10**(digs))    
+        for i, xc in enumerate(ccat):
+            ccat[i]['x'] = xc['x']*(10**(digs))
         logger.info('Got Category counts')
         task.progress = 100
         return {"data": ccat, "msg": "Task completed"}
-
 
     @staticmethod
     def stats_by_uuid(uuid, stats):
@@ -932,19 +936,23 @@ class Stats(object):
                     uuid=uuid)).json()
             dates = [
                 str(datetime.date.today()). replace("-", ""),
-                str(datetime.date.today() + datetime.timedelta(days=-1)).replace("-", ""),
-                str(datetime.date.today() + datetime.timedelta(days=-2)).replace("-", "")
+                str(datetime.date.today() +
+                    datetime.timedelta(days=-1)).replace("-", ""),
+                str(datetime.date.today() +
+                    datetime.timedelta(days=-2)).replace("-", "")
             ]
-            product_uuids = [item.get("product_uuid") for item in items.get("products")]
+            product_uuids = [item.get("product_uuid")
+                             for item in items.get("products")]
             if not product_uuids:
                 logger.debug("product_uuid found")
                 product_uuids = [uuid]
             else:
                 logger.debug("item_uuid found")
         except Exception as e:
-            logger.error("Stats by uuid is not working correctly! : {}".format(e))
+            logger.error(
+                "Stats by uuid is not working correctly! : {}".format(e))
             logger.error("Url: {}".format(SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
-                    uuid=uuid)))
+                uuid=uuid)))
             product_uuids = []
 
         stats_json = {}
@@ -972,7 +980,8 @@ class Stats(object):
                 if "min" in stats:
                     stats_json["min"] = round(min(df["min"]), 2)
                 if "avg" in stats:
-                    stats_json["avg"] = round(sum(df["avg"]) / len(df["avg"]), 2)
+                    stats_json["avg"] = round(
+                        sum(df["avg"]) / len(df["avg"]), 2)
             else:
                 if "max" in stats:
                     stats_json["max"] = None
@@ -988,10 +997,10 @@ class Stats(object):
                 stats_json["min"] = None
             if "avg" in stats:
                 stats_json["avg"] = None
-            logger.error("Something is going wrong with stats_by_uuid in geoprice, FIX IT!!")
+            logger.error(
+                "Something is going wrong with stats_by_uuid in geoprice, FIX IT!!")
 
         return stats_json
-
 
     @staticmethod
     def exists_by_uuid(uuid):
@@ -1010,23 +1019,27 @@ class Stats(object):
         # Retailers from service
         try:
             items = requests.get(
-                    SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
+                SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
                     uuid=uuid)).json()
             dates = [
                 str(datetime.date.today()). replace("-", ""),
-                str(datetime.date.today() + datetime.timedelta(days=-1)).replace("-", ""),
-                str(datetime.date.today() + datetime.timedelta(days=-2)).replace("-", "")
+                str(datetime.date.today() +
+                    datetime.timedelta(days=-1)).replace("-", ""),
+                str(datetime.date.today() +
+                    datetime.timedelta(days=-2)).replace("-", "")
             ]
-            product_uuids = [item.get("product_uuid") for item in items.get("products")]
+            product_uuids = [item.get("product_uuid")
+                             for item in items.get("products")]
             if not product_uuids:
                 logger.debug("product_uuid found")
                 product_uuids = [uuid]
             else:
                 logger.debug("item_uuid found")
         except Exception as e:
-            logger.error("Exists by uuid is not working correctly! : {}".format(e))
+            logger.error(
+                "Exists by uuid is not working correctly! : {}".format(e))
             logger.error("Url: {}".format(SRV_PROTOCOL + "://" + SRV_CATALOGUE + "/product/by/iuuid?keys={uuid}&ipp=50&cols=product_uuid".format(
-                    uuid=uuid)))
+                uuid=uuid)))
             product_uuids = []
 
         if product_uuids:
@@ -1051,7 +1064,6 @@ class Stats(object):
         else:
             return False
 
-
     @staticmethod
     def get_matched_items_task(task_id, params):
         """
@@ -1075,7 +1087,8 @@ class Stats(object):
         task.task_id = task_id
         task.progress = 1
 
-        items = [{'item_uuid': iu['item']} for iu in params['filters'] if 'item' in iu]
+        items = [{'item_uuid': iu['item']}
+                 for iu in params['filters'] if 'item' in iu]
         rets = Stats.fetch_rets(params)
         filt_items = Stats \
             .fetch_from_catalogue(params['filters'], rets)
@@ -1096,8 +1109,10 @@ class Stats(object):
             raise errors.TaskError("No prices found!")
         df = pd.DataFrame(qres)
         prods_by_uuids = {p['product_uuid']: p for p in filt_items}
-        df['item_uuid'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['item_uuid'])
-        df['retailer'] = df.product_uuid.apply(lambda z: prods_by_uuids[z]['source'])
+        df['item_uuid'] = df.product_uuid.apply(
+            lambda z: prods_by_uuids[z]['item_uuid'])
+        df['retailer'] = df.product_uuid.apply(
+            lambda z: prods_by_uuids[z]['source'])
         task.progress = 15
         # For every item, check availability in every retaliers
         # If not, delete from set
@@ -1109,7 +1124,8 @@ class Stats(object):
                 # If not in all retailers, pass
                 logger.debug("item {} found in {} out of {} retailers".format(
                     it,
-                    df[df['item_uuid'] == UUID(it)].groupby('retailer').size().shape[0],
+                    df[df['item_uuid'] == UUID(it)].groupby(
+                        'retailer').size().shape[0],
                     len(rets)))
                 if df[df['item_uuid'] == UUID(it)].groupby('retailer').size().shape[0] != len(rets):
                     rejected.append(UUID(it))
@@ -1126,13 +1142,15 @@ class Stats(object):
         data = {}
         prices_per_retailer = dd()
         for i, row in df_new.groupby('retailer'):
-            prod_count = row.drop_duplicates(['item_uuid'])['avg_price'].count()
+            prod_count = row.drop_duplicates(['item_uuid'])[
+                'avg_price'].count()
             prod_avg = row.drop_duplicates(['item_uuid'])['avg_price'].mean()
             # All item prices
             prices = {}
             for j, prod in row.drop_duplicates(['item_uuid']).iterrows():
                 prices[str(prod['item_uuid'])] = prod['avg_price']
-                prices_per_retailer[str(prod['item_uuid'])][i] = prod['avg_price']
+                prices_per_retailer[str(prod['item_uuid'])
+                                    ][i] = prod['avg_price']
 
             # Retailer prices
             data[i] = prices
@@ -1157,4 +1175,3 @@ class Stats(object):
         }
 
         return {"data": result, "msg": "Task completed"}
-
