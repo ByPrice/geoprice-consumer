@@ -1089,7 +1089,7 @@ class Stats(object):
 
         items = [{'item_uuid': iu['item']}
                  for iu in params['filters'] if 'item' in iu]
-        rets = Stats.fetch_rets(params)
+        rets = Stats.fetch_rets(params['filters'])
         logger.debug("Fetching data for: {}".format(rets))
         filt_items = Stats \
             .fetch_from_catalogue(params['filters'], rets)
