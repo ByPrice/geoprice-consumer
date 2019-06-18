@@ -1147,7 +1147,7 @@ class Product(object):
                 csv_df.append(tmp_csv)
                 #csv_cols.union(set(list(tmp_csv.columns)))
             df_to_exp = pd.concat(csv_df)
-            return df_to_exp.to_dict(orient='records')
+            return df_to_exp.reset_index().to_dict(orient='records')
         # Construct Response
         _rows = []
         for _j, _jrow in fix_df.iterrows():
