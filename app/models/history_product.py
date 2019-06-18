@@ -1117,6 +1117,7 @@ class Product(object):
             added_dfs.append(_tmp)
         logger.debug('Built Added DFs')
         if format == 'csv':
+            # CSV like formatter
             csv_df = []
             # Fetch Fix Name
             _dfs = [fix_df] + added_dfs
@@ -1147,6 +1148,7 @@ class Product(object):
                 csv_df.append(tmp_csv)
                 #csv_cols.union(set(list(tmp_csv.columns)))
             df_to_exp = pd.concat(csv_df)
+            task.progress = 100
             return df_to_exp.reset_index().to_dict(orient='records')
         # Construct Response
         _rows = []
