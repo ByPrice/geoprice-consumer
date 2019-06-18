@@ -1133,11 +1133,10 @@ class Product(object):
                     pass
                 # Fetch store name
                 _df = ad_f.copy()
-                print(_df.head())
                 _df['store_name'] = _df\
                     .apply(lambda z: z['store'].upper() \
-                            if z['retailer'].upper() in z['store'].upper() \
-                            else ' '.join([z['retailer'].upper(), z['store'].upper()]), 1)
+                            if z['source'].upper() in z['store'].upper() \
+                            else ' '.join([z['source'].upper(), z['store'].upper()]), 1)
                 tmp_csv = _df[['store_name', 'price']]\
                             .rename(columns={'price': ad_name})\
                             .drop_duplicates('store_name')\
