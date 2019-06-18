@@ -1122,7 +1122,6 @@ class Product(object):
             # Fetch Fix Name
             _dfs = [fix_df] + added_dfs
             for ad_f in _dfs:
-                print('----------')
                 # Fetch product name
                 if ad_f.empty:
                     continue

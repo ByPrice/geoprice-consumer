@@ -278,7 +278,7 @@ def compare_retailer_item():
     logger.info("Submited History Product Retailer task...")
     return jsonify({
         'status': 'ok', 
-        'module': 'history_product',
+        'module': 'history_product_compare_details',
         'task_id' : request.async_id
     })
 
@@ -317,7 +317,7 @@ def compare_stores_item():
     logger.info("Submited History Product Compare Stores task...")
     return jsonify({
         'status': 'ok', 
-        'module': 'history_product',
+        'module': 'history_product_compare_stores',
         'task_id' : request.async_id
     })
 
@@ -328,7 +328,7 @@ def counmpare_hist():
     logger.info("Submited Compare store item task...")
     return jsonify({
         'status':'ok', 
-        'module': 'task',
+        'module': 'history_product_compare',
         'task_id' : request.async_id
     })
 
