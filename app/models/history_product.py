@@ -977,22 +977,29 @@ class Product(object):
                 raise errors.AppError(80010, "Wrong Format: Date")
         else:
             _date = datetime.datetime.utcnow()
+        if 'format' in params:
+            if not isinstance(params['format'], str):
+                raise errors.AppError(80010, "Wrong Format: Format")
+        else:
+            params['format'] = 'json'
         # Call function to fetch prices
         prod = Product\
-            .get_pairs_ret_item(task_id, params['fixed_segment'],
-                params['added_segments'], _date)
+            .get_pairs_ret_item(task_id, 
+                params['fixed_segment'],
+                params['added_segments'],
+                _date,
+                params['format'])
         if not prod:
             logger.warning("Not able to fetch prices.")
             raise errors.AppError(80009,
                 "No prices with that Retailer and item combination.")
-        
         return {
             'data' : prod,
             'msg' : 'Retailer Task completed'
         }
             
     @staticmethod
-    def get_pairs_ret_item(task_id, fixed, added, date):
+    def get_pairs_ret_item(task_id, fixed, added, date, format):
         """ Compare segments of pairs (retailer-item)
             between the fixed against all the added
 
@@ -1004,6 +1011,8 @@ class Product(object):
                 Pairs of Retailer-Item's
             date : datetime.datetime
                 Date of comparison
+            format : str
+                Response Format
 
             Input Example:
             -----
@@ -1107,6 +1116,38 @@ class Product(object):
             # Added to the list
             added_dfs.append(_tmp)
         logger.debug('Built Added DFs')
+        if format == 'csv':
+            csv_df = []
+            # Fetch Fix Name
+            _dfs = [fix_df] + added_dfs
+            for ad_f in _dfs:
+                print('----------')
+                # Fetch product name
+                if ad_f.empty:
+                    continue
+                ad_name = ad_f['item_uuid'].tolist()[0]
+                try:
+                    #ad_name = requests.get("http://"+SRV_ITEM+"/item/info/"+ad_name).json()['names'][0]
+                    ad_name = requests.get("http://"+SRV_CATALOGUE+"/item/details?uuid="+ad_name).json()['name'].upper()
+                except:
+                    pass
+                # Fetch store name
+                _df = ad_f.copy()
+                _df['store_name'] = _df\
+                    .apply(lambda z: z['store'].upper() \
+                            if z['retailer'].upper() in z['store'].upper() \
+                            else ' '.join([z['retailer'].upper(), z['store'].upper()]), 1)
+                tmp_csv = _df[['store_name', 'price']]\
+                            .rename(columns={'price': ad_name})\
+                            .drop_duplicates('store_name')\
+                            .set_index('store_name').T\
+                            .reset_index()\
+                            .rename(columns={'index':'producto'})\
+                            .set_index('producto')
+                csv_df.append(tmp_csv)
+                #csv_cols.union(set(list(tmp_csv.columns)))
+            df_to_exp = pd.concat(csv_df)
+            return df_to_exp.to_dict(orient='records')
         # Construct Response
         _rows = []
         for _j, _jrow in fix_df.iterrows():
@@ -1557,7 +1598,8 @@ class Product(object):
         else:
             _date = datetime.datetime.utcnow()
         # Call function to fetch prices
-        prod = Product.get_pairs_ret_item_stores(task_id, params['fixed_segment'],
+        prod = Product.get_pairs_ret_item_stores(task_id, 
+                                params['fixed_segment'],
                                 params['added_segments'],
                                 _date,
                                 params['territory'])
@@ -1683,7 +1725,6 @@ class Product(object):
                 continue
             ad_name = ad_f['item_uuid'].tolist()[0]
             try:
-                #ad_name = requests.get("http://"+SRV_ITEM+"/item/info/"+ad_name).json()['names'][0]
                 ad_name = requests.get(SRV_PROTOCOL+"://"+SRV_CATALOGUE+"/item/details?uuid="+ad_name).json()['name'].upper()
             except:
                 pass
