@@ -1133,6 +1133,7 @@ class Product(object):
                     pass
                 # Fetch store name
                 _df = ad_f.copy()
+                print(_df.head())
                 _df['store_name'] = _df\
                     .apply(lambda z: z['store'].upper() \
                             if z['retailer'].upper() in z['store'].upper() \
