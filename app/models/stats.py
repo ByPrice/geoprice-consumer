@@ -250,6 +250,7 @@ class Stats(object):
             formatted : list
                 List of formatted values
         """
+        logger.info("Retailer current ")
         if not params['filters']:
             raise errors.TaskError("Not filters requested!")
         params = params['filters']
