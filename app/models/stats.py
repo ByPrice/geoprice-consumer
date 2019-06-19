@@ -9,7 +9,7 @@ from app import errors
 from app.models.item import Item
 from app.utils.helpers import *
 from app.models.task import Task
-
+from ByHelpers import applogger
 
 def dd(): return defaultdict(dd)
 
@@ -31,6 +31,7 @@ def dd_to_dict(dd):
     else:
         return dd
 
+logger = applogger.get_logger()
 
 class Stats(object):
     """ Class perform query methods 
