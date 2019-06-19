@@ -915,10 +915,12 @@ class Product(object):
         # product_uuid's from Catalogue Service
         prod_info = Item.get_by_item(item)
         prod_uuids = [str(p['product_uuid']) for p in prod_info]
-        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        logger.info("Found {} products in catalogue".format(len(prod_uuids)))
+        logger.debug(prod_uuids)
         # Generate days
         _period = (_t1-_t0).days if _t1 else 1
         _days = tupleize_date(_t0.date(), _period)
+        logger.debug(_days)
         cass_query = """
             SELECT product_uuid,
             store_uuid, price, time
