@@ -82,6 +82,10 @@ class Stats(object):
             prods += Item.get_by_product(_puuids, _cols)
         # Filter products from requested retailers
         prods = pd.DataFrame(prods)
+        print("RETS")
+        print(rets)
+        print("PRODS")
+        print(prods)
         if prods.empty:
             return []
         return prods[prods['source'].isin(rets)]\
