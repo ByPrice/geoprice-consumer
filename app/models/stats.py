@@ -878,8 +878,9 @@ class Stats(object):
                                   rets, _dates)
         task.progress = 50
         if df.empty:
-            logger.warning('No prices found!')
-            raise errors.TaskError("No prices found!")
+            # logger.warning('No prices found!')
+            # raise errors.TaskError("No prices found!")
+            return {"data": [], "msg": "Task completed"}
         # Products DF
         info_df = pd.DataFrame(filt_items,
                                columns=['item_uuid', 'product_uuid',
