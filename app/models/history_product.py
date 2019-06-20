@@ -918,7 +918,7 @@ class Product(object):
         logger.info("Found {} products in catalogue".format(len(prod_uuids)))
         logger.debug(prod_uuids)
         # Generate days
-        _period = (_t1-_t0).days if _t1 else 1
+        _period = (_t1-_t0).days if _t1 else 2
         _days = tupleize_date(_t0.date(), _period)
         logger.debug(_days)
         cass_query = """
@@ -974,6 +974,8 @@ class Product(object):
         if 'date' in params:
             try:
                 _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+                if _date > datetime.datetime.utcnow().date():
+                    _date = datetime.datetime.utcnow()
             except Exception as e:
                 logger.error(e)
                 raise errors.AppError(80010, "Wrong Format: Date")
@@ -1033,8 +1035,7 @@ class Product(object):
                     "name": str
                 }
             ],
-            "date_ini": str(YYYY-MM-DD),
-            "date_fin": str(YYYY-MM-DD)
+            "date": str(YYYY-MM-DD)
         }
 
             Returns:
@@ -1595,6 +1596,8 @@ class Product(object):
         if 'date' in params:
             try:
                 _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+                if _date > datetime.datetime.utcnow().date():
+                    _date = datetime.datetime.utcnow()
             except Exception as e:
                 logger.error(e)
                 raise errors.AppError("invalid_request", "Wrong Format: Date")
