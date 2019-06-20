@@ -974,7 +974,7 @@ class Product(object):
         if 'date' in params:
             try:
                 _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
-                if _date > datetime.datetime.utcnow().date():
+                if _date > datetime.datetime.utcnow():
                     _date = datetime.datetime.utcnow()
             except Exception as e:
                 logger.error(e)
@@ -1596,7 +1596,7 @@ class Product(object):
         if 'date' in params:
             try:
                 _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
-                if _date > datetime.datetime.utcnow().date():
+                if _date > datetime.datetime.utcnow():
                     _date = datetime.datetime.utcnow()
             except Exception as e:
                 logger.error(e)

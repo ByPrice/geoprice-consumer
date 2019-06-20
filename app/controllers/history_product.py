@@ -246,35 +246,6 @@ def compare_retailer_item():
     """ Compare prices from a fixed pair retailer-item
         with additional pairs
     """
-    '''logger.info("Comparing pairs Retailer-Item")
-    # Verify Params
-    params = request.get_json()
-    if 'fixed_segment' not in params:
-        raise errors.AppError(80002, "Fixed Segment missing")
-    if 'added_segments' not in params:
-        raise errors.AppError(80002, "Added Segments missing")
-    if not isinstance(params['fixed_segment'], dict):
-        raise errors.AppError(80010, "Wrong Format: Fixed Segment")
-    if not isinstance(params['added_segments'], list):
-        raise errors.AppError(80010, "Wrong Format: Added Segments")
-    if 'date' in params:
-        try:
-            _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
-        except Exception as e:
-            logger.error(e)
-            raise errors.AppError(80010, "Wrong Format: Date")
-    else:
-        _date = datetime.datetime.utcnow()
-    # Call function to fetch prices
-    prod = Product\
-        .get_pairs_ret_item(params['fixed_segment'],
-            params['added_segments'], _date)
-    if not prod:
-        logger.warning("Not able to fetch prices.")
-        raise errors.AppError(80009,
-            "No prices with that Retailer and item combination.")
-    return jsonify(prod)'''
-
     logger.info("Submited History Product Retailer task...")
     return jsonify({
         'status': 'ok', 
