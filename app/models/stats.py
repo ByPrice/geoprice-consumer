@@ -151,6 +151,9 @@ class Stats(object):
         else:
             period = (dates[-1] - dates[0]).days
         _days = tupleize_date(dates[0].date(), period)
+        logger.ingo("Querying Stats by product..")
+        logger.debug(puuids)
+        logger.debug(_days)
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
                 mode_price, date
