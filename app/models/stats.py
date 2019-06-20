@@ -872,7 +872,7 @@ class Stats(object):
             raise errors.TaskError("No Products found!")
         # Set dates and retrieve info
         _dates = [datetime.datetime.utcnow()]
-        _dates.append(_dates[0] - datetime.timedelta(days=1))
+        #_dates.append(_dates[0] - datetime.timedelta(days=1))
         df = Stats\
             .get_cassandra_by_ret(filt_items,
                                   rets, _dates)
