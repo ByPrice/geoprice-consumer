@@ -82,10 +82,10 @@ class Stats(object):
             prods += Item.get_by_product(_puuids, _cols)
         # Filter products from requested retailers
         prods = pd.DataFrame(prods)
-        print("RETS")
-        print(rets)
-        print("PRODS")
-        print(prods)
+        # print("RETS")
+        # print(rets)
+        # print("PRODS")
+        # print(prods)
         if prods.empty:
             return []
         return prods[prods['source'].isin(rets)]\
@@ -147,9 +147,9 @@ class Stats(object):
         # Generate dates
         dates = sorted(dates)
         if len(dates) == 1:
-            period = 1
+            period = 2
         else:
-            period = (dates[-1] - dates[0]).days
+            period = (dates[-1] - dates[0]).days + 1
         _days = tupleize_date(dates[0].date(), period)
         logger.info("Querying Stats by product..")
         logger.debug(puuids)
