@@ -1363,8 +1363,8 @@ class Product(object):
                     fixed['retailer'],
                     [fixed['store_uuid']],
                     fixed['item_uuid'],
-                    date_groups[0][0],
-                    date_groups[-1][-1])
+                    date_groups[-1][-1], #  date_groups[0][0], # 
+                    date_groups[0][0])  # date_groups[-1][-1])  #
         task.progress = 60
         if not fix_store:
             raise errors.AppError(80009, "No available prices for that combination.")
@@ -1394,8 +1394,8 @@ class Product(object):
                     _a['retailer'],
                     [_a['store_uuid']],
                     _a['item_uuid'],
-                    date_groups[0][0],
-                    date_groups[-1][-1])
+                    date_groups[-1][-1], #  date_groups[0][0], # 
+                    date_groups[0][0])  # date_groups[-1][-1])  #
             if not _tmp_st:
                 logger.warning("{} store with no Prices".format(_a['store_uuid']))
                 continue
