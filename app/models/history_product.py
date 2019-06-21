@@ -924,7 +924,7 @@ class Product(object):
         cass_query = """
             SELECT product_uuid,
             store_uuid, price, time
-            FROM price_by_product_store 
+            FROM price_by_product_date
             WHERE product_uuid = %s
             AND date = %s
             """
