@@ -939,7 +939,7 @@ class Product(object):
                     continue
                 for q_row in q:
                     if str(q_row.store_uuid) in stores:
-                        qs.append(q_roq)
+                        qs.append(q_row)
             except Exception as e:
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
