@@ -232,7 +232,7 @@ def retailers_start(_date, _rets):
     logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
                 .format(CASSANDRA_KEYSPACE))
     try:
-        date = datetime.datetime.strptime(_date, '%Y-%m-%d')
+        date = datetime.datetime.strptime(_date, '%Y-%m-%d').date()
     except:
         raise Exception("Date format incorrect, needed: (YYYY-MM-DD)")
     logger.info("Running for: {}".format(date))
