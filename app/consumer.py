@@ -50,7 +50,7 @@ def callback(ch, method, properties, body):
         logger.debug("Price "+new_price['retailer']+" - "+new_price['product_uuid']+" - stores: "+ str(len(new_price['location']['store'])))
         # Valuamos las variables recibidas para verificar que tenga todos los datos
         if not Price.validate(new_price):
-            logger.debug('Could not validate price')
+            logger.warning('Could not validate price')
             pass
         else:
             price = Price(new_price)
