@@ -921,8 +921,11 @@ class Product(object):
         logger.info("Found {} products in catalogue".format(len(prod_uuids)))
         logger.debug(prod_uuids)
         # Generate days
-        _period = (_t1-_t0).days if _t1 else 2
-        _days = tupleize_date(_t1.date(), _period)
+        if _t1:
+            _period = (_t1-_t0).days 
+            _days = tupleize_date(_t1.date(), _period)
+        else:
+            _days = tupleize_date(_t0.date(), 2)
         logger.debug(_days)
         cass_query_base = """
             SELECT product_uuid,
