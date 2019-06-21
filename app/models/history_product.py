@@ -926,19 +926,20 @@ class Product(object):
             store_uuid, price, time
             FROM price_by_product_store 
             WHERE product_uuid = %s
-            AND store_uuid = %s
             AND date = %s
             """
         qs = []
         # Iterate for each product-date combination
-        for _p, _s, _d in itertools.product(prod_uuids, stores, _days):
+        for _p, _s, _d in itertools.product(prod_uuids, _days):
             try:
                 q = g._db.query(cass_query, 
-                    (UUID(_p), UUID(_s), _d),
+                    (UUID(_p), _d),
                     timeout=10)
                 if not q:
                     continue
-                qs += list(q)
+                for q_row in q:
+                    if str(q_row.store_uuid) in stores:
+                        qs.append(q_roq)
             except Exception as e:
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
