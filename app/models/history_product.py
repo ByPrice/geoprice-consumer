@@ -921,28 +921,31 @@ class Product(object):
         _period = (_t1-_t0).days if _t1 else 2
         _days = tupleize_date(_t0.date(), _period)
         logger.debug(_days)
-        cass_query = """
+        cass_query_base = """
             SELECT product_uuid,
             store_uuid, price, time
             FROM price_by_product_date
             WHERE product_uuid = %s
+            AND store_uuid IN ({})
             AND date = %s
             """
         qs = []
+        loop_size = 50
         # Iterate for each product-date combination
-        for _p, _d in itertools.product(prod_uuids, _days):
-            try:
-                q = g._db.query(cass_query, 
-                    (UUID(_p), _d),
-                    timeout=10)
-                if not q:
+        chunks = [stores[i:i + loop_size] for i in range(0, len(stores), loop_size)]
+        for _c in chunks:
+            cass_query = cass_query_base.format(','.join(_c))
+            for _p, _d in itertools.product(prod_uuids, _days):
+                try:
+                    q = g._db.query(cass_query, 
+                        (UUID(_p), _d),
+                        timeout=10)
+                    if not q:
+                        continue
+                    qs += list(q)
+                except Exception as e:
+                    logger.error("Cassandra Connection error: " + str(e))
                     continue
-                for q_row in q:
-                    if str(q_row.store_uuid) in stores:
-                        qs.append(q_row)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue
         return qs
 
     @staticmethod
