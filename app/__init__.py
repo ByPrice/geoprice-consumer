@@ -158,6 +158,19 @@ def dump_cmd(name):
     from app.scripts import start_script
     start_script(name)
 
+@app.cli.command('stats_retailer')
+@click.option('--date', default='', help="IsoFormat Date to run stats --date=<date>")
+@click.option('--rets', default='', help="Comma separated retailer keys --rets=<rets>")
+def stats_by_ret_cmd(date, rets):
+    """ Execute Stats of given retailers and date
+    """
+    if not name:
+        logger.error("You must define the name of the script to be executed")
+        return False
+    from app.scripts.create_stats import retailers_start
+    retailers_start(date, rets)
+
+
 # Functional Endpoints
 @app.route('/')
 def main():

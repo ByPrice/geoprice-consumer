@@ -29,7 +29,7 @@ logger = applogger.get_logger()
 # Number of Batches to separate data
 NUM_BATCHES = 50
 
-def get_daily_data(_day):
+def get_daily_data(_day, rets=[]):
     """ Query for a certain date data 
         from `price_by_date_parted` (PUUID, price, date)
 
@@ -44,7 +44,10 @@ def get_daily_data(_day):
             List of TMP file paths to generate stats
     """
     logger.info('Successfully connected to C*')
-    stores = get_all_stores()
+    if rets:
+        stores = get_all_stores(rets)
+    else:
+        stores = get_all_stores()
     cass_qry = """SELECT product_uuid, price, date, source
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """
@@ -190,6 +193,25 @@ def daily_stats(_day):
         return
     aggregate_daily(daily_files, _day)
 
+@with_context
+def daily_ret_stats(_day, rets):
+    """ Perform daily stats of defined retailers
+
+        Params:
+        -----
+        _day : datetime.date
+            Querying date
+        rets: list
+            Retailer Keys
+    """
+    # Retrieve daily data
+    daily_files = get_daily_data(_day, rets)
+    # Aggregate data and load into C* table
+    if not daily_files:
+        logger.warning("No prices available!!")
+        return
+    aggregate_daily(daily_files, _day)
+
 def start():
     """ Start Method for `flask script --name=<script>` command
     """ 
@@ -199,6 +221,27 @@ def start():
     logger.debug(date)
     # Call to perform stats
     daily_stats(date)
+    logger.info("Finished creating daily stats ({})".format(date))
+
+
+def retailers_start(_date, _rets):
+    """ Start Method for 
+        `flask stats_retailer --date=<DATE> --rets=<RETS>` 
+        command
+    """ 
+    logger.info("Starting Create Stats! Loading in `{}.stats_by_product`"
+                .format(CASSANDRA_KEYSPACE))
+    try:
+        date = datetime.datetime.strptime(_date, '%Y-%m-%d')
+    except:
+        raise Exception("Date format incorrect, needed: (YYYY-MM-DD)")
+    logger.info("Running for: {}".format(date))
+    rets = _rets.split(',')
+    if not rets and not isinstance(rets, list):
+        raise Exception("Wrong rets parameter, needed:  (ret1,ret2) ")
+    logger.info("Running for: {}".format(rets))
+    # Call to perform stats
+    daily_ret_stats(date, rets)
     logger.info("Finished creating daily stats ({})".format(date))
 
 
