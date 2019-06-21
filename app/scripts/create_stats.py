@@ -236,7 +236,7 @@ def retailers_start(_date, _rets):
     except:
         raise Exception("Date format incorrect, needed: (YYYY-MM-DD)")
     logger.info("Running for: {}".format(date))
-    rets = _rets.split(',')
+    rets = [{'key': _r} for _r in _rets.split(',')]
     if not rets and not isinstance(rets, list):
         raise Exception("Wrong rets parameter, needed:  (ret1,ret2) ")
     logger.info("Running for: {}".format(rets))
