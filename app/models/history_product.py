@@ -892,11 +892,13 @@ class Product(object):
         return _buffer
 
     @staticmethod
-    def fetch_detail_price(stores, item, _t0, _t1=None):
+    def fetch_detail_price(retailer, stores, item, _t0, _t1=None):
         """ Method to query detail prices from C*
 
             Params:
-            -----            
+            -----         
+            retailer: str
+                Retailer key   
             stores : list
                 Stores UUIDs
             item : str
@@ -913,8 +915,9 @@ class Product(object):
         """
         # If item_uuid is passed, call to retrieve
         # product_uuid's from Catalogue Service
-        prod_info = Item.get_by_item(item)
-        prod_uuids = [str(p['product_uuid']) for p in prod_info]
+        prod_info = Item.get_by_item(item, ['product_uuid', 'source'])
+        prod_uuids = [str(p['product_uuid']) for p in prod_info \
+            if p['source'] == retailer]
         logger.info("Found {} products in catalogue".format(len(prod_uuids)))
         logger.debug(prod_uuids)
         # Generate days
@@ -925,7 +928,7 @@ class Product(object):
             SELECT product_uuid,
             store_uuid, price, time
             FROM price_by_product_store
-            WHERE product_uuid = %s
+            WHERE product_uuid = ({})
             AND store_uuid IN ({})
             AND date = %s
             """
@@ -934,12 +937,13 @@ class Product(object):
         # Iterate for each product-date combination
         chunks = [stores[i:i + loop_size] for i in range(0, len(stores), loop_size)]
         for _c in chunks:
-            cass_query = cass_query_base.format(','.join(_c))
-            for _p, _d in itertools.product(prod_uuids, _days):
+            logger.debug(_c)
+            cass_query = cass_query_base.format(','.join(prod_uuids) ,','.join(_c))
+            for  _d in  _days:
                 try:
                     q = g._db.query(cass_query, 
-                        (UUID(_p), _d),
-                        timeout=10)
+                        ( _d,),
+                        timeout=5)
                     if not q:
                         continue
                     qs += list(q)
@@ -1063,6 +1067,7 @@ class Product(object):
         task.progress = 30
         # Fetch Fixed Prices DF
         fix_price = Product.fetch_detail_price(
+                fixed['retailer'],
                 geo_df[geo_df['source'] == fixed['retailer']]\
                     ['store_uuid'].tolist(),
                 fixed['item_uuid'], _time)
@@ -1074,6 +1079,7 @@ class Product(object):
             added_prices\
                 .append(
                     Product.fetch_detail_price(
+                        _a['retailer'],
                         geo_df[geo_df['source'] == _a['retailer']]\
                             ['store_uuid'].tolist(),
                         _a['item_uuid'], _time)
@@ -1354,6 +1360,7 @@ class Product(object):
         # Fetch fixed prices
         fix_store = Product\
             .fetch_detail_price(
+                    fixed['retailer'],
                     [fixed['store_uuid']],
                     fixed['item_uuid'],
                     date_groups[0][0],
@@ -1384,6 +1391,7 @@ class Product(object):
         task.progress = 70
         for _a in added:
             _tmp_st =  Product.fetch_detail_price(
+                    _a['retailer'],
                     [_a['store_uuid']],
                     _a['item_uuid'],
                     date_groups[0][0],
@@ -1684,6 +1692,7 @@ class Product(object):
                 raise errors.AppError('no_stores', 'No stores in selected territory and retailers.')
         # Fetch Fixed Prices DF
         fix_price = Product.fetch_detail_price(
+                                fixed['retailer'],
                                 geo_df[geo_df['retailer'] == fixed['retailer']]['store_uuid'].tolist(),
                                 fixed['item_uuid'],
                                 datetime.datetime.strptime(_time, '%Y-%m-%d'),
@@ -1694,6 +1703,7 @@ class Product(object):
         for _a in added:
             added_prices.append(
                 Product.fetch_detail_price(
+                        _a['retailer'],
                         geo_df[geo_df['retailer'] == _a['retailer']]['store_uuid'].tolist(),
                         _a['item_uuid'],
                         datetime.datetime.strptime(_time, '%Y-%m-%d'),
