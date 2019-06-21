@@ -928,7 +928,7 @@ class Product(object):
             SELECT product_uuid,
             store_uuid, price, time
             FROM price_by_product_store
-            WHERE product_uuid = ({})
+            WHERE product_uuid IN ({})
             AND store_uuid IN ({})
             AND date = %s
             """
