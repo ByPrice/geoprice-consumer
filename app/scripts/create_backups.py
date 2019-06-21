@@ -29,7 +29,7 @@ BUCKET_DIR= '{}price_retailer'.format(
     '' if ENV == 'PROD' else 'dev/'
 )
 
-def backup_daily_data(_day):
+def backup_daily_data(_day, rets=[]):
     """ Query for a certain date data 
         from `price_by_store_date` (PUUID, price, date)
 
@@ -44,7 +44,10 @@ def backup_daily_data(_day):
             List of TMP file paths to generate stats
     """
     logger.info('Successfully connected to C*')
-    stores = get_all_stores()
+    if rets:
+        stores = get_all_stores(rets)
+    else:
+        stores = get_all_stores()
     logger.info("Found {} stores to back".format(len(stores)))
     cass_qry = """SELECT *
         FROM price_by_store 
@@ -151,7 +154,7 @@ def write_pandas_parquet_to_s3(parq_file, bucket_name, retailer, _date, _part):
 
 @with_context
 def daily_backups(_day):
-    """ Perform daily stats
+    """ Perform daily backups
 
         Params:
         -----
@@ -160,6 +163,22 @@ def daily_backups(_day):
     """
     # Retrieve daily data
     backup_daily_data(_day)
+
+
+@with_context
+def daily_retailer_backups(_day, rets):
+    """ Perform daily retailer backups
+
+        Params:
+        -----
+        _day : datetime.date
+            Querying date
+        rets: list
+            Retailer Keys
+    """
+    # Retrieve daily data
+    backup_daily_data(_day, rets)
+
 
 def start():
     """ Start Method for `flask script --name=<script>` command
@@ -170,6 +189,27 @@ def start():
     logger.info("Running for: {}".format(date))
     # Call to perform stats
     daily_backups(date)
+    logger.info("Finished creating daily backups ({})".format(date))
+
+
+def retailers_start(_date, _rets):
+    """ Start Method for 
+        `flask backups_retailer --date=<DATE> --rets=<RETS>` 
+        command
+    """ 
+    logger.info("Starting Create Dumps! Loading in `byprice-prices/{}`"
+                .format(BUCKET_DIR))
+    try:
+        date = datetime.datetime.strptime(_date, '%Y-%m-%d').date()
+    except:
+        raise Exception("Date format incorrect, needed: (YYYY-MM-DD)")
+    logger.info("Running for: {}".format(date))
+    rets = [{'key': _r} for _r in _rets.split(',')]
+    if not rets and not isinstance(rets, list):
+        raise Exception("Wrong rets parameter, needed:  (ret1,ret2) ")
+    logger.info("Running for: {}".format(rets))
+    # Call to perform backups
+    daily_retailer_backups(date, rets)
     logger.info("Finished creating daily backups ({})".format(date))
 
 

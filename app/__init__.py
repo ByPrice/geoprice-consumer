@@ -146,7 +146,6 @@ def consumer_cmd():
     start()
     logger.info("Initialized database")
 
-
 @app.cli.command('script')
 @click.option('--name', default=None, help="Provide the task name with the option --name=<script>")
 def dump_cmd(name):
@@ -173,6 +172,20 @@ def stats_by_ret_cmd(date, rets):
     from app.scripts.create_stats import retailers_start
     retailers_start(date, rets)
 
+@app.cli.command('backups_retailer')
+@click.option('--date', default='', help="IsoFormat Date to run stats --date=<date>")
+@click.option('--rets', default='', help="Comma separated retailer keys --rets=<rets>")
+def backups_by_ret_cmd(date, rets):
+    """ Execute Backups of given retailers and date
+    """
+    if not rets:
+        logger.error("Must define Retailers")
+        return False
+    if not date:
+        logger.error("Must define date")
+        return False
+    from app.scripts.create_backups import retailers_start
+    retailers_start(date, rets)
 
 # Functional Endpoints
 @app.route('/')
