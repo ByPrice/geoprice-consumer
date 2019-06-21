@@ -930,7 +930,7 @@ class Product(object):
             """
         qs = []
         # Iterate for each product-date combination
-        for _p, _s, _d in itertools.product(prod_uuids, _days):
+        for _p, _d in itertools.product(prod_uuids, _days):
             try:
                 q = g._db.query(cass_query, 
                     (UUID(_p), _d),
