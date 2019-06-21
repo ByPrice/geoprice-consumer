@@ -1120,6 +1120,7 @@ class Product(object):
             # Added to the list
             added_dfs.append(_tmp)
         logger.debug('Built Added DFs')
+        task.progress=70
         if format == 'csv':
             # CSV like formatter
             csv_df = []
@@ -1169,11 +1170,22 @@ class Product(object):
                 # Use deep copy for calculations
                 _ai = _deepai.copy()
                 # Set unfound price like dict
+                if not _ai:
+                    _pds = Item.get_by_item(added[_ith]['item_uuid'], 
+                                        ['product_uuid', 'source'])
+                    _t_ai_puuid = [pr_['product_uuid'] for pr_ in _pds \
+                        if pr_['source'] == added[_ith]['retailer']]
+                    if _t_ai_puuid:
+                        _t_ai_puuid = _t_ai_puuid[0]
+                    else:
+                        _t_ai_puuid = ''
+                else:
+                    _t_ai_puuid = _ai.product_uuid.tolist()[0]
                 _jkth = {
                     "store": None,
                     "source": added[_ith]['retailer'],
                     "item_uuid": added[_ith]['item_uuid'],
-                    "product_uuid": _ai.product_uuid.tolist()[0],
+                    "product_uuid": _t_ai_puuid,
                     "price": None,
                     "diff": None,
                     "dist": None
