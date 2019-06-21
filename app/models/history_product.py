@@ -1170,7 +1170,7 @@ class Product(object):
                 # Use deep copy for calculations
                 _ai = _deepai.copy()
                 # Set unfound price like dict
-                if not _ai:
+                if _ai.empty:
                     _pds = Item.get_by_item(added[_ith]['item_uuid'], 
                                         ['product_uuid', 'source'])
                     _t_ai_puuid = [pr_['product_uuid'] for pr_ in _pds \
