@@ -199,10 +199,8 @@ class Alert(Alarm):
         # Aux assignation
         items, _stores, _items, _retailers = [], [], [], []
         size_items, size_stores = 30, 30
-
         # Alerts DF
         alerts_df = pd.DataFrame(params['alerts'])
-
         # Divide in chunks
         for alert in params['alerts']:
             items = items + [alert['item_uuid']] + [alert['item_uuid_compare']]
@@ -210,7 +208,6 @@ class Alert(Alarm):
         _items = list(set(items))
         _stores = params['stores']
         _retailers = params['retailers']
-
         chunks_items = [ _items[i:i+size_items] for i in range(0, len(_items), size_items)]
         chunks_stores = [ _stores[i:i+size_stores] for i in range(0, len(_stores), size_stores)]        
         # Query by chunks
