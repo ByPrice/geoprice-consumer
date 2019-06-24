@@ -144,6 +144,7 @@ class Alert(Alarm):
                 _temp_prods += g._catalogue.get_products_by_item(_chi, 
                     cols=['product_uuid', 'name', 'item_uuid', 'gtin', 'source']) 
                 prods += _temp_prods
+            logger.info("Found {} products".format(len/_temp_prods))
             ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
             for ch_stores in chunks_stores:
                 # Get prices from Cassandra
