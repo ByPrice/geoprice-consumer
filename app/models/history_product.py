@@ -475,7 +475,7 @@ class Product(object):
             raise errors.AppError("invalid_request", "date key missing")
         else:
             try:
-                datetime.datetime.strptime(params['date'], '%Y-%m-%d %H:%M:%s')
+                datetime.datetime.strptime(params['date'], '%Y-%m-%d %H:%M:%S')
             except Exception as e:
                 logger.error(e)
                 raise errors.AppError(80010, "Wrong Format: Date")
@@ -526,7 +526,7 @@ class Product(object):
             date: str
                 Date 
         """
-        _date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%s')
+        _date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
         date_int = int(_date.date().__str__().replace('-',''))
         cass_query = """
             SELECT count(product_uuid) AS rows 
