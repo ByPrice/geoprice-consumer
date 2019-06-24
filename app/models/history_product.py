@@ -547,7 +547,6 @@ class Product(object):
         except Exception as e:
             logger.error("Cassandra Connection error: {error}".format(error=str(e)))
             return {'count': 0}
-        task.progress = 100
         # Format response
         for row in q:
             prods = {
