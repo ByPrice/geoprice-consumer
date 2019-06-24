@@ -68,7 +68,7 @@ class Alert(Alarm):
             - retailers: (list)  Retailer keys
             - date: (str) Date 
         """
-        items, stores, size_items, size_stores = [], [], 100, 100
+        items, stores, size_items, size_stores = [], [], 30, 30
 
         # Divide in chunks of 100 to avoid Cassandra saturation
         _stores = [ s[0] for s in params['stores'] ]
