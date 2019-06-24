@@ -326,15 +326,18 @@ def get_stats_by_item():
     return jsonify(prod)
 
 
-@mod.route('/count_by_store_engine/submit', methods=['POST'])
-@asynchronize(Product.count_by_store_engine_task)
+@mod.route('/count_by_store_engine', methods=['GET'])
 def get_count_by_store_engine():
     logger.info("Fetching counts by store")
-    return jsonify({
-        'status':'ok', 
-        'module': 'task',
-        'task_id' : request.async_id
-    })
+    # Validation Params
+    params = request.args
+    Product.validate_count_engine(params)
+    result = Product.get_count_by_store_engine(
+            params['retailer'],
+            params['store_uuid'],
+            params['date']
+    )
+    return jsonify(result)
 
 
 @mod.route('/count_by_retailer_engine/submit', methods=['POST'])

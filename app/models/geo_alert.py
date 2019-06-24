@@ -60,7 +60,8 @@ class Alert(Alarm):
     @staticmethod
     def get_geolocated(params):
         """  Fetch geolocated prices for alerts
-            @Params:
+
+            Params:
             -----
             - stores: (list) (Store uuid, retailer) tuples
             - items: (list) (Item uuid, price) tuples
@@ -77,6 +78,7 @@ class Alert(Alarm):
             for i in range(0, len(_items), size_items)]
         chunks_stores = [ _stores[i:i+size_stores] \
             for i in range(0, len(_stores), size_stores)]
+        logger.info("Got filters")
         # Fetch prices and prods
         prods, rows = Alert.prices_by_chunks(params, chunks_items, chunks_stores, "geolocated")
         # Reference price
@@ -86,6 +88,7 @@ class Alert(Alarm):
             return []
         # Format response
         df = DataFrame(rows)
+        logger.info("Created prices dataframe!")
         df['product_uuid'] = df['product_uuid'].astype(str)
         df['store_uuid'] = df['store_uuid'].astype(str) 
         prods_by_uuid = { p['product_uuid']: p['item_uuid'] for p in prods}
@@ -144,18 +147,22 @@ class Alert(Alarm):
             ch_prods = [ _tp['product_uuid'] for _tp in _temp_prods]
             for ch_stores in chunks_stores:
                 # Get prices from Cassandra
-                rows += g._db.query("""SELECT product_uuid, 
-                                source as retailer, time,
-                                store_uuid, price, promo
-                            FROM price_by_product_store
-                            WHERE product_uuid IN {}
-                            AND store_uuid IN {}
-                            AND date IN {}
-                            """.format(
-                                tuplize(ch_prods, is_uuid=True),
-                                tuplize(ch_stores, is_uuid=True),
-                                tuplize(chunks_dates)
-                            ), timeout=60)
+                try:
+                    rows += g._db.query("""SELECT product_uuid, 
+                                    source as retailer, time,
+                                    store_uuid, price, promo
+                                FROM price_by_product_store
+                                WHERE product_uuid IN {}
+                                AND store_uuid IN {}
+                                AND date IN {}
+                                """.format(
+                                    tuplize(ch_prods, is_uuid=True),
+                                    tuplize(ch_stores, is_uuid=True),
+                                    tuplize(chunks_dates)
+                                ), timeout=60)
+                except Exception as e:
+                    logger.error(e)
+        logger.info("Found Cassandra prices..")
         return prods, rows
 
     @staticmethod

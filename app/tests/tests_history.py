@@ -286,7 +286,7 @@ class GeopriceHistoryTasksTestCase(unittest.TestCase):
         # Filters for the task
         params = {
             "store_uuid" : "1e3d5b76-7ace-11e7-9b9f-0242ac110003",
-            "date" : "2019-05-24",
+            "date" : "2019-05-24 00:00:00",
             "retailer" : "walmart"
         }
 

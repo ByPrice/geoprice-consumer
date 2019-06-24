@@ -496,9 +496,6 @@ class Product(object):
          - (flask.Response)  # if export: Mimetype else: JSON
 
         """
-        # Param validation
-        Product.validate_count_engine(params)
-
         result = Product.get_count_by_store_engine(
             task_id,
             params['retailer'],
@@ -515,22 +512,30 @@ class Product(object):
 
 
     @staticmethod
-    def get_count_by_store_engine(task_id, retailer, store_uuid, date):
-        """
-            Method to query to retrieve quantity of items from certain store of the last hours defined
-        """
-        # Task initialization
-        task = Task(task_id)
-        task.task_id = task_id
-        task.progress = 1
+    def get_count_by_store_engine(retailer, store_uuid, date):
+        """ Method to query to retrieve quantity of items 
+            from certain store of the last hours defined.
 
-        date_int = int(date.replace('-',''))
+            Params:
+            -----
+            retailer: str  
+                Retailer key
+            store_uuid: str
+                Store UUID
+            date: str
+                Date 
+        """
+        _date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%s')
+        date_int = int(_date.date().__str__().replace('-',''))
         cass_query = """
             SELECT count(product_uuid) AS rows 
             FROM price_by_store
-            WHERE store_uuid = {store_uuid} AND 
-            date = {date_int}
-            """. format(store_uuid=UUID(store_uuid), date_int=date_int)
+            WHERE store_uuid = {store_uuid} 
+            AND  date = {date_int}
+            """.format(
+                store_uuid=UUID(store_uuid), 
+                date_int=date_int
+            )
         logger.debug(cass_query)
         try:
             q = g._db.execute(cass_query, timeout=120)
