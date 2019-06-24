@@ -3,6 +3,7 @@ from uuid import UUID
 import itertools
 from io import StringIO
 import math
+import datetime
 import json
 from collections import OrderedDict
 from flask import g
@@ -532,13 +533,17 @@ class Product(object):
             FROM price_by_store
             WHERE store_uuid = {store_uuid} 
             AND  date = {date_int}
+            AND time > %s 
+            AND time < %s
             """.format(
                 store_uuid=UUID(store_uuid), 
                 date_int=date_int
             )
         logger.debug(cass_query)
         try:
-            q = g._db.execute(cass_query, timeout=120)
+            q = g._db.execute(cass_query, 
+                (_date - datetime.timedelta(hours=1), _date)
+                timeout=60)
         except Exception as e:
             logger.error("Cassandra Connection error: {error}".format(error=str(e)))
             return {'count': 0}
