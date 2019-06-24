@@ -346,6 +346,7 @@ def get_count_by_retailer_engine():
     """
     logger.info("Fetching counts by retailer")
     # Validate params
+    params = request.args
     Product.validate_count_ret_eng_params(params)
     # Parse and start task
     prod = Product.count_by_retailer_engine(
