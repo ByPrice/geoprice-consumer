@@ -483,36 +483,6 @@ class Product(object):
 
 
     @staticmethod
-    def count_by_store_engine_task(task_id, params):
-        """
-        Get Count from store
-
-        @Params:
-         - "retailer" : retailer_key
-         - "store_uuid" : store_uuid
-         - "date" : date
-         - "env" : env
-
-        @Returns:
-         - (flask.Response)  # if export: Mimetype else: JSON
-
-        """
-        result = Product.get_count_by_store_engine(
-            task_id,
-            params['retailer'],
-            params['store_uuid'],
-            params['date']
-        )
-
-        resp = {
-            'data' : result,
-            'msg' : 'Task completed'
-        }
-        logger.info('Finished computing {}!'.format(task_id))
-        return resp
-
-
-    @staticmethod
     def get_count_by_store_engine(retailer, store_uuid, date):
         """ Method to query to retrieve quantity of items 
             from certain store of the last hours defined.
@@ -1509,26 +1479,7 @@ class Product(object):
 
 
     @staticmethod
-    def count_by_retailer_engine_task(task_id, params):
-        # Validate params
-        Product.validate_count_ret_eng_params(params)
-        # Parse and start task
-        prod = Product.count_by_retailer_engine(
-            task_id,
-            params['retailer'],
-            params['date']
-        )
-
-        resp = {
-            'data' : prod,
-            'msg' : 'Task completed'
-        }
-        logger.info('Finished computing {}!'.format(task_id))
-        return resp
-
-
-    @staticmethod
-    def count_by_retailer_engine(task_id, retailer, _date):
+    def count_by_retailer_engine(retailer, _date):
         """ Get max, min, avg price from 
             item_uuid or product_uuid
 
@@ -1544,10 +1495,6 @@ class Product(object):
             _count : dict
                 JSON response
         """
-        # Task initialization
-        task = Task(task_id)
-        task.task_id = task_id
-
         # Format time
         _time = datetime.datetime\
             .strptime(_date, '%Y-%m-%d %H:%M:%S')
@@ -1556,8 +1503,6 @@ class Product(object):
         _days = tupleize_date(_time.date(), 2)
         stores = g._geolocation.get_stores(rets=[retailer])
         uuids = [ st['uuid'] for st in stores if 'uuid' in st ]
-        tot = len(uuids) * len(_days)
-        unit = 100/tot
         cass_query = """
             SELECT COUNT(1) AS count 
             FROM price_by_store
@@ -1571,7 +1516,6 @@ class Product(object):
         for _d in _days:
             for store_uuid in uuids:
                 count += 1
-                task.progress = int(count*unit)
                 try:
                     q = g._db.query(cass_query, 
                             (UUID(store_uuid), _d, _time, _time_plus),
@@ -1593,7 +1537,6 @@ class Product(object):
         logger.info('Found {} points for {} ({} - {})'\
             .format(_count['count'], retailer,
                     _time, _time_plus))
-        task.progress = 100
         return _count
 
 

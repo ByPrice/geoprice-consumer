@@ -340,15 +340,17 @@ def get_count_by_store_engine():
     return jsonify(result)
 
 
-@mod.route('/count_by_retailer_engine/submit', methods=['POST'])
-@asynchronize(Product.count_by_retailer_engine_task)
+@mod.route('/count_by_retailer_engine', methods=['GET'])
 def get_count_by_retailer_engine():
     """ Get Count by engine
     """
     logger.info("Fetching counts by retailer")
-    return jsonify({
-        'status':'ok', 
-        'module': 'task',
-        'task_id' : request.async_id
-    })
+    # Validate params
+    Product.validate_count_ret_eng_params(params)
+    # Parse and start task
+    prod = Product.count_by_retailer_engine(
+        params['retailer'],
+        params['date']
+    )
+    return jsonify(prod)
 
