@@ -475,7 +475,7 @@ class Product(object):
             raise errors.AppError("invalid_request", "date key missing")
         else:
             try:
-                _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+                datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%s')
             except Exception as e:
                 logger.error(e)
                 raise errors.AppError(80010, "Wrong Format: Date")
