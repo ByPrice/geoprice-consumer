@@ -542,7 +542,7 @@ class Product(object):
         logger.debug(cass_query)
         try:
             q = g._db.execute(cass_query, 
-                (_date - datetime.timedelta(hours=1), _date)
+                (_date - datetime.timedelta(hours=1), _date),
                 timeout=60)
         except Exception as e:
             logger.error("Cassandra Connection error: {error}".format(error=str(e)))
