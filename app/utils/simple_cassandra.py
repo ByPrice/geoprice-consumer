@@ -70,9 +70,12 @@ class SimpleCassandra(object):
         if not hasattr(self,'session'):
             return None
         self.session.set_keyspace(self.config['KEYSPACE'])
+        cl = ConsistencyLevel.ONE
         # Consistency level
         if self.config['CONSISTENCY_LEVEL'] == 'LOCAL_ONE':
             cl = ConsistencyLevel.LOCAL_ONE
+        if self.config['CONSISTENCY_LEVEL'] == 'ONE':
+            cl = ConsistencyLevel.ONE
         elif self.config['CONSISTENCY_LEVEL'] == 'QUORUM':
             cl = ConsistencyLevel.QUORUM
         elif self.config['CONSISTENCY_LEVEL'] == 'ALL':

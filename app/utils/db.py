@@ -1,7 +1,7 @@
 #-*-coding: utf-8-*-
 import sys
 from cassandra import AlreadyExists
-from app.utils.simple_cassandra import SimpleCassandra, ConsistencyLevel
+from app.utils.simple_cassandra import SimpleCassandra
 from ByHelpers import applogger 
 from app.utils.errors import AppError
 import config
@@ -97,7 +97,7 @@ def connectdb():
     cass = SimpleCassandra(dict(
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
         PORT=config.CASSANDRA_PORT,
-        CONSISTENCY_LEVEL=ConsistencyLevel.ONE,
+        CONSISTENCY_LEVEL="ONE",
         USER=config.CASSANDRA_USER,
         PASSWORD=config.CASSANDRA_PASSWORD
     ))
@@ -114,7 +114,7 @@ def getdb():
         CONTACT_POINTS=config.CASSANDRA_CONTACT_POINTS,
         PORT=config.CASSANDRA_PORT,
         KEYSPACE=config.CASSANDRA_KEYSPACE,
-        CONSISTENCY_LEVEL=ConsistencyLevel.ONE,
+        CONSISTENCY_LEVEL="ONE",
         USER=config.CASSANDRA_USER,
         PASSWORD=config.CASSANDRA_PASSWORD
     ))
