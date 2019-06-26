@@ -515,7 +515,19 @@ class Stats(object):
         task.progress = 65
         # Obtain all total amount of intervals
         interval_to_have = []
-        for ii, row_df in df.groupby(grouping_cols[params['interval']]):
+        # for ii, row_df in df.groupby(grouping_cols[params['interval']]):
+        #     interval_to_have.append(ii)
+        t_date_df = pd.date_range(
+                        datetime.datetime.strptime(params['date_start'],'%Y-%m-%d'),
+                        datetime.datetime.strptime(params['date_end'],'%Y-%m-%d')
+                ).to_series().to_frame()
+        t_date_df['day'] = t_date_df[0].apply(lambda x: x.day)
+        t_date_df['month'] = t_date_df[0].apply(lambda x: x.month)
+        t_date_df['year'] = t_date_df[0].apply(lambda x: x.year)
+        t_date_df['week'] = t_date_df[0].apply(lambda x: x.isocalendar()[1])
+        # for ii, row_df in df.groupby(grouping_cols[params['interval']]):
+        #     interval_to_have.append(ii)
+        for ii, row_df in t_date_df.groupby(grouping_cols[params['interval']]):
             interval_to_have.append(ii)
         task.progress = 75
         # Set Products DF
