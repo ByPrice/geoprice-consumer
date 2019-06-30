@@ -1,0 +1,5 @@
+# m h  dom mon dow   command
+# Geoprice Stats, Dumps, Backups
+16 01 * * * /home/byprice/geoprice/bin/create_stats.sh > /home/byprice/geoprice/logs/stats.log 2>&1
+39 02 * * * /home/byprice/geoprice/bin/create_backups.sh > /home/byprice/geoprice/logs/backups.log 2>&1
+32 23 * * * /home/byprice/geoprice/bin/create_dumps.sh > /home/byprice/geoprice/logs/dumps.log 2>&1
