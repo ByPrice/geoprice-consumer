@@ -1054,7 +1054,15 @@ class Product(object):
                     ['store_uuid'].tolist(),
                 fixed['item_uuid'], _time)
         if not fix_price:
-            raise errors.AppError(80009, "No available prices for that combination.")
+            #raise errors.AppError(80009, "No available prices for that combination.")
+            task.progress = 100
+            if format == 'csv':
+                return pd.DataFrame().to_dict(orient='records')
+            return {
+                'date': date.isoformat(),
+                'segments': [],
+                'rows': []
+            }
         # Fetch Added Prices DF
         added_prices = []
         for _a in added:
@@ -1350,6 +1358,10 @@ class Product(object):
         task.progress = 60
         if not fix_store:
             raise errors.AppError(80009, "No available prices for that combination.")
+            # return {
+            #     "fixed": {},
+            #     "segments": []
+            # }
         fix_st_df = pd.DataFrame(fix_store)
         fix_st_df['name'] = fixed['name']
         fix_st_df['time_js'] = fix_st_df['time'].apply(date_js())
