@@ -3,7 +3,7 @@ autopep8==1.4.4
 billiard==3.5.0.3
 boto3==1.9.155
 botocore==1.12.155
-ByHelpers==0.1.1
+ByHelpers==0.1.2
 cassandra-driver==3.9.0
 celery==4.1.0
 certifi==2018.4.16
