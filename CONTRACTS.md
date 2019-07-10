@@ -534,22 +534,23 @@ Today's max, min & avg price from an specific item_uuid or product_uuid of the d
 
 **Method**:  GET
 
-**Endpoint**: `/product/stats?item_uuid=<item_uuid | required>&prod_uuid=<product_uuid | conditional_required>`
+**Endpoint**: `/stats/stats/<uuid | required>?stats=<type_stats | not_required>`
 
 **Query Params:**
 
 | Param | Description | Condition |
 | ----- | ----------- | --------- |
-| item_uuid  | Item UUID | required |
-| prod_uuid  | Product UUID | required if `item_uuid` not set
+| uuid  | Item or Product UUID | required |
+| type_stats  | "min", "max" or "avg" | not required, if more than one separate by ","
+
 
 **Response:**
 
 ```json
 {
-  "avg_price": 64.42,
-  "max_price": 67.0,
-  "min_price": 62.0
+  "avg": 64.42,
+  "max": 67.0,
+  "min": 62.0
 }
 ```
 
@@ -869,6 +870,65 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
 ]
 ```
 
+### Get Today's Statistics from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/stats/<uuid>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| stats | Needed statistics (max, avg, min, exists) | optional, default=avg |
+
+**Response:**
+
+```json
+{
+  "avg": 134.09,
+  "max": 153,
+  "min": 113
+}
+```
+
+### Get Today's Statistics from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/stats/<uuid>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| stats | Needed statistics (max, avg, min) | optional, default=avg |
+
+**Response:**
+
+```json
+{
+  "avg": 134.09,
+  "max": 153,
+  "min": 113
+}
+```
+
+### Get Today's Existance from a given Item / Product UUID
+
+**Method**: GET
+
+**Endpoint**: `/exists/<uuid>`
+
+**Response:**
+  
+```json
+{
+  "exists": true,
+  "uuid": "245g45-5y45-455y45g4-f43f"
+}
+```
+
 -----
 
 ## Alarm
@@ -934,5 +994,58 @@ gtin,Nombre,Fecha Inicio,Fecha Final,Mi Retailer,City Market,City Market Diferen
     },
     // ...
 ]
+}
+```
+
+-----
+
+## Promos
+
+### Get applying promos for the specified day, streaming
+
+**Method**: GET
+
+**Endpoint**: `/promos/daily?day=<day | required>&num_promos=<int | optional>`
+
+**Request Params:**
+
+| Param | Description | Condition |
+| ----- | ----------- | --------- |
+| day | Date lo look for promos date (YYYY-MM-DD)  | required |
+| num_promos | Number of promos to look for int  | optional, default:0 (all promos) |
+
+
+**Response:**
+
+```json
+{
+  "promos": [
+    {
+      "currency": "MXN", 
+      "date": 20180812, 
+      "lat": 19.335500717163086, 
+      "lng": -99.19889831542969, 
+      "price": 47.5, 
+      "price_original": 47.5, 
+      "product_uuid": "730c5f9b-611e-45c2-b410-4afb3f40070e", 
+      "promo": "4X$155", 
+      "store_uuid": "d07da812-4f8c-11e7-9e21-0242ac110003", 
+      "time": "Sun, 12 Aug 2018 00:35:25 GMT", 
+      "url": "https://www.superama.com.mx/catalogo/d-farmacia/f-cuidados-salud/l-multivitaminicosm/suplemento-alimenticio-pediasure-bebible-sabor-vainilla-237-ml/0750103395629"
+    }, 
+    {
+      "currency": "MXN", 
+      "date": 20180812, 
+      "lat": 19.335500717163086, 
+      "lng": -99.19889831542969, 
+      "price": 37.0, 
+      "price_original": 37.0, 
+      "product_uuid": "202313cd-84fd-48be-a051-64b2c07af875", 
+      "promo": "2X$49", 
+      "store_uuid": "d07da812-4f8c-11e7-9e21-0242ac110003", 
+      "time": "Sun, 12 Aug 2018 00:35:25 GMT", 
+      "url": "https://www.superama.com.mx/catalogo/d-farmacia/f-cuidados-salud/l-multivitaminicosm/acido-ascorbico-medi-mart-1-g-10-comprimidos-efervescentes-sabor-naranja/0750125820668"
+    }
+  ]
 }
 ```

@@ -1,26 +1,23 @@
 import sys
 import argparse
-import ast
-import json
 import datetime
+import calendar
 import itertools
-from uuid import UUID
-from multiprocessing import Pool
 import pandas as pd
 import numpy as np
-import requests
-from pygres import Pygres
 from cassandra import ConsistencyLevel
+import tqdm
 from config import *
-import app.utils.db as _db
 from app.consumer import with_context
 from app.models.price import Price
-from app.utils import applogger
+from ByHelpers import applogger
 from app.utils.simple_cassandra import SimpleCassandra
+from app.utils.helpers import get_all_stores
 
 # Logger
 #applogger.create_logger()
 logger = applogger.get_logger()
+LIMIT = None
 
 def cassandra_args():
     """ Parse Cassandra related arguments
@@ -32,119 +29,51 @@ def cassandra_args():
             Configuration parameters to migrate from
     """
     parser = argparse\
-        .ArgumentParser(description='Configures C* params to read from.')
-    parser.add_argument('--cassandra_hosts', help='Cassandra Contact points')
-    parser.add_argument('--cassandra_port', help='Cassandra Port', type=int)
-    parser.add_argument('--cassandra_keyspace', help='Cassandra Keyspace')
-    parser.add_argument('--pg_host', help='Catalogue Postgres Host')
-    parser.add_argument('--pg_port', help='Catalogue Postgres Port', type=int)
-    parser.add_argument('--pg_db', help='Catalogue Postgres DB')
-    parser.add_argument('--pg_user', help='Catalogue Postgres User')
-    parser.add_argument('--pg_password', help='Catalogue Postgres Password')
-    parser.add_argument('--from', help='Migration Starting date')
-    parser.add_argument('--until', help='Migration Ending date')
-    parser.add_argument('--date', help='Migration unique date')
-    parser.add_argument('--workers', help='Number of Workers', type=int)
+        .ArgumentParser(description='Configures C* params for migration.')
+    parser.add_argument('--from_cassandra_hosts', help='Source Cassandra Contact points')
+    parser.add_argument('--from_cassandra_port', help='Source Cassandra Port', type=int)
+    parser.add_argument('--from_cassandra_keyspace', help='Source Cassandra Keyspace')
+    parser.add_argument('--from_cassandra_user', help='Source Cassandra User')
+    parser.add_argument('--from_cassandra_password', help='Source Cassandra Password')
+    parser.add_argument('--date', help='Migration date  (YYYY-MM-DD)')
     args = dict(parser.parse_args()._get_kwargs())
     # Validation of variables
-    # Cassandra
-    if not args['cassandra_hosts']:
-        args['cassandra_hosts'] = ['0.0.0.0']
-    else:
-        args['cassandra_hosts'] = args['cassandra_hosts'].split(',')
-    if not args['cassandra_port']:
-        args['cassandra_port'] = 9042
-    if not args['cassandra_keyspace']:
-        args['cassandra_keyspace'] = 'prices'
-    # Catalogue
-    pg_default = {'pg_host': 'localhost', 'pg_port':5432,
-        'pg_db':'catalogue', 'pg_user':'postgres',
-        'pg_password': 'postgres'}
-    for k in pg_default:
-        if not args[k]:
-            args[k] = pg_default[k]
     def date_from_str(strdate):
         """ Parse Date from Str (YYYY-MM-DD)
         """
         return datetime.datetime\
                 .strptime(str(strdate), '%Y-%m-%d')\
                 .date()
-    args['historic_on'] = True \
-        if (args['from'] and args['until'])\
-        else False
-    # Date
-    date_fields = ['date', 'from', 'until']
-    for df in date_fields:
-        if args[df]:
-            try:
-                args[df] = date_from_str(args[df])
-            except:
-                logger.error("Wrong arg: {} must be in format [YYYY-MM-DD]"\
-                    .format(df.capitalize()))
-                sys.exit()
-        else:
-            args[df] = datetime.date.today()
+    # Cassandra From
+    if not args['from_cassandra_hosts']:
+        args['from_cassandra_hosts'] = ['0.0.0.0']
+    else:
+        args['from_cassandra_hosts'] = args['from_cassandra_hosts'].split(',')
+    if not args['from_cassandra_port']:
+        args['from_cassandra_port'] = 9042
+    if not args['from_cassandra_keyspace']:
+        raise Exception("Missing Source Keyspace to start migration")
+    if not args['date']:
+        raise Exception("Missing Date to apply migration!")
+    args['date'] = date_from_str(args['date'])
     return args
 
 
-def fetch_all_prods(conf, limit):
-    """ Retrieve all products from Catalogue DB
-
-        Params:
-        -----
-        conf : dict
-            PSQL configuration
-        limit : int
-            Limit number
-
-        Returns:
-        -----
-        prods : pd.DataFrame
-            Product info
-    """
-    # Connect to Catalogue PSQL DB
-    psqlconf = {x.replace('pg', 'SQL').upper() : y \
-        for x,y in conf.items() if 'pg' in x}
-    catdb = Pygres(psqlconf)
-    logger.info("Connected to Catalogue DB!")
-    # Query to get all items 
-    try:
-        qry = """ SELECT product_uuid, item_uuid, source,
-        gtin FROM product WHERE source NOT IN ('gs1', 'mara', 'nielsen')
-        """
-        if limit:
-            qry += ' LIMIT {}'.format(limit)
-        prods = pd.read_sql(qry, catdb.conn)
-    except Exception as e:
-        logger.error(e)
-        logger.error("Did not found any products!")
-        sys.exit()
-    # Close connection
-    prods['product_uuid'] = prods['product_uuid'].astype(str)
-    prods['item_uuid'] = prods['item_uuid'].astype(str)
-    prods.fillna('', inplace=True)
-    logger.info("Finished retrieving product info: {}".format(len(prods)))
-    if prods.empty:
-        logger.error("Did not found any products!")
-        sys.exit()
-    return prods
-
-
-def fetch_day_prices(_prods, ret, day, limit, conf):
+def fetch_day_prices(day, _part, limit, conf, stores):
     """ Query data from passed keyspace
 
         Params:
         -----
-        _prods : pd.DataFrame
-            Products info
-        ret : str
-            Retailer key 
         day : datetime.date
             Query Date 
+        _part: int
+            Partition 
         limit : int
             Limit of prices to retrieve
-        cassconf: dict
+        conf: dict
             Cassandra Cluster config params
+        stores: pd.DataFrame
+            Stores DF
         
         Returns:
         -----
@@ -153,46 +82,48 @@ def fetch_day_prices(_prods, ret, day, limit, conf):
     """
     # Connect to C*
     cdb = SimpleCassandra({
-        'CONTACT_POINTS': conf['cassandra_hosts'],
-        'KEYSPACE': conf['cassandra_keyspace'],
-        'PORT': conf['cassandra_port']
+        'CONTACT_POINTS': conf['from_cassandra_hosts'],
+        'KEYSPACE': conf['from_cassandra_keyspace'],
+        'PORT': conf['from_cassandra_port'],
+        'USER': conf['from_cassandra_user'],
+        'PASSWORD': conf['from_cassandra_password']
     })
     logger.info("Connected to C*!")
     # Define CQL query
     cql_query = """SELECT * 
-        FROM price_retailer
-        WHERE retailer = %s
-        AND date = %s
+        FROM price_by_date_parted
+        WHERE date = %s
+        AND part = %s
     """
     # Limit statement
     if limit:
         cql_query += ' LIMIT {}'.format(limit)
-    # For each item query prices
+    # Format vars
+    day = int(day.isoformat().replace('-',''))
+    dtr = pd.DataFrame()
     try:
-        # Format vars
-        day = int(day.isoformat().replace('-',''))
-        r = cdb.query(cql_query,
-            (ret, day),
+        tr = cdb.query(cql_query,
+            (day, _part),
             timeout=200,
             consistency=ConsistencyLevel.ONE)
+        if tr: 
+            # Generate DFs
+            dtr = pd.DataFrame(tr)
+            dtr['product_uuid'] = dtr.product_uuid.astype(str)
+            dtr['store_uuid'] = dtr.store_uuid.astype(str)
+            dtr = pd.merge(dtr, 
+                stores[['store_uuid', 'source', 'zip', 'city','state', 'lat','lng']], 
+                on='store_uuid', how='left')
+            dtr['source'] = dtr['source'].fillna('')
+        logger.info("""Got {} prices in {} - {}""".format(len(dtr), day, _part))
     except Exception as e:
-        r = []
         logger.error(e)
-        logger.warning("Could not retrieve {}".format(day))
+        logger.warning("Could not retrieve {} - {}".format(day, _part))
     # Drop connection with C*
     cdb.close()
-    logger.info("""Got {} prices prices from {} in {}""".format(len(r), ret, day))
-    # Generate DFs
-    data = pd.DataFrame(r)
-    del r
-    if data.empty:
-        return pd.DataFrame()
-    data['item_uuid'] = data.item_uuid.astype(str)
-    data['store_uuid'] = data.store_uuid.astype(str)
-    data.rename(columns={'retailer': 'source'}, inplace=True)
-    return pd.merge(data, _prods,
-        on=['item_uuid', 'source'], how='left')
-    
+    return dtr
+
+
 def format_price(val):
     """ Format price to convert into scraper-like
 
@@ -211,6 +142,8 @@ def format_price(val):
         'retailer': val['source'],
         'currency': 'MXN',
         'date': str(val['time']),
+        'source': val['source'],
+        'url': val['url'],
         'location': {
             'store':[
                 val['store_uuid']
@@ -221,13 +154,13 @@ def format_price(val):
             'country': 'Mexico',
             "coords" : [
                 {
-                    "lat" : float(val['lat']),
-                    "lng" : float(val['lng'])
+                    "lat" : float(val['lat']) if val['lat'] else 19.432609,
+                    "lng" : float(val['lng']) if val['lng'] else -99.133203
                 }
             ]
         }
     })
-    logger.debug("Formatted {}".format(val['product_uuid']))
+    # logger.debug("Formatted {}".format(val['product_uuid']))
     return val
 
 
@@ -241,27 +174,51 @@ def populate_geoprice_tables(val):
     """
     price_val = format_price(val)    
     price = Price(price_val)
-    logger.debug("Formatted price info..")
+    #logger.debug("Formatted price info..")
     try:
         if type(price.product_uuid) is float and np.isnan(price.product_uuid):
             raise Exception("Product UUID needs to be generated!")
-        price.as_dict
     except Exception as e:
-        logger.error("Product invalid: {}".format(e))
-        logger.warning(val)
-        # log missing items
-        with open('missing_items.csv', 'a') as _file:
-            _file.write('{},{}\n'\
-                .format(price_val['item_uuid'],
-                        price_val['retailer']))
         return False
-    if price.save_all():
-        logger.info("Loaded tables for: {}".format(val['product_uuid']))
+    #logger.info("Saving All...")
+    if price.save_all_batch():
+        #logger.debug("Loaded tables for: {}".format(val['product_uuid']))
+        pass
 
-@with_context
-def day_migration(*args):
+@with_context 
+def day_migration(day, limit, conf, stores):
     """ Retrieves all data available requested day
         from Prices KS and inserts it into 
+        GeoPrice KS.
+
+        Params:
+        -----
+        day : datetime.date
+            Day to execute migration
+        limit : int, optional, default=None
+            Limit of data to apply migration from
+        conf : dict
+            Dict with Cassandra Configuration to migrate from
+        stores : pd.DataFrame
+            DF of stores
+    """
+    logger.debug("Retrieving info for migration on ({})".format(day))
+    # Retrieve data from AWS Geoprice KS (geoprice.price_by_date_parted)
+    for _part in range(1, 21):
+        data = fetch_day_prices(day, _part, limit, conf, stores)
+        if data.empty:
+            logger.debug("No prices to migrate in {} - {}!".format(day, _part))
+            continue
+        for j, d in tqdm.tqdm(data.iterrows(), desc="{}-{}".format(day, _part)):
+            # Populate each table in new KS
+            populate_geoprice_tables(d.to_dict())
+    logger.info("Finished populating tables")
+
+
+@with_context
+def stats_migration(*args):
+    """ Retrieves all data available requested day
+        from Prices KS and inserts it into
         GeoPrice KS.
 
         Params:
@@ -277,73 +234,20 @@ def day_migration(*args):
         prods : list
             List of Products info
     """
-    day, ret, limit, conf, prods = args[0][0], args[0][1], args[0][2], args[0][3], args[0][4]
-    logger.info("Retrieving info for migration on ({}-{})".format(day, ret))
+    day, conf, df_aux = args[0][0], args[0][1], args[0][2]
+    logger.debug("Retrieving stats on ({})".format(day))
     # Retrieve data from Prices KS (prices.price_item)
-    data = fetch_day_prices(prods, ret, day, limit, conf)
-    if data.empty:
-        logger.info("No prices to migrate in {}-{}!".format(ret, day))
-        return
-    logger.info("Found {} prices".format(len(data)))    
-    for j, d in data.iterrows():
-        # Populate each table in new KS
-        populate_geoprice_tables(d.to_dict())
-        logger.info("{}%  Populated"\
-            .format(round(100.0 * j / len(data), 2)))
-    logger.info("Finished populating tables")
-
-
-def get_daterange(_from, _until):
-    """ Generate a daterange from 
-        2 given limits
-
-        Params:
-        -----
-        _from : datetime.date
-            Starting Date
-        _until : datetime.date
-            Ending Date
-        
-        Returns:
-        -----
-        daterange : list
-            List of dates within limits
-    """
-    daterange = [_from]
-    # In case limits are not correct, send only from date
-    if _until < _from:
-        return daterange
-    while True:
-        _from += datetime.timedelta(days=1)
-        if _from > _until:
-            break
-        daterange.append(_from)
-    return daterange
+    fetch_day_stats(day, conf, df_aux)
 
 
 if __name__ == '__main__':
-    logger.info("Starting Migration script (Prices KS -> GeoPrice KS)")
+    logger.info("Starting Migration script (AWS Geoprice KS -> GCP GeoPrice KS)")
     # Parse C* and PSQL args
     cassconf = cassandra_args()
-    # Retrieve products from Catalogue, retailers and workers
-    prods = fetch_all_prods(cassconf, None)
-    retailers = list(set(prods['source'].tolist()))
-    _workers = cassconf['workers'] if cassconf['workers'] else 3
-    # Verify if historic is applicable
-    if cassconf['historic_on']:
-        # Format vars
-        daterange = get_daterange(cassconf['from'], cassconf['until'])
-        logger.info("Executing Historic migration from {} to {} with {} workers"\
-            .format(cassconf['from'], cassconf['until'], _workers))
-    else:
-        # Format vars
-        daterange = [cassconf['date']]
-        # Now call to migrate day's data
-        logger.info("Executing Alone migration for {} with {} workers"\
-            .format(daterange, _workers))
-    # Call Multiprocessing for async queries
-    with Pool(_workers) as pool:
-        # Call to run migration over all dates
-        pool.map(day_migration,
-            itertools.product(daterange, retailers, [None], [cassconf], [prods]))
-    logger.info("Finished executing ({}) migration".format(daterange))
+    # Retrieve products from Geolocation
+    stores = get_all_stores()
+    # Now call to migrate day's data
+    logger.info("Executing migration for {}".format(cassconf['date']))
+    # Apply migration
+    day_migration(cassconf['date'], LIMIT, cassconf, stores)
+    logger.info("Finished executing ({}) migration".format(cassconf['date']))

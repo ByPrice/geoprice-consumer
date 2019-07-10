@@ -3,6 +3,7 @@ from uuid import UUID
 import itertools
 from io import StringIO
 import math
+import datetime
 import json
 from collections import OrderedDict
 from flask import g
@@ -12,10 +13,16 @@ import requests
 from app import errors, logger
 from config import *
 from app.models.item import Item
+from app.models.task import Task
 from app.utils.helpers import *
+
 
 class Product(object):
     """ Class perform Query methods on Cassandra items
+
+        TODO: Modify correctly methods to query existing Databases for 
+        the enpoints and tasks, any useful methods can be here:
+        https://github.com/ByPrice/byprice-price-history/blob/dev/app/product/models.py
     """
 
     @staticmethod
@@ -236,7 +243,7 @@ class Product(object):
         _days = tupleize_date(datetime.date.today(), period)
         # Perform query for designated item uuid and more recent than yesterday
         cass_query = """
-            SELECT price 
+            SELECT price, time
             FROM price_by_product_date
             WHERE product_uuid = %s
             AND date = %s
@@ -266,13 +273,13 @@ class Product(object):
             .agg(['min', 'max', 'mean'])
         # Format response
         stats_hist =  {
-            'Máximo': aggs['max'].reset_index()\
+            'Máximo': _aggs['max'].reset_index()\
                 .rename(columns={'max': 'price'})\
                 .to_dict(orient='records'),
-            'Mínimo': aggs['min'].reset_index()\
+            'Mínimo': _aggs['min'].reset_index()\
                 .rename(columns={'min': 'price'})\
                 .to_dict(orient='records'),
-            'Promedio': aggs['mean'].reset_index()\
+            'Promedio': _aggs['mean'].reset_index()\
                 .rename(columns={'max': 'price'})\
                 .to_dict(orient='records')
         }
@@ -342,6 +349,7 @@ class Product(object):
         """
         # Generate days
         _days = tupleize_date(datetime.date.today(), 2)
+        
         cass_query = """
             SELECT product_uuid, price, promo,
             price_original, time,
@@ -353,7 +361,7 @@ class Product(object):
         qs = []
         # Iterate for each store-date combination
         for _s, _d in itertools.product([store_id], _days):
-            try: 
+            try:
                 q = g._db.query(cass_query,
                     (UUID(_s), _d),
                     timeout=120)
@@ -372,7 +380,7 @@ class Product(object):
         df['store_uuid'] = df['store_uuid'].astype(str)
         df['source'] = source
         _ius = pd.DataFrame(
-            Item.get_by_products(
+            Item.get_by_product(
                 df['product_uuid'].tolist(),
                 ['name', 'item_uuid', 'gtin']
             )
@@ -435,7 +443,7 @@ class Product(object):
         _count = 0
         # Iterate for each store-date combination
         for _s, _d in itertools.product([store_id], _days):
-            try: 
+            try:
                 q = g._db.query(cass_query,
                     (UUID(_s), _d, _delta),
                     timeout=120)
@@ -455,13 +463,144 @@ class Product(object):
         logger.debug(res)
         return res
 
+    
     @staticmethod
-    def get_count_by_store(retailer, store_id, date_start, date_end):
+    def validate_count_engine(params):
+        # Verify Request Params
+        if 'retailer' not in params :
+            raise errors.AppError("invalid_request", "retailer key missing")
+        if 'store_uuid' not in params:
+            raise errors.AppError("invalid_request", "store_uuid key missing")
+        if 'date' not in params:
+            raise errors.AppError("invalid_request", "date key missing")
+        else:
+            try:
+                datetime.datetime.strptime(params['date'], '%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError(80010, "Wrong Format: Date")
+        return params
+
+
+    @staticmethod
+    def get_count_by_store_engine(retailer, store_uuid, date):
+        """ Method to query to retrieve quantity of items 
+            from certain store of the last hours defined.
+
+            Params:
+            -----
+            retailer: str  
+                Retailer key
+            store_uuid: str
+                Store UUID
+            date: str
+                Date 
+        """
+        _date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        date_int = int(_date.date().__str__().replace('-',''))
+        cass_query = """
+            SELECT count(product_uuid) AS rows 
+            FROM price_by_store
+            WHERE store_uuid = {store_uuid} 
+            AND  date = {date_int}
+            AND time > %s 
+            AND time < %s
+            """.format(
+                store_uuid=UUID(store_uuid), 
+                date_int=date_int
+            )
+        logger.debug(cass_query)
+        try:
+            q = g._db.execute(cass_query, 
+                (_date - datetime.timedelta(hours=1), _date),
+                timeout=60)
+        except Exception as e:
+            logger.error("Cassandra Connection error: {error}".format(error=str(e)))
+            return {'count': 0}
+        # Format response
+        for row in q:
+            prods = {
+                        'count': row[0]
+                    }
+            logger.debug(prods)
+            return prods
+        return {'count': 0}
+
+
+    @staticmethod
+    def validate_count(params):
+        """ Params validation method
+            
+            Params:
+            -----
+            params : dict
+                params to validate
+
+            Returns:
+            -----
+            dict
+                Validated params
+        """
+        if not params:
+            raise errors.AppError(40002, "Params Missing!", 400)
+        if 'retailer' not in params:
+            raise errors.AppError(40003, "Retailer param Missing!", 400)
+        if 'store_id' not in params:
+            raise errors.AppError(40003, "Store UUID param Missing!", 400)
+        if 'date_start' not in params:
+            raise errors.AppError(40003, "Start Date param Missing!", 400)
+        if 'date_end' not in params:
+            raise errors.AppError(40003, "End Date param Missing!", 400)
+
+        return params
+    
+
+    @staticmethod
+    def count_by_store_task(task_id, params):
+        """ Start count by store task, first it validates parameters
+            and then it builds a response
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Prod Response
+        """
+        # Param validation
+        Product.validate_count(params)
+
+        result = Product.get_count_by_store(
+            task_id,
+            params['retailer'],
+            params['store_id'],
+            params['date_start'],
+            params['date_end']
+        )
+
+        resp = {
+            'data' : result,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+
+    @staticmethod
+    def get_count_by_store(task_id, retailer, store_id, date_start, date_end):
         """ Query to retrieve quantity of items
             from certain store of time selected period
 
             Params:
             -----
+            task_id :  str
+                Task UUID
             retailer : str
                 Source key
             store_id :  str
@@ -476,10 +615,16 @@ class Product(object):
             res : dict
                 Results dict
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Generate days
         _d1 = datetime.datetime.strptime(date_start, '%Y-%m-%d')
         _d2 = datetime.datetime.strptime(date_end, '%Y-%m-%d')
         _days = tupleize_date(_d1.date(), (_d2-_d1).days)
+        
         cass_query = """
             SELECT COUNT(1)
             FROM price_by_store
@@ -498,6 +643,7 @@ class Product(object):
                 _count += list(q)[0].count
             except Exception as e:
                 logger.error("Cassandra Connection error: "+str(e))
+        task.progress = 50
         # Format response
         res = {
             'source': retailer,
@@ -507,6 +653,7 @@ class Product(object):
             'date_end': date_end
         }
         logger.debug(res)
+        task.progress = 100
         return res
     
     @staticmethod
@@ -549,9 +696,52 @@ class Product(object):
         iocsv = fdf.to_csv(_buffer)
         _buffer.seek(0)
         return _buffer
+
+    @staticmethod
+    def start_retailer_task(task_id, params):
+        """ Start history product retailer task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Product Response
+        """
+        logger.info('inside retailer task')
+        # Verify Request Params
+        item_uuid, prod_uuid = None, None
+        if 'retailer' not in params:
+            raise errors.AppError(80002, "Retailer parameter missing")
+        if 'item_uuid' not in params:
+            if 'prod_uuid' not in params:
+                raise errors.AppError(80002, "Item/Product UUID parameter missing")
+            prod_uuid = params['prod_uuid']
+        else:
+            item_uuid = params['item_uuid']    
+        export = params['export'] if 'export' in params else False
+        logger.debug(params)
+        # Call function to fetch prices
+        prod = Product\
+            .get_prices_by_retailer(task_id, params['retailer'],
+                item_uuid, prod_uuid, export)
+        if not prod:
+            raise errors.AppError(80009,
+                "No prices in selected Retailer-Product pair")
+        return {
+            'data' : prod,
+            'msg' : 'Retailer Task completed'
+        }
+
     
     @staticmethod
-    def get_prices_by_retailer(retailer, item_uuid, prod_uuid, export=False):
+    def get_prices_by_retailer(task_id, retailer, item_uuid, prod_uuid, export=False):
         """ Queries a product and returns its prices
             from each store of the requested retailer
             and general stats
@@ -576,6 +766,12 @@ class Product(object):
             stores : dict
                 Store prices info
         """
+
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         logger.debug('Fetching from {} ...'\
             .format(retailer))
         # If item_uuid is passed, call to retrieve
@@ -586,6 +782,7 @@ class Product(object):
         else: 
             prod_uuids = [str(prod_uuid)]
         logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        task.progress = 20
         # Generate days
         _days = tupleize_date(datetime.date.today(), 2)
         # Fetch Stores by retailer
@@ -594,6 +791,7 @@ class Product(object):
         if not stores_j:
             return None
         logger.debug("Found {} stores".format(len(stores_j)))
+        task.progress = 40
         # Execute Cassandra Query
         cass_query = """
             SELECT product_uuid, store_uuid,
@@ -616,6 +814,7 @@ class Product(object):
                 logger.error("Cassandra Connection error: " + str(e))
                 continue
         logger.info("Fetched {} prices".format(len(qs)))
+        task.progress = 80
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
         if len(qs) == 0:
@@ -667,14 +866,18 @@ class Product(object):
         iocsv = resp_df[['name','price', 'lat', 'lng']]\
             .to_csv(_buffer)
         _buffer.seek(0)
+        task.progress = 100
+        logger.info('Finished computing {}!'.format(task_id))
         return _buffer
 
     @staticmethod
-    def fetch_detail_price(stores, item, _t0, _t1=None):
+    def fetch_detail_price(retailer, stores, item, _t0, _t1=None):
         """ Method to query detail prices from C*
 
             Params:
-            -----            
+            -----         
+            retailer: str
+                Retailer key   
             stores : list
                 Stores UUIDs
             item : str
@@ -691,37 +894,106 @@ class Product(object):
         """
         # If item_uuid is passed, call to retrieve
         # product_uuid's from Catalogue Service
-        prod_info = Item.get_by_item(item)
-        prod_uuids = [str(p['product_uuid']) for p in prod_info]
-        logger.debug("Found {} products in catalogue".format(len(prod_uuids)))
+        prod_info = Item.get_by_item(item, ['product_uuid', 'source'])
+        prod_uuids = [str(p['product_uuid']) for p in prod_info \
+            if p['source'] == retailer]
+        logger.info("Found {} products in catalogue".format(len(prod_uuids)))
+        logger.debug(prod_uuids)
         # Generate days
-        _period = (_t1-_t0).days if _t1 else 1
-        _days = tupleize_date(_t0.date(), _period)
-        cass_query = """
+        if _t1:
+            _period = (_t1-_t0).days 
+            _days = tupleize_date(_t1.date(), _period)
+        else:
+            _days = tupleize_date(_t0.date(), 2)
+        logger.debug(_days)
+        cass_query_base = """
             SELECT product_uuid,
             store_uuid, price, time
-            FROM price_by_product_store 
-            WHERE product_uuid = %s
-            AND store_uuid = %s
+            FROM price_by_product_store
+            WHERE product_uuid IN ({})
+            AND store_uuid IN ({})
             AND date = %s
             """
         qs = []
+        loop_size = 50
         # Iterate for each product-date combination
-        for _p, _s, _d in itertools.product(prod_uuids, stores, _days):
-            try:
-                q = g._db.query(cass_query, 
-                    (UUID(_p), UUID(_s), _d),
-                    timeout=10)
-                if not q:
+        chunks = [stores[i:i + loop_size] for i in range(0, len(stores), loop_size)]
+        for _c in chunks:
+            logger.debug(_c)
+            cass_query = cass_query_base.format(','.join(prod_uuids) ,','.join(_c))
+            for  _d in  _days:
+                try:
+                    q = g._db.query(cass_query, 
+                        ( _d,),
+                        timeout=5)
+                    if not q:
+                        continue
+                    qs += list(q)
+                except Exception as e:
+                    logger.error("Cassandra Connection error: " + str(e))
                     continue
-                qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue
         return qs
+
+    @staticmethod
+    def start_compare_details_task(task_id, params):
+        """ Start history product retailer task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Product Response
+        """
+        logger.info("Comparing pairs Retailer-Item")
+        # Verify Params
+        if 'fixed_segment' not in params:
+            raise errors.AppError(80002, "Fixed Segment missing")
+        if 'added_segments' not in params:
+            raise errors.AppError(80002, "Added Segments missing")
+        if not isinstance(params['fixed_segment'], dict):
+            raise errors.AppError(80010, "Wrong Format: Fixed Segment")
+        if not isinstance(params['added_segments'], list):
+            raise errors.AppError(80010, "Wrong Format: Added Segments")
+        if 'date' in params:
+            try:
+                _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+                if _date > datetime.datetime.utcnow():
+                    _date = datetime.datetime.utcnow()
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError(80010, "Wrong Format: Date")
+        else:
+            _date = datetime.datetime.utcnow()
+        if 'format' in params:
+            if not isinstance(params['format'], str):
+                raise errors.AppError(80010, "Wrong Format: Format")
+        else:
+            params['format'] = 'json'
+        # Call function to fetch prices
+        prod = Product\
+            .get_pairs_ret_item(task_id, 
+                params['fixed_segment'],
+                params['added_segments'],
+                _date,
+                params['format'])
+        if not prod:
+            logger.warning("Not able to fetch prices.")
+            raise errors.AppError(80009,
+                "No prices with that Retailer and item combination.")
+        return {
+            'data' : prod,
+            'msg' : 'Retailer Task completed'
+        }
             
     @staticmethod
-    def get_pairs_ret_item(fixed, added, date):
+    def get_pairs_ret_item(task_id, fixed, added, date, format):
         """ Compare segments of pairs (retailer-item)
             between the fixed against all the added
 
@@ -733,12 +1005,39 @@ class Product(object):
                 Pairs of Retailer-Item's
             date : datetime.datetime
                 Date of comparison
+            format : str
+                Response Format
+
+            Input Example:
+            -----
+            params {
+            "fixed_segment" : {
+                "store_uuid": UUID,
+                "item_uuid" : UUID,
+                "retailer": str,
+                "name": str
+            },
+            "added_segments" : [
+                {
+                "store_uuid": UUID,
+                    "item_uuid" : UUID,
+                    "retailer": str,
+                    "name": str
+                }
+            ],
+            "date": str(YYYY-MM-DD)
+        }
 
             Returns:
             -----
             compares : dict
                 JSON response of comparison
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Fetch Retailers and Time
         logger.debug("Setting Comparison...")
         _rets = [fixed['retailer']] + [x['retailer'] for x in added]
@@ -747,26 +1046,40 @@ class Product(object):
         # Create Geo DF
         geo_df = get_all_stores(_ret_keys)
         logger.info("Fetched {} stores".format(len(geo_df)))
+        task.progress = 30
         # Fetch Fixed Prices DF
         fix_price = Product.fetch_detail_price(
+                fixed['retailer'],
                 geo_df[geo_df['source'] == fixed['retailer']]\
                     ['store_uuid'].tolist(),
                 fixed['item_uuid'], _time)
         if not fix_price:
-            raise errors.AppError(80009, "No available prices for that combination.")
+            #raise errors.AppError(80009, "No available prices for that combination.")
+            task.progress = 100
+            if format == 'csv':
+                return pd.DataFrame().to_dict(orient='records')
+            return {
+                'date': date.isoformat(),
+                'segments': [],
+                'rows': []
+            }
         # Fetch Added Prices DF
         added_prices = []
         for _a in added:
             added_prices\
                 .append(
                     Product.fetch_detail_price(
+                        _a['retailer'],
                         geo_df[geo_df['source'] == _a['retailer']]\
                             ['store_uuid'].tolist(),
                         _a['item_uuid'], _time)
                 )
+
+        task.progress = 60
         # Build Fix DF, cast and drop dupls
         fix_df = pd.DataFrame(fix_price)
         fix_df['store_uuid'] = fix_df['store_uuid'].astype(str)
+        fix_df['product_uuid'] = fix_df['product_uuid'].astype(str)
         fix_df['item_uuid'] = fixed['item_uuid']
         fix_df.sort_values(by=["time"], ascending=False, inplace=True)
         fix_df.drop_duplicates(subset=['store_uuid'], inplace=True)
@@ -789,7 +1102,7 @@ class Product(object):
             # Build Added DF, cast and drop dupls
             _tmp = pd.DataFrame(_a)
             _tmp['store_uuid'] = _tmp['store_uuid'].apply(lambda x: str(x))
-            _tmp['item_uuid'] = added['item_uuid']
+            _tmp['item_uuid'] = added[j]['item_uuid']
             _tmp.sort_values(by=["time"], ascending=False, inplace=True)
             _tmp.drop_duplicates(subset=['store_uuid'], inplace=True)
             # Add Geolocated info and rename columns
@@ -801,9 +1114,45 @@ class Product(object):
                 how='left', on="store_uuid")
             _tmp.rename(columns={'name':'store'},
                         inplace=True)
+            _tmp['store_uuid'] = _tmp.store_uuid.astype(str)
+            _tmp['product_uuid'] = _tmp.product_uuid.astype(str)
             # Added to the list
             added_dfs.append(_tmp)
         logger.debug('Built Added DFs')
+        task.progress=70
+        if format == 'csv':
+            # CSV like formatter
+            csv_df = []
+            # Fetch Fix Name
+            _dfs = [fix_df] + added_dfs
+            for ad_f in _dfs:
+                # Fetch product name
+                if ad_f.empty:
+                    continue
+                ad_name = ad_f['item_uuid'].tolist()[0]
+                try:
+                    #ad_name = requests.get("http://"+SRV_ITEM+"/item/info/"+ad_name).json()['names'][0]
+                    ad_name = requests.get("http://"+SRV_CATALOGUE+"/item/details?uuid="+ad_name).json()['name'].upper()
+                except:
+                    pass
+                # Fetch store name
+                _df = ad_f.copy()
+                _df['store_name'] = _df\
+                    .apply(lambda z: z['store'].upper() \
+                            if z['source'].upper() in z['store'].upper() \
+                            else ' '.join([z['source'].upper(), z['store'].upper()]), 1)
+                tmp_csv = _df[['store_name', 'price']]\
+                            .rename(columns={'price': ad_name})\
+                            .drop_duplicates('store_name')\
+                            .set_index('store_name').T\
+                            .reset_index()\
+                            .rename(columns={'index':'producto'})\
+                            .set_index('producto')
+                csv_df.append(tmp_csv)
+                #csv_cols.union(set(list(tmp_csv.columns)))
+            df_to_exp = pd.concat(csv_df)
+            task.progress = 100
+            return df_to_exp.reset_index().to_dict(orient='records')
         # Construct Response
         _rows = []
         for _j, _jrow in fix_df.iterrows():
@@ -820,11 +1169,22 @@ class Product(object):
                 # Use deep copy for calculations
                 _ai = _deepai.copy()
                 # Set unfound price like dict
+                if _ai.empty:
+                    _pds = Item.get_by_item(added[_ith]['item_uuid'], 
+                                        ['product_uuid', 'source'])
+                    _t_ai_puuid = [pr_['product_uuid'] for pr_ in _pds \
+                        if pr_['source'] == added[_ith]['retailer']]
+                    if _t_ai_puuid:
+                        _t_ai_puuid = _t_ai_puuid[0]
+                    else:
+                        _t_ai_puuid = ''
+                else:
+                    _t_ai_puuid = _ai.product_uuid.tolist()[0]
                 _jkth = {
                     "store": None,
-                    "source": added[_ith]['source'],
+                    "source": added[_ith]['retailer'],
                     "item_uuid": added[_ith]['item_uuid'],
-                    "product_uuid": added[_ith]['product_uuid'],
+                    "product_uuid": _t_ai_puuid,
                     "price": None,
                     "diff": None,
                     "dist": None
@@ -859,6 +1219,7 @@ class Product(object):
             _rows.append(_jth)            
             logger.debug(_j)
         logger.info('Created Rows!')
+        task.progress = 80
         # Generate Fixed Stores
         _valid_sts = []
         fix_df['name'] = fix_df['store'].astype(str)
@@ -884,14 +1245,76 @@ class Product(object):
                             .drop_duplicates(subset=['store_uuid'])\
                             .iterrows()]})
         logger.info('Generated Stores!')
+        task.progress = 100
         return {
-            'date': date,
+            'date': date.isoformat(),
             'segments': _valid_sts,
             'rows': _rows
         }
 
     @staticmethod
-    def get_pairs_store_item(fixed, added, params):
+    def validate_store_item(params):
+        "Validates params for store item"
+        # Existance verif
+        if 'fixed_segment' not in params:
+            raise errors.AppError(80002, "Fixed Segment missing")
+        if 'added_segments' not in params:
+            raise errors.AppError(80002, "Added Segments missing")
+        # Datatype verif
+        if not isinstance(params['fixed_segment'], dict):
+            raise errors.AppError(80010, "Wrong Format: Fixed Segment")
+        if not isinstance(params['added_segments'], list):
+            raise errors.AppError(80010, "Wrong Format: Added Segments")
+        # Dates verif
+        if ('date_ini' not in params) or ('date_fin' not in params):
+            raise errors.AppError(80002, "Missing Dates params")
+        if 'interval' in params:
+            if params['interval'] not in ['day','week','month']:
+                raise errors.AppError(80010, "Wrong Format: interval type")
+        else:
+            params['interval'] = 'day'
+        return params
+
+
+    @staticmethod
+    def compare_store_item_task(task_id, params):
+        """ Start Compare store item task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Map Response
+        """
+        # Validate params
+        Product.validate_store_item(params)
+        # Parse and start task
+        prod = Product.get_pairs_store_item(
+            task_id,
+            params['fixed_segment'],
+            params['added_segments'],
+            params
+        )
+        if not prod:
+            raise errors.AppError(80009,
+                "No products with that Store and item combination.") 
+        resp = {
+            'data' : prod,
+            'msg' : 'Task completed'
+        }
+        logger.info('Finished computing {}!'.format(task_id))
+        return resp
+
+
+    @staticmethod
+    def get_pairs_store_item(task_id, fixed, added, params):
         """ Compare segments of pairs (store-item)
 
             Params:
@@ -908,6 +1331,11 @@ class Product(object):
             _resp : dict
                 JSON response of comparison
         """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
         # Vars
         _resp = {}
         # Obtain distances
@@ -915,17 +1343,25 @@ class Product(object):
         dist_dict = obtain_distances(fixed['store_uuid'],
                     [x['store_uuid'] for x in added],
                     _rets)
+        task.progress = 10
         # Obtain date groups
         date_groups = grouping_periods(params)
+        task.progress = 20
         # Fetch fixed prices
         fix_store = Product\
             .fetch_detail_price(
+                    fixed['retailer'],
                     [fixed['store_uuid']],
                     fixed['item_uuid'],
-                    date_groups[0][0],
+                    date_groups[0][0], 
                     date_groups[-1][-1])
+        task.progress = 60
         if not fix_store:
             raise errors.AppError(80009, "No available prices for that combination.")
+            # return {
+            #     "fixed": {},
+            #     "segments": []
+            # }
         fix_st_df = pd.DataFrame(fix_store)
         fix_st_df['name'] = fixed['name']
         fix_st_df['time_js'] = fix_st_df['time'].apply(date_js())
@@ -941,17 +1377,19 @@ class Product(object):
             "max": fix_st_df['price'].max(),
             "min": fix_st_df['price'].min(),
             "avg": fix_st_df['price'].mean(),
-            "std": fix_st_df['price'].std()
+            "std": fix_st_df['price'].std() if fix_st_df['price'].count() > 1 else 0
         }
         logger.info('Fetched fixed values')
         # Fetch added prices
         _resp['segments'] =[]
+        task.progress = 70
         for _a in added:
             _tmp_st =  Product.fetch_detail_price(
+                    _a['retailer'],
                     [_a['store_uuid']],
                     _a['item_uuid'],
                     date_groups[0][0],
-                    date_groups[-1][-1])
+                    date_groups[-1][-1])  
             if not _tmp_st:
                 logger.warning("{} store with no Prices".format(_a['store_uuid']))
                 continue
@@ -967,11 +1405,12 @@ class Product(object):
                 "max": _tmp_df['price'].max(),
                 "min": _tmp_df['price'].min(),
                 "avg": _tmp_df['price'].mean(),
-                "std": _tmp_df['price'].std(),
+                "std": _tmp_df['price'].std() if _tmp_df['price'].count() > 1 else 0,
                 "dist": dist_dict[_a['store_uuid']] 
             }
             # Add to segments
             _resp['segments'].append(_tmp_rsp)
+        task.progress = 100
         logger.info('Fetched all segments')
         # Construct response
         return _resp
@@ -1038,6 +1477,19 @@ class Product(object):
             return {}
         return _stats
 
+
+    @staticmethod
+    def validate_count_ret_eng_params(params):
+        if 'retailer' not in params :
+            raise errors.AppError(80002,
+                "Retailer param missing")
+        if 'date' not in params:
+            raise errors.AppError(80002,
+                "Date param missing")
+        logger.debug(params)
+        return params
+
+
     @staticmethod
     def count_by_retailer_engine(retailer, _date):
         """ Get max, min, avg price from 
@@ -1061,27 +1513,31 @@ class Product(object):
         _time_plus = _time + datetime.timedelta(hours=1)
         # Generate days
         _days = tupleize_date(_time.date(), 2)
+        stores = g._geolocation.get_stores(rets=[retailer])
+        uuids = [ st['uuid'] for st in stores if 'uuid' in st ]
         cass_query = """
-            SELECT COUNT(1) as count
-            FROM price_by_source
-            WHERE source=%s
-            AND date=%s
-            AND time>%s
-            AND time<%s
+            SELECT COUNT(1) AS count 
+            FROM price_by_store
+            WHERE store_uuid = %s 
+            AND date = %s
+            AND time > %s
+            AND time < %s
             """
         qs = []
-        # Iterate for each product-date combination
+        count = 0
         for _d in _days:
-            try:
-                q = g._db.query(cass_query, 
-                    (retailer, _d, _time, _time_plus),
-                    timeout=100)
-                if not q:
+            for store_uuid in uuids:
+                count += 1
+                try:
+                    q = g._db.query(cass_query, 
+                            (UUID(store_uuid), _d, _time, _time_plus),
+                            timeout=30)
+                    if not q:
+                        continue
+                    qs += list(q)
+                except Exception as e:
+                    logger.error("Cassandra Connection error: " + str(e))
                     continue
-                qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue
         if len(qs) == 0:
             return {'count' : 0}
         # Fetch agg values:        
@@ -1094,3 +1550,191 @@ class Product(object):
             .format(_count['count'], retailer,
                     _time, _time_plus))
         return _count
+
+
+    @staticmethod
+    def start_compare_stores_task(task_id, params):
+        """ Start history product retailer task, first it validates parameters
+            and then it builds a response upon filters
+
+            Params:
+            -----
+            task_id:  str
+                Task ID 
+            params: dict
+                Request Params
+            
+            Returns:
+            -----
+            flask.Response
+                Product Response
+        """
+        logger.info("Comparing pairs Ret-Item Stores")
+        # Verify Params
+        if 'fixed_segment' not in params:
+            raise errors.AppError("invalid_request", "Fixed Segment missing")
+        if 'added_segments' not in params:
+            raise errors.AppError("invalid_request", "Added Segments missing")
+        if not isinstance(params['fixed_segment'], dict):
+            raise errors.AppError("invalid_request", "Wrong Format: Fixed Segment")
+        if not isinstance(params['added_segments'], list):
+            raise errors.AppError("invalid_request", "Wrong Format: Added Segments")
+        if 'territory' not in params:
+            params['territory'] = []
+        else:
+            if not isinstance(params['territory'], list):
+                raise errors.AppError("invalid_request", "Wrong Format: Territory")
+        if 'date' in params:
+            try:
+                _date = datetime.datetime(*[int(d) for d in params['date'].split('-')])
+                if _date > datetime.datetime.utcnow():
+                    _date = datetime.datetime.utcnow()
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError("invalid_request", "Wrong Format: Date")
+        else:
+            _date = datetime.datetime.utcnow()
+        # Call function to fetch prices
+        prod = Product.get_pairs_ret_item_stores(task_id, 
+                                params['fixed_segment'],
+                                params['added_segments'],
+                                _date,
+                                params['territory'])
+        if not prod:
+            logger.error("Not able to fetch prices.")
+            return jsonify([])
+        
+        return {
+            'data' : prod,
+            'msg' : 'Compare Stores Task completed'
+        }
+
+
+    @staticmethod
+    def get_pairs_ret_item_stores(task_id, fixed, added, date, territory):
+        """ Method to compare segments of pairs (retailer-item) and stores
+
+            @Params:
+            - fixed : (dict) First Pair of Retailer-Item
+            - added : (list) Pairs of Retailer-Item's
+            - date : (datetime.datetime) Date of comparison
+            - territory : (list) List of Stores that apply
+
+            @Returns:
+            dict
+                JSON buffer response of comparison
+        """
+        # Task initialization
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
+        logger.debug("Setting Comparison...")
+        # Fetch Retailers and Time
+        _rets = [fixed['retailer']] + [x['retailer'] for x in added]
+        _time = (date - datetime.timedelta(days=1)).date().__str__()
+        _time_f = (date + datetime.timedelta(days=1)).date().__str__()
+        # Create Geo DF
+        _st_list = []
+        for _r in _rets:
+            try:
+                _stj = requests\
+                        .get(SRV_PROTOCOL+"://"+SRV_GEOLOCATION+"/store/retailer?key="+_r)\
+                        .json()
+                for _i, _s in enumerate(_stj):
+                    _stj[_i].update({'retailer': _r})
+            except Exception as e:
+                logger.error(e)
+                raise errors.AppError("stores_issue",
+                            "Could not fetch Stores!")
+            _st_list += _stj
+        geo_df = pd.DataFrame(_st_list)
+        geo_df['store_uuid'] = geo_df['uuid'].apply(lambda x: str(x))
+        logger.debug('Got Stores!')
+        task.progress = 10
+        # Filter Territories
+        if territory:
+            geo_df = geo_df[geo_df.store_uuid.isin(territory)]
+            if geo_df.empty:
+                raise errors.AppError('no_stores', 'No stores in selected territory and retailers.')
+        # Fetch Fixed Prices DF
+        fix_price = Product.fetch_detail_price(
+                                fixed['retailer'],
+                                geo_df[geo_df['retailer'] == fixed['retailer']]['store_uuid'].tolist(),
+                                fixed['item_uuid'],
+                                datetime.datetime.strptime(_time, '%Y-%m-%d'),
+                                datetime.datetime.strptime(_time_f, '%Y-%m-%d'))
+        task.progress = 40
+        # Fetch Added Prices DF
+        added_prices = []
+        for _a in added:
+            added_prices.append(
+                Product.fetch_detail_price(
+                        _a['retailer'],
+                        geo_df[geo_df['retailer'] == _a['retailer']]['store_uuid'].tolist(),
+                        _a['item_uuid'],
+                        datetime.datetime.strptime(_time, '%Y-%m-%d'),
+                        datetime.datetime.strptime(_time_f, '%Y-%m-%d')
+                    )
+                )
+        task.progress = 50
+        # Build Fix DF, cast and drop dupls
+        fix_df = pd.DataFrame(fix_price)
+        if not fix_df.empty:
+            fix_df['store_uuid'] = fix_df['store_uuid'].apply(lambda x: str(x))
+            fix_df['item_uuid'] = fixed['item_uuid']
+            fix_df.sort_values(by=["time"], ascending=False, inplace=True)
+            fix_df.drop_duplicates(subset=['store_uuid'], inplace=True)
+            # Add Geolocated info and rename columns
+            fix_df = pd.merge(fix_df[['item_uuid','store_uuid','price','time']],
+                geo_df[['store_uuid','retailer','lat','lng', 'name']],
+                how='left', on="store_uuid")
+            fix_df.rename(columns={'name':'store'},
+                            inplace=True)
+        logger.debug('Built Fixed DF')
+        added_dfs = []
+        # Loop over all the added elements
+        for _a in added_prices:
+            if len(_a) == 0:
+                added_dfs.append(pd.DataFrame())
+                continue
+            # Build Added DF, cast and drop dupls
+            _tmp = pd.DataFrame(_a)
+            _tmp['store_uuid'] = _tmp['store_uuid'].apply(lambda x: str(x))
+            _tmp['item_uuid'] = added[0]['item_uuid']
+            _tmp.sort_values(by=["time"], ascending=False, inplace=True)
+            # Add Geolocated info and rename columns
+            _tmp = pd.merge(_tmp[['item_uuid','store_uuid','price','time']],
+                geo_df[['store_uuid','retailer','lat','lng', 'name']],
+                how='left',
+                on="store_uuid")
+            _tmp.rename(columns={'name':'store'},
+                        inplace=True)
+            # Added to the list
+            added_dfs.append(_tmp)
+        logger.debug('Built Added DFs')
+        task.progress = 70
+        # Construct Response 
+        resp_df = []
+        # Fetch Fix Name
+        _dfs = [fix_df] + added_dfs
+        for ad_f in _dfs:
+            # Fetch product name
+            if ad_f.empty:
+                continue
+            ad_name = ad_f['item_uuid'].tolist()[0]
+            try:
+                ad_name = requests.get(SRV_PROTOCOL+"://"+SRV_CATALOGUE+"/item/details?uuid="+ad_name).json()['name'].upper()
+            except:
+                pass
+            _df = ad_f.copy()
+            tmp_csv = _df[['store_uuid', 'price']]\
+                        .rename(columns={'price': ad_name})\
+                        .drop_duplicates('store_uuid')\
+                        .set_index('store_uuid').T\
+                        .reset_index()\
+                        .rename(columns={'index': 'item'})
+            tmp_csv['item_uuid'] = ad_f['item_uuid'].tolist()[0]
+            resp_df += tmp_csv.to_dict(orient='records')
+        task.progress = 100
+        return resp_df

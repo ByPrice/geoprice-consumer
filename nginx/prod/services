@@ -1,0 +1,19 @@
+server {
+    listen 80;
+    server_name _;
+    charset utf-8;
+
+    location /athena/ {
+        rewrite ^/athena/(.*)$ /$1 break;
+        include proxy_params;
+        proxy_pass http://unix:/home/byprice/athena/athena.sock;
+    }
+
+    location /geoprice/ {
+        rewrite ^/geoprice/(.*)$ /$1 break;
+        include proxy_params;
+        proxy_pass http://unix:/home/byprice/geoprice/geoprice.sock;
+    }
+
+}
+

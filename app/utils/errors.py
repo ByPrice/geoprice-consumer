@@ -14,3 +14,6 @@ class AppError(Exception):
         rv['message'] = self.description
         return rv
 
+
+class TaskError(Exception):
+    pass

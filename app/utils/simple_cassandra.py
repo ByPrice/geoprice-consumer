@@ -18,7 +18,7 @@ class SimpleCassandra(object):
         # Kwargs
         self.autocommit = kwargs.get('autocommit', False)
         if not self.config:
-            raise Pygres("Configuration variables missing",'Missing vars in config')
+            raise Exception("Configuration variables missing",'Missing vars in config')
 
         # Essential config variables
         self.config = {
@@ -41,14 +41,14 @@ class SimpleCassandra(object):
             self.cluster = Cluster(
                 self.config['CONTACT_POINTS'],
                 port=self.config['PORT'],
-                connect_timeout=30,
+                connect_timeout=60,
                 auth_provider=auth_provider
             )
         else:
             self.cluster = Cluster(
                 self.config['CONTACT_POINTS'],
                 port=self.config['PORT'],
-                connect_timeout=30
+                connect_timeout=60
             )
         # Set session
         try:
@@ -58,6 +58,7 @@ class SimpleCassandra(object):
                 self.set_keyspace()
         except Exception as e:
             logger.error("Something happened in SimpleCassandra connection")
+            logger.error(self.config)
             logger.error(e)
             sys.exit()
 
@@ -69,9 +70,12 @@ class SimpleCassandra(object):
         if not hasattr(self,'session'):
             return None
         self.session.set_keyspace(self.config['KEYSPACE'])
+        cl = ConsistencyLevel.ONE
         # Consistency level
         if self.config['CONSISTENCY_LEVEL'] == 'LOCAL_ONE':
             cl = ConsistencyLevel.LOCAL_ONE
+        if self.config['CONSISTENCY_LEVEL'] == 'ONE':
+            cl = ConsistencyLevel.ONE
         elif self.config['CONSISTENCY_LEVEL'] == 'QUORUM':
             cl = ConsistencyLevel.QUORUM
         elif self.config['CONSISTENCY_LEVEL'] == 'ALL':
@@ -159,11 +163,13 @@ class PagedHandler(object):
         )
 
     def finished_event(self):
-        print("Finihsed event")
+        #print("Finished event")
+        pass
 
     def handle_page(self, rows):
         for row in rows:
-            print(row)
+            #print(row)
+            pass
 
         if self.future.has_more_pages:
             self.future.start_fetching_next_page()

@@ -24,14 +24,24 @@ new_price = {
     "url" : "https://super.walmart.com.mx/Leche/Leche-Alpura-deslactosada-1-l/00750105590142",
     "location" : {
         "store" : [
-            "3b005588-be71-11e7-bb47-0242ac110002",
-            "39fd55b4-be71-11e7-bb47-0242ac110002"
+            "17128984-7ace-11e7-9b9f-0242ac110003",
+            "244023aa-7ace-11e7-9b9f-0242ac110003",
+            "62dd3a78-4bdd-11e7-a958-0242ac110002",
+            "6221c95a-4bdd-11e7-a958-0242ac110002"
         ],
-        "zip" : ["14140","01900"],
-        "city" : ["México","México"],
-        "state" : ["México","México"],
-        "country" : ["México","México"],
+        "zip" : ["14140","01900","14140","01900"],
+        "city" : ["México","México","México","México"],
+        "state" : ["México","México","México","México"],
+        "country" : ["México","México","México","México"],
         "coords" : [
+            {
+                "lat" : 19.4968732,
+                "lng" : -99.72326729999999
+            },
+            {
+                "lat" : 18.9732,
+                "lng" : -97.772999
+            },
             {
                 "lat" : 19.4968732,
                 "lng" : -99.72326729999999
@@ -46,7 +56,7 @@ new_price = {
 
 class GeopriceConsumerTestCase(unittest.TestCase):
     """ Test Case for Geoprice Consumer
-    """
+    """ 
 
     @classmethod
     def setUpClass(cls):
@@ -54,20 +64,19 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         """
         # Define test database
         print("Setting up tests")
-        return
-        if config.TESTING:
-            with app.app.app_context():
-                app.initdb_cmd()
+        # if config.TESTING:
+        #    with app.app.app_context():
+        #        app.initdb_cmd()
 
     @classmethod
     def tearDownClass(cls):
         """ Drops database
         """
         print("Teardown class")
-        return
         if config.TESTING:
             with app.app.app_context():
                 app.dropdb_cmd()
+                app.get_consumer(queue='test_queue')
 
     def setUp(self):
         """ Set up
@@ -95,6 +104,7 @@ class GeopriceConsumerTestCase(unittest.TestCase):
         print("Validating save price success")
         global new_price
         pr = Price(new_price)
+        pr.part = 1
         result = pr.save_all()
         self.assertEqual(result, True)
 

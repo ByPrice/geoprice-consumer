@@ -2,8 +2,7 @@ import json
 from flask import g
 import requests
 from app import logger
-from config import SRV_CATALOGUE
-
+from config import SRV_CATALOGUE, SRV_PROTOCOL
 
 
 class Item(object):
@@ -14,7 +13,6 @@ class Item(object):
     def __int__(self):
         self.products = []
         pass
-
 
     @staticmethod
     def get_by_product(p_uuids, cols=['item_uuid']):
@@ -27,7 +25,7 @@ class Item(object):
                 List of Product UUIDs
             cols : list
                 List of additional columns to call
-            
+
             Returns: 
             -----
             items : list
@@ -37,7 +35,7 @@ class Item(object):
         # Iterate over batches of lenght: _k
         for i in range(0, len(p_uuids), _k):
             _pbatch = p_uuids[i: i+_k]
-            url = SRV_CATALOGUE + \
+            url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
                 '/product/by/puuid?keys={item}&ipp={ipp}&cols={cols}'\
                 .format(item=','.join(_pbatch),
                         ipp=_k,
@@ -52,8 +50,8 @@ class Item(object):
                 items += r.json()['products']
             except Exception as e:
                 logger.error(e)
-        logger.info("Found {} products from Catalogue"\
-            .format(len(items)))
+        logger.info("Found {} products from Catalogue"
+                    .format(len(items)))
         return items
 
     @staticmethod
@@ -67,13 +65,14 @@ class Item(object):
                 Item UUID
             cols : list
                 List of requested table columns
-            
+
             Returns: 
             -----
             products : list
                 List requested of products
         """
-        url = SRV_CATALOGUE + \
+
+        url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
             '/product/by/iuuid?keys={item}&ipp=50&cols={cols}'\
             .format(item=item_uuid,
                     cols=','.join(cols))
@@ -91,16 +90,15 @@ class Item(object):
         products = []
         for p in r.json()['products']:
             products.append(
-                {j:x for j, x in p.items() \
+                {j: x for j, x in p.items()
                     if j in cols}
             )
         return products
 
-    
     @staticmethod
     def get_item_details(filters):
         """ Get item details from catalogue service
-            
+
             Params:
             -----
             - filters: (list) Item Filters
@@ -110,15 +108,53 @@ class Item(object):
             (list) List of Items with Name and GTIN
         """
         # Fetch uuids from filters in ITEM
-        payload  = json.dumps(filters)
-        url = 'http://'+config.SRV_CATALOUGUE+'/item/filtered'
-        headers = {'content-type':'application/json'}
+        payload = json.dumps(filters)
+        url = SRV_PROTOCOL + '://'+SRV_CATALOGUE+'/item/filtered'
+        headers = {'content-type': 'application/json'}
         logger.debug(url)
         try:
             resp = requests.request("POST", url, data=payload, headers=headers)
-            logger.debug(resp.status_code) 
+            logger.debug(resp.status_code)
             return resp.json()
         except Exception as e:
             logger.error(e)
-            g.error = {'code': 10001,'message':'Issues fetching info...'}
+            g.error = {'code': 10001, 'message': 'Issues fetching info...'}
             return False
+
+    @staticmethod
+    def get_all_items(ip=1, _ipp=500):
+        """ Get the number of items from the catalogue
+
+            Params:
+            -----
+            ip :  int
+                page number
+            ipp : int
+                number of results
+
+            Returns: 
+            -----
+            items : list
+                List of product with respective cols
+        """
+
+        items = []
+
+        url = SRV_PROTOCOL + "://" + SRV_CATALOGUE + \
+            '/product/by/puuid?keys=''&p={p}&ipp={ipp}&orderby=name'\
+            .format(p=ip,
+                    ipp=_ipp)
+        logger.debug(url)
+        try:
+            r = requests.get(url)
+            logger.debug(r.status_code)
+            # In case of error
+            if r.status_code != 200:
+                raise Exception('Issues requesting Catalogue')
+            items = r.json()['products']
+        except Exception as e:
+            logger.error(e)
+
+        logger.info("Found {} products from Catalogue"
+                    .format(len(items)))
+        return items

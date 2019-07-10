@@ -1,9 +1,14 @@
 env/
-.envvars
+.envvars*
 __pycache__/
 *.pyc
 .vscode/
+.idea/
 Dockerfile.local
 *.log
 *.local
 missing_items.csv
+data/
+Endpoints*
+app/scripts/migration_prices.py
+!data/downloads.json

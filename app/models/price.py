@@ -1,10 +1,14 @@
 #-*- coding: utf-8 -*-
 from flask import g
+from config import CASSANDRA_TTL
 import datetime
+import json
 import uuid
 import math
-from ..utils import geohash
-from .. import applogger
+from ByHelpers import applogger
+import warnings
+from uuid import UUID
+import pandas as pd
 
 # Database connection:  db.session
 logger = applogger.get_logger()
@@ -40,6 +44,8 @@ class Price(object):
     lats = []
     lngs = []
     location = {}
+    _part = None
+    insert_ttl = CASSANDRA_TTL
 
     def __init__(self, *initial_data, **kwargs):
         # Db session init
@@ -107,7 +113,6 @@ class Price(object):
     def as_dict(self):
         ''' Dictionary representation for saving to cassandra '''
         return {
-            'price_uuid' : uuid.uuid4(),
             'product_uuid' : uuid.UUID(self.product_uuid),
             'gtin' :  self.gtin if self.gtin is None else int(self.gtin),
             'source' : self.source,
@@ -127,6 +132,19 @@ class Price(object):
             'lat' : [ coords['lat'] for coords in self.location['coords'] ],
             'lng' : [ coords['lng'] for coords in self.location['coords'] ],
         }
+
+    @property
+    def part(self):
+        """ Partition property
+        """
+        return self._part
+
+    @part.setter
+    def part(self, val):
+        """ Partition property
+        """
+        assert isinstance(val, int)
+        self._part = val
 
 
     @staticmethod
@@ -189,6 +207,8 @@ class Price(object):
                 'coords' : self.coords[i],
                 'lat' : self.lats[i],
                 'lng' : self.lngs[i],
+                'part': self.part,
+                'insert_ttl': self.insert_ttl
             }
 
 
@@ -198,13 +218,13 @@ class Price(object):
             - execute()
             - execue_async() en caso de que se haga cuello de botella
         '''
-        logger.debug("Saving price in all tables...")
-        self.save_price()
+        #logger.info("[3] Saving price in all tables...")
+        # self.save_price()    # DEPRECATED
         self.save_price_by_product_date()
-        self.save_price_by_date()
+        # self.save_price_by_date()    # DEPRECATED
         self.save_price_by_product_store()
-        self.save_price_by_geohash()
-        self.save_price_by_source()
+        # self.save_price_by_geohash()  # DEPRECATED
+        # self.save_price_by_source()   # DEPRECATED
         self.save_price_by_store()
         self.save_promo()
         self.save_promo_by_store()
@@ -212,106 +232,124 @@ class Price(object):
 
     # Save as raw price in json format
     def save_price_raw(self):
-        try:
-            return self.session.execute(
-                """ 
-                INSERT INTO price_raw (
-                    date, product_uuid, raw
-                )
-                VALUES (
-                    %(date)s, %(product_uuid)s, %(raw)s
-                ) 
-                """, {
-                    "date" : self.date,
-                    "product_uuid" : self.product_uuid,
-                    "raw" : json.dump(self.as_dict)
-                })
-        except Exception as e:
-            logger.error("Could not save price raw data")
-            logger.error(self.as_dict)
-            logger.error(e)
-            return []
+        """ [DEPRECATED] `price_raw` table saver method. 
+        """
+        # try:
+        #     return self.session.execute(
+        #         """ 
+        #         INSERT INTO price_raw (
+        #             date, product_uuid, raw
+        #         )
+        #         VALUES (
+        #             %(date)s, %(product_uuid)s, %(raw)s
+        #         ) 
+        #         """, {
+        #             "date" : self.date,
+        #             "product_uuid" : self.product_uuid,
+        #             "raw" : json.dumps(self.as_dict)
+        #         })
+        # except Exception as e:
+        #     logger.error("Could not save price raw data")
+        #     logger.error(self.as_dict)
+        #     logger.error(e)
+        #     return []
+        warnings.warn("This table (`price_raw`) has been deprecated from the C* data model!")
+        return []
 
 
     # Salvamos en tabla price
     def save_price(self):
-        try:
-            for elem in self.loc_generator():
-                self.session.execute(
-                    """
-                    INSERT INTO price(
-                        product_uuid, time, gtin, store_uuid, lat, lng, price, price_original, promo, url, currency 
-                    )
-                    VALUES(
-                        %(product_uuid)s, %(time)s, %(gtin)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                    )
-                    """,
-                    elem
-                )
-            logger.debug("OK save_price")
-            return True
-        except Exception as e:
-            logger.error("Could not save price")
-            logger.error(self.as_dict)
-            logger.error(e)
-            return []
+        """ [DEPRECATED] `price` table saver method. 
+        """
+        # try:
+        #     for elem in self.loc_generator():
+        #         self.session.execute(
+        #             """
+        #             INSERT INTO price(
+        #                 product_uuid, time, gtin, store_uuid, lat, lng, price, price_original, promo, url, currency 
+        #             )
+        #             VALUES(
+        #                 %(product_uuid)s, %(time)s, %(gtin)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+        #             )
+        #             """,
+        #             elem
+        #         )
+        #     logger.debug("OK save_price")
+        #     return True
+        # except Exception as e:
+        #     # logger.error("Could not save price")
+        #     # logger.error(self.as_dict)
+        #     # logger.error(e)
+        #     return []
+        warnings.warn("This table (`price`) has been deprecated from the C* data model!")
+        return []
 
     def save_price_by_product_date(self):
+        """ `price_by_product_date` table save method
+        """
         try:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_date(
-                        product_uuid, date, time, store_uuid, price, price_original, promo, currency, url
+                        product_uuid, date, time, store_uuid, source, price, price_original, promo, currency, url
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
             logger.debug("OK save_price_by_product_date")
             return True
         except Exception as e:
-            logger.error("Could not save price_by_product_date")
-            logger.error(self.as_dict)
+            # logger.debug("Could not save price_by_product_date")
+            # logger.error(self.as_dict)
             logger.error(e)
             return []
 
     def save_price_by_date(self):
-        try:
-            for elem in self.loc_generator():
-                self.session.execute(
-                    """
-                    INSERT INTO price_by_date(
-                        date, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
-                    )
-                    VALUES(
-                        %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                    )
-                    """,
-                    elem
-                )
-            logger.debug("OK save_price_by_date")
-            return True
-        except Exception as e:
-            logger.error("Could not save price_by_date")
-            logger.error(self.as_dict)
-            logger.error(e)
-            return []
+        """ [DEPRECATED] `price_by_date_parted` table save method
+        """
+        # try:
+        #     for elem in self.loc_generator():
+        #         self.session.execute(
+        #             """
+        #             INSERT INTO price_by_date_parted(
+        #                 date, part, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
+        #             )
+        #             VALUES(
+        #                 %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+        #             )
+        #             """,
+        #             elem
+        #         )
+        #     logger.debug("OK save_price_by_date_parted")
+        #     return True
+        # except Exception as e:
+        #     logger.error("Could not save price_by_date_parted")
+        #     # logger.error(self.as_dict)
+        #     logger.error(e)
+        #     return []
+        warnings.warn("This table (`price_by_date_parted`) has been deprecated from the C* data model!")
+        return []
 
     def save_price_by_product_store(self):
+        """ `price_by_product_store` table save method
+        """
         #try:
         if True:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO price_by_product_store(
-                        product_uuid, date, store_uuid, time, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, store_uuid, time, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(time)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
@@ -319,122 +357,132 @@ class Price(object):
             return True
         if False:
         #except Exception as e:
-            logger.error("Could not save price_by_product_store")
-            logger.error(self.as_dict)
-            logger.error(e)
+            # logger.error("Could not save price_by_product_store")
+            # logger.error(self.as_dict)
+            # logger.error(e)
             return []
-
 
     def save_price_by_geohash(self):
-        """ Save price by each goehash
-            Resolution from 4 to 12
+        """ [DEPRECATED] Saves price by each geohash with a resolution from 4 to 12
+            at the `price_by_geohash` table.
         """
-        for elem in self.loc_generator():
-            # Get the geohash of the coordinates
-            ghash = geohash.encode(float(elem['lat']),float(elem['lng']))
-            geo = [
-                ghash,
-                ghash[:-1],
-                ghash[:-2],
-                ghash[:-3],
-                ghash[:-4],
-                ghash[:-5],
-                ghash[:-6],
-                ghash[:-7],
-                ghash[:-8]
-            ]
-            # Loop geohashes to save
-            for gh in geo:
-                # Get the geohash
-                elem['geohash'] = gh
-                self.session.execute(
-                    """
-                    INSERT INTO price_by_geohash(
-                        product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
-                    )
-                    VALUES(
-                        %(product_uuid)s, %(geohash)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
-                        %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                    )
-                    """,
-                    elem
-                )
-        logger.debug("OK save_price_by_geohash")
-        return True
+        # for elem in self.loc_generator():
+        #     # Get the geohash of the coordinates
+        #     ghash = geohash.encode(float(elem['lat']), float(elem['lng']))
+        #     geo = [
+        #         ghash,
+        #         ghash[:-1],
+        #         ghash[:-2],
+        #         ghash[:-3],
+        #         ghash[:-4],
+        #         ghash[:-5],
+        #         ghash[:-6],
+        #         ghash[:-7],
+        #         ghash[:-8]
+        #     ]
+        #     # Loop geohashes to save
+        #     for gh in geo:
+        #         # Get the geohash
+        #         elem['geohash'] = gh
+        #         self.session.execute(
+        #             """
+        #             INSERT INTO price_by_geohash(
+        #                 product_uuid, geohash, time, source, store_uuid, lat, lng, price, price_original, promo, url, currency
+        #             )
+        #             VALUES(
+        #                 %(product_uuid)s, %(geohash)s, %(time)s, %(source)s, %(store_uuid)s, %(lat)s, 
+        #                 %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+        #             )
+        #             """,
+        #             elem
+        #         )
+        # logger.debug("OK save_price_by_geohash")
+        # return True
+        warnings.warn("This table (`price_by_geohash`) has been deprecated from the C* data model!")
+        return False
+
 
     def save_price_by_source(self):
-        try:
-            for elem in self.loc_generator():
-                self.session.execute(
-                    """
-                    INSERT INTO price_by_source (
-                         source, date, time, product_uuid, store_uuid, lat, lng, price, price_original, promo, url, currency 
-                    )
-                    VALUES(
-                        %(source)s, %(date)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
-                    )
-                    """,
-                    elem
-                )
-            logger.debug("OK save_price_by_source")
-            return True
-        except Exception as e:
-            logger.error("Could not save price_by_source")
-            logger.error(self.as_dict)
-            logger.error(e)
-            return []
+        """ [DEPRECATED] `price_by_source_parted` table saver method
+        """
+        # try:
+        #     for elem in self.loc_generator():
+        #         self.session.execute(
+        #             """
+        #             INSERT INTO price_by_source_parted (
+        #                  source, date, part, time, product_uuid, store_uuid, price, price_original, promo, url, currency 
+        #             )
+        #             VALUES(
+        #                 %(source)s, %(date)s, %(part)s, %(time)s, %(product_uuid)s, %(store_uuid)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+        #             )
+        #             """,
+        #             elem
+        #         )
+        #     logger.debug("OK save_price_by_source_parted")
+        #     return True
+        # except Exception as e:
+        #     logger.error("Could not save price_by_source_parted")
+        #     # logger.error(self.as_dict)
+        #     logger.error(e)
+        #     return []
+        warnings.warn("This table (`price_by_source_parted`) has been deprecated from the C* data model!")
+        return []
 
     def save_price_by_store(self):
+        """ `price_by_store` table saver method
+        """
         try:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO price_by_store (
-                        store_uuid, date, time, product_uuid, lat, lng, price, price_original, promo, url, currency 
+                        store_uuid, date, time, product_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
             logger.debug("OK save_price_by_store")
             return True
         except Exception as e:
-            logger.error("Could not save price_by_source")
-            logger.error(self.as_dict)
+            # logger.error("Could not save price_by_source")
+            # logger.error(self.as_dict)
             logger.error(e)
             return []
 
     def save_promo(self):
-        """ Save only if the item has a promo
+        """ Save only if the item has a promo at `promo` table
         """
+        # Valida Promo
         if not self.promo or self.promo == None or self.promo == '':
             return True
-
         try:
             for elem in self.loc_generator():
                 self.session.execute(
                     """
                     INSERT INTO promo (
-                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s,%(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
             logger.debug("OK save_promo")
             return True
         except Exception as e:
-            logger.error("Could not save promo")
-            logger.error(self.as_dict)
+            logger.debug("Could not save promo")
+            # logger.error(self.as_dict)
             logger.error(e)
             return []
 
     def save_promo_by_store(self):
-        """ Save only if the item has a promo
+        """ Save only if the item has a promo at `promo_by_store` table
         """
         if not self.promo or self.promo == None or self.promo == '':
             return True
@@ -444,19 +492,20 @@ class Price(object):
                 self.session.execute(
                     """
                     INSERT INTO promo_by_store (
-                        product_uuid, date, time, store_uuid, lat, lng, price, price_original, promo, url, currency 
+                        product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency 
                     )
                     VALUES(
-                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
                     )
+                    USING TTL %(insert_ttl)s
                     """,
                     elem
                 )
             logger.debug("OK save_promo_by_store")
             return True
         except Exception as e:
-            logger.error("Could not save promo_by_store")
-            logger.error(self.as_dict)
+            # logger.error("Could not save promo_by_store")
+            # logger.error(self.as_dict)
             logger.error(e)
             return []
     
@@ -470,25 +519,95 @@ class Price(object):
                 Product aggregated values
         """    
         try:
+            if not hasattr(elem, 'insert_ttl'):
+                elem['insert_ttl'] = CASSANDRA_TTL
             g._db.execute(
                 """
                 INSERT INTO stats_by_product (
-                    product_uuid, date, avg_price, datapoints,
+                    product_uuid, date, avg_price, source, datapoints,
                     max_price, min_price, mode_price, std_price
                 )
                 VALUES(
-                    %(product_uuid)s, %(date)s, %(avg_price)s,
+                    %(product_uuid)s, %(date)s, %(avg_price)s, %(source)s,
                     %(datapoints)s, %(max_price)s, %(min_price)s,
                     %(mode_price)s, %(std_price)s
                 )
+                USING TTL %(insert_ttl)s
                 """,
                 elem
             )
             logger.debug("OK save_stats_by_product")
             return True
         except Exception as e:
-            logger.error("Could not save save_stats_by_product")
-            logger.error(elem)
+            # logger.error("Could not save save_stats_by_product")
+            # logger.error(elem)
+            logger.error(e)
+            return False
+
+    # Save price in every price table
+    def save_all_batch(self):
+        ''' Save price in all tables
+            - execute()
+            - execue_async() en caso de que se haga cuello de botella
+        '''
+        self.save_batch()
+        return True
+
+    def save_batch(self):
+        """ Store in batch for following tables:
+            `price_by_product_date`
+            `price_by_product_store`
+            `price_by_store`
+            `promo`
+            `promo_by_store`
+        """ 
+        try:
+            elem = list(self.loc_generator())[0]
+            self.session.execute(
+                """
+                BEGIN BATCH
+
+                INSERT INTO price_by_product_date(
+                        product_uuid, date, time, store_uuid, source, price, price_original, promo, currency, url
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(price)s, %(price_original)s, %(promo)s, %(currency)s, %(url)s
+                    ) USING TTL %(insert_ttl)s ;
+
+                INSERT INTO price_by_product_store(
+                        product_uuid, date, store_uuid, source,  time, lat, lng, price, price_original, promo, url, currency
+                    )
+                    VALUES(
+                        %(product_uuid)s, %(date)s, %(store_uuid)s, %(source)s, %(time)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                    ) USING TTL %(insert_ttl)s;
+
+                INSERT INTO price_by_store (
+                    store_uuid, date, time, product_uuid, source, lat, lng, price, price_original, promo, url, currency
+                )
+                VALUES(
+                    %(store_uuid)s, %(date)s, %(time)s, %(product_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                ) USING TTL %(insert_ttl)s;
+
+                INSERT INTO promo (
+                    product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency
+                )
+                VALUES(
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                ) USING TTL %(insert_ttl)s;
+
+                INSERT INTO promo_by_store (
+                    product_uuid, date, time, store_uuid, source, lat, lng, price, price_original, promo, url, currency
+                )
+                VALUES(
+                    %(product_uuid)s, %(date)s, %(time)s, %(store_uuid)s, %(source)s, %(lat)s, %(lng)s, %(price)s, %(price_original)s, %(promo)s, %(url)s, %(currency)s
+                ) USING TTL %(insert_ttl)s;
+
+                APPLY BATCH;
+                """,
+                elem
+            )
+            return True
+        except Exception as e:
             logger.error(e)
             return False
 
@@ -504,20 +623,75 @@ class Price(object):
                     "date" : ""
                 }]
         """
+        logger.info("Querying prices in C*")
         # Order dates
-        dates = date.sort()
-        
+        #dates.sort()
+        result = []
         # Nested loops
         for d in dates:
-            for s in stores:
-                for p in prods:
+            for p in products:
+                try:
                     rows = g._db.query("""
-                        select * from 
-                        price_by_product_store 
-                        where product_uuid=%s 
-                        and store_uuid=%s
-                        and date=%s
-                    """, [p,s,d])
-                    result.append(rows)
-                    
+                        SELECT source as retailer,
+                        product_uuid, price_original,
+                        store_uuid, price, time, date, promo
+                        FROM price_by_product_date
+                        WHERE product_uuid=%s 
+                        AND date=%s
+                    """, (UUID(p), d) )
+                    if rows:
+                        for _tr in rows: 
+                            if str(_tr.store_uuid) in stores:
+                                result.append(_tr)
+                except Exception as e:
+                    logger.error(e)
+                    continue
+        logger.info("Returning C* prices")
         return result     
+
+    @staticmethod
+    def get_by_store(st_uuid, hours):
+        """ Get prices from a given store
+            from the past X hours.
+            
+            Params:
+            -----
+            st_uuid : str
+                Store UUID
+            hours : int
+                Past hours to consult
+            
+            Returns:
+            -----
+            list:
+                Unique prices
+        """ 
+        now = datetime.datetime.utcnow()
+        then = _date = now - datetime.timedelta(hours=abs(hours))
+        logger.debug("Getting prices from {}".format(then))
+        _prices = []
+        # Query all prices
+        while _date.date() <= now.date():
+            rows = g._db.query("""SELECT product_uuid,
+                        store_uuid, price, time,
+                        price_original, promo
+                    FROM price_by_store
+                    WHERE store_uuid = %s
+                    AND date = %s """,
+                    (UUID(st_uuid), int(_date.strftime("%Y%m%d")) )
+            )
+            if rows:
+                _prices += rows
+            # add to date 
+            _date += datetime.timedelta(days=1)
+        if not _prices:
+            logger.warning("Not prices found!")
+            return []
+        # Remove duplicated prices
+        _df = pd.DataFrame(_prices)\
+                .sort_values('time', ascending=False)\
+                .drop_duplicates(['product_uuid', 'store_uuid'])
+        # Cast UUIDs
+        _df['product_uuid'] = _df.product_uuid.astype(str)
+        _df['store_uuid'] = _df.store_uuid.astype(str)
+        return _df.to_dict(orient='records')

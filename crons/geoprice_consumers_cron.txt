@@ -1,0 +1,8 @@
+# m h  dom mon dow   command
+23 */3 * * * /home/byprice/geoprice/stop_consumer.sh
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_1.log 2>&1
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_2.log 2>&1
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_3.log 2>&1
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_4.log 2>&1
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_5.log 2>&1
+24 */3 * * * /home/byprice/geoprice/bin/run_consumer.sh > /home/byprice/geoprice/logs/consumer_6.log 2>&1

@@ -11,7 +11,7 @@ import pandas as pd
 _testing_item = '5630f780-1952-465b-b38c-9f02f2b0e24d'
 _test_ret = 'walmart'
 _test_store = '16faeaf4-7ace-11e7-9b9f-0242ac110003'
-_test_start_date = '2018-05-10'
+_test_start_date = '2018-07-27' #'2018-05-10'
 _test_end_date = '2018-05-11'
 _test_time = '2018-05-11 10:00:00'
 
@@ -27,7 +27,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         # Define test database
         if config.TESTING:
             with app.app.app_context():
-                app.initdb()
+                app.db.initdb()
 
     @classmethod
     def tearDownClass(cls):
@@ -35,7 +35,7 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         """
         if config.TESTING:
             with app.app.app_context():
-                app.dropdb()
+                app.db.dropdb()
 
     def setUp(self):
         """ Generating Flask App Client 
@@ -457,6 +457,34 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         except:
             pass
         self.assertEqual(_r.status_code, 200)
+    
+    #@unittest.skip('Tested already')
+    def test_21_stats_stats(self):
+        """ Test stats (avg, min, max)
+        """ 
+        print(" Test stats (avg, min, max)")
+        _r = self.app.get("/stats/stats/decd74df-6a9d-4614-a0e3-e02fe13d1542")
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+
+    #@unittest.skip('Tested already')
+    def test_22_stats_exists(self):
+        """ Test stats exists
+        """ 
+        print("Test stats exists")
+        _r = self.app.get("/stats/exists/decd74df-6a9d-4614-a0e3-e02fe13d1542")
+        print('Status code', _r.status_code)
+        try:
+            _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
 
     ##
     # ----------- ALARM TESTS ------------
@@ -492,6 +520,22 @@ class GeoPriceServiceTestCase(unittest.TestCase):
         print('Status code', _r.status_code)
         try:
             _jr = _r.data
+            print(_jr)
+        except:
+            pass
+        self.assertEqual(_r.status_code, 200)
+    
+        
+    @unittest.skip('Tested already')
+    def test_22_promos_by_day(self):
+        """ Test Promos By Day
+        """ 
+        print("Test Promos By Day")
+        _r = self.app.get("/promos/daily?day={}&num_promos=5"\
+            .format(_test_start_date))
+        print('Status code', _r.status_code)
+        try:
+            _jr = json.loads(_r.data.decode('utf-8'))
             print(_jr)
         except:
             pass

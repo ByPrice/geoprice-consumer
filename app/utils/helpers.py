@@ -6,8 +6,9 @@ from config import *
 from app import logger
 import calendar
 
-geo_stores_url = SRV_GEOLOCATION+'/store/retailer?key=%s'
-geo_rets_url = SRV_GEOLOCATION+'/retailer/all'
+geo_stores_url = SRV_PROTOCOL+'://'+SRV_GEOLOCATION+'/store/retailer?key=%s'
+geo_rets_url = SRV_PROTOCOL+'://'+SRV_GEOLOCATION+'/retailer/all'
+
 
 
 def tuplize(_list, is_uuid=False):
@@ -71,7 +72,7 @@ def fetch_store(rkey):
     """
     try:
         logger.debug('Querying %s' %(geo_stores_url % rkey))
-        xr = requests.get(geo_stores_url % rkey).json()
+        xr = requests.get((geo_stores_url % rkey) +'&active=all').json()
         for i, x in enumerate(xr):
             xr[i].update({'source': rkey})
         return xr

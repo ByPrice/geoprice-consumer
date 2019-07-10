@@ -8,10 +8,11 @@ import config
 from config import *
 from config import BASEDIR
 import datetime
-import app.utils.applogger as applogger
+from ByHelpers import applogger
 import app.utils.errors as errors
 import app.utils.db as db
-from app.utils.rabbit_engine import RabbitEngine
+if APP_MODE == 'CONSUMER':
+    from ByHelpers.rabbit_engine import RabbitEngine
 from redis import Redis
 
 # Flask app declaration
@@ -19,18 +20,6 @@ app = Flask(__name__)
 CORS(app)
 applogger.create_logger()
 logger = applogger.get_logger()
-
-# Flask controllers imports
-from app.controllers import product, stats, alarm, dump
-
-# Flask blueprint registration
-app.register_blueprint(product.mod, url_prefix='/product')
-app.register_blueprint(stats.mod, url_prefix='/stats')
-app.register_blueprint(alarm.mod, url_prefix='/alarm')
-app.register_blueprint(dump.mod, url_prefix='/dump')
-#app.register_blueprint(mapa.mod, url_prefix='/mapa')
-#app.register_blueprint(historia.mod, url_prefix='/historia')
-#app.register_blueprint(check.mod, url_prefix='/check')
 
 
 def build_context(
@@ -44,8 +33,9 @@ def build_context(
     get_db()
     get_redis()
     get_sdks(services)
-    get_consumer(queue=queue_consumer)
-    get_producer(queue=queue_producer)
+    if APP_MODE == 'CONSUMER':
+        get_consumer(queue=queue_consumer)
+        get_producer(queue=queue_producer)
 
 
 def get_db():
@@ -65,6 +55,7 @@ def get_redis():
     try:
         if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis':
             g._redis = Redis(
+                db=config.REDIS_DB,
                 host=config.REDIS_HOST,
                 port=config.REDIS_PORT,
                 password=config.REDIS_PASSWORD or None
@@ -95,6 +86,7 @@ def get_sdks(modules):
                 uri=config.SRV_CATALOGUE,
                 protocol=config.SRV_PROTOCOL
             )
+
 
 def get_consumer(queue=None):
     """ App method to connect to rabbit consumer
@@ -134,7 +126,7 @@ def before_request():
     """ Before request method
     """
     # Connect to database
-    build_context()
+    build_context(services=['geolocation', 'catalogue'])
     
 
 @app.cli.command('initdb')
@@ -163,6 +155,36 @@ def dump_cmd(name):
         return False
     from app.scripts import start_script
     start_script(name)
+
+@app.cli.command('stats_retailer')
+@click.option('--date', default='', help="IsoFormat Date to run stats --date=<date>")
+@click.option('--rets', default='', help="Comma separated retailer keys --rets=<rets>")
+def stats_by_ret_cmd(date, rets):
+    """ Execute Stats of given retailers and date
+    """
+    if not rets:
+        logger.error("Must define Retailers")
+        return False
+    if not date:
+        logger.error("Must define date")
+        return False
+    from app.scripts.create_stats import retailers_start
+    retailers_start(date, rets)
+
+@app.cli.command('backups_retailer')
+@click.option('--date', default='', help="IsoFormat Date to run stats --date=<date>")
+@click.option('--rets', default='', help="Comma separated retailer keys --rets=<rets>")
+def backups_by_ret_cmd(date, rets):
+    """ Execute Backups of given retailers and date
+    """
+    if not rets:
+        logger.error("Must define Retailers")
+        return False
+    if not date:
+        logger.error("Must define date")
+        return False
+    from app.scripts.create_backups import retailers_start
+    retailers_start(date, rets)
 
 # Functional Endpoints
 @app.route('/')
@@ -202,6 +224,36 @@ def handle_api_error(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+
+
+# Flask controllers imports
+
+#from app.controllers import product, stats, alarm, dump, promos, geo_alert
+from app.controllers import geo_mapa, task, history_product, geo_alert, geo_check, geo_dump,\
+                        geo_historia, history_alarm, stats
+
+# Flask blueprint registration+
+# Register Mapa module
+app.register_blueprint(geo_mapa.mod, url_prefix='/geo/mapa')
+# Register Task module
+app.register_blueprint(task.mod, url_prefix='/task')
+# Register Stats module
+app.register_blueprint(stats.mod, url_prefix='/stats')
+# Register History Alarm module
+app.register_blueprint(history_alarm.mod, url_prefix='/history/alarm')
+# Register History Product module
+app.register_blueprint(history_product.mod, url_prefix='/history/product')
+# Register Geo Alert module
+app.register_blueprint(geo_alert.mod, url_prefix='/geo/alert')
+# Register Geo Check module
+app.register_blueprint(geo_check.mod, url_prefix='/geo/check')
+# Register Geo Dump module
+app.register_blueprint(geo_dump.mod, url_prefix='/geo/dump')
+# Register Geo Historia
+app.register_blueprint(geo_historia.mod, url_prefix='/geo/historia')
+#app.register_blueprint(promos.mod, url_prefix='/promos')
+
+
 
 if __name__ == '__main__':
     app.run(

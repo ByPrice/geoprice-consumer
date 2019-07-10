@@ -9,7 +9,7 @@ RUN apt-get update && apt-get upgrade -y
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV FLASK_APP=app/__init__.py
-ENV APP_DIR='/'
+ENV APP_NAME="geoprice"
 
 # Python install and packages
 RUN apt-get install -y \
