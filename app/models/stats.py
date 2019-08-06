@@ -68,6 +68,8 @@ class Stats(object):
         _iuuids = [f['item_uuid'] for f in filters
                    if 'item_uuid' in f]
         _iuuids += [f['item'] for f in filters if 'item' in f]
+        # remove duplicates
+        _iuuids = list(set(_iuuids))
         logger.debug(_iuuids)
         _puuids = [f['product_uuid'] for f in filters
                    if 'product_uuid' in f]
@@ -75,8 +77,9 @@ class Stats(object):
                     if 'product' in f]
         logger.debug(_puuids)
         # Get by item uuid
-        for _iu in _iuuids:
-            prods += Item.get_by_item(_iu, _cols)
+        prods = Item.get_by_items_and_retailers(_iuuids, rets)
+        '''for _iu in _iuuids:
+            prods += Item.get_by_item(_iu, _cols)'''
         # Get by product_uuid
         if len(_puuids) > 0:
             prods += Item.get_by_product(_puuids, _cols)

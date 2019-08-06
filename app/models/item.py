@@ -96,6 +96,52 @@ class Item(object):
         return products
 
     @staticmethod
+    def get_by_items_and_retailers(items, retailers):
+        """ Get list of products given an 
+            item_uuid, with specified table columns.
+
+            Params:
+            -----
+            item_uuid : str
+                Item UUID
+            cols : list
+                List of requested table columns
+
+            Returns: 
+            -----
+            products : list
+                List requested of products
+        """
+
+        chunk_items = Item.divide_chunks(items, 2)
+
+        products = []
+
+        for items in chunk_items:
+            print('chunk ')
+            url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
+                '/product/by/items_and_retailers?items={items}&retailers={retailers}'\
+                .format(items=','.join(items),
+                        retailers=','.join(retailers))
+            logger.debug(url)
+            try:
+                r = requests.get(url)
+                logger.debug(r.status_code)
+                # In case of error
+                if r.status_code != 200:
+                    raise Exception('Issues requesting Catalogue')
+                products += r.json()['products']
+                print('prods')
+                print(products)
+            except Exception as e:
+                logger.error(e)
+                return []
+        
+        print('finished')
+        print(products)
+        return products
+
+    @staticmethod
     def get_item_details(filters):
         """ Get item details from catalogue service
 
@@ -158,3 +204,9 @@ class Item(object):
         logger.info("Found {} products from Catalogue"
                     .format(len(items)))
         return items
+
+    def divide_chunks(l, n): 
+      
+        # looping till length l 
+        for i in range(0, len(l), n):  
+            yield l[i:i + n] 
