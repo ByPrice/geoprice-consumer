@@ -160,10 +160,38 @@ class Stats(object):
                 FROM stats_by_product
                 WHERE product_uuid = %s
                 AND date = %s"""
+
+
+        cass_query_text = """SELECT product_uuid, avg_price,
+                min_price, max_price,
+                mode_price, date
+                FROM stats_by_product
+                WHERE product_uuid in ({})
+                AND date in {}"""
+
+
         qs = []
+
+        try:
+            #print('QUERYING CASSANDRA-------------------------------------------------------------------------------------')
+            #print(', '.join(puuids))
+            #print('-------------------------------------------------------------------------------------')
+            #print(str(_days))
+            #print('-------------------------------------------------------------------------------------')
+            print(cass_query_text.format(', '.join(puuids), str(_days)))
+            q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
+                            timeout=100)
+            if q:
+                qs += list(q)
+        except Exception as e:
+            logger.error("Cassandra Connection error: " + str(e))
+
         # Iterate for each product-date combination
-        for _p, _d in itertools.product(puuids, _days):
+        '''for _p, _d in itertools.product(puuids, _days):
             try:
+                print('QUERYING CASSANDRA-------------------------------------------------------------------------------------')
+                print('-------------------------------------------------------------------------------------')
+                print(cass_query_text.format(UUID(_p), _d))
                 q = g._db.query(cass_query,
                                 (UUID(_p), _d),
                                 timeout=100)
@@ -172,7 +200,7 @@ class Stats(object):
                 qs += list(q)
             except Exception as e:
                 logger.error("Cassandra Connection error: " + str(e))
-                continue
+                continue'''
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation

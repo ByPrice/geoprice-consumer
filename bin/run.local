@@ -9,6 +9,10 @@
 # Evaluate the mode of execution and the 
 if [[ $APP_MODE == "SERVICE" ]]
     then
+    # Run celery
+    echo "Starting Celery..."
+    env/bin/celery worker -A app.celery_app -c 3 -n $APP_NAME"_"$RANDOM > logs/celery.log 2>&1 &
+    # env/bin/celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  & 
     # Run gunicorm
     echo "Starting $APP_NAME in SERVICE mode"
     env/bin/gunicorn --bind $APP_HOST:$APP_PORT -t 200 wsgi:app
