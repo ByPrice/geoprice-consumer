@@ -220,7 +220,7 @@ class Stats(object):
                 WHERE product_uuid in ({})
                 AND date in {}"""
 
-        logger.debug(cass_query_text)
+        logger.debug(cass_query_text.format(', '.join(puuids), str(dates)))
 
         qs = []
 
