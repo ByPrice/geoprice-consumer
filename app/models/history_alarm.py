@@ -114,13 +114,15 @@ class Alarm(object):
                 store_uuid, time
                 FROM price_by_product_date
                 WHERE product_uuid in ({})
-                AND date in {}"""
+                AND date in {}""".format(', '.join(puuids), str(_days))
+
+        logger.debug(cass_query_text)
 
         qs = []
         
         try:
-            q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
-                            timeout=100)
+            q = g._db.query(cass_query_text,
+                            timeout=2000)
             if q:
                 qs += list(q)
         except Exception as e:
