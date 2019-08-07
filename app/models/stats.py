@@ -220,12 +220,12 @@ class Stats(object):
                 WHERE product_uuid in ({})
                 AND date in {}"""
 
-        logger.debug(cass_query_text.format(', '.join(puuids), str(dates)))
+        logger.debug(cass_query_text.format("', '".join(puuids) + "'", str(_days)))
 
         qs = []
 
         try:
-            q = g._db.query(cass_query_text.format(', '.join(puuids), str(dates)),
+            q = g._db.query(cass_query_text.format("', '".join(puuids) + "'", str(_days)),
                             timeout=100)
             if q:
                 qs += list(q)
