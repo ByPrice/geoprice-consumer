@@ -223,7 +223,7 @@ class Stats(object):
         qs = []
 
         try:
-            q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
+            q = g._db.query(cass_query_text.format(', '.join(puuids), str(dates)),
                             timeout=100)
             if q:
                 qs += list(q)
