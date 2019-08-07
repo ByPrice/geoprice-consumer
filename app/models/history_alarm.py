@@ -109,25 +109,23 @@ class Alarm(object):
         puuids = [p['product_uuid'] for p in prods]
         # Generate dates
         _days = tupleize_date(_date.date(), period)
-        cass_query = """SELECT 
-                product_uuid, price,
+
+        cass_query_text = """SELECT product_uuid, price,
                 store_uuid, time
                 FROM price_by_product_date
-                WHERE product_uuid = %s
-                AND date = %s"""
+                WHERE product_uuid in ({})
+                AND date in {}"""
+
         qs = []
-        # Iterate for each product-date combination
-        for _p, _d in itertools.product(puuids, _days):
-            try:
-                q = g._db.query(cass_query, 
-                    (UUID(_p), _d),
-                    timeout=20)
-                if not q:
-                    continue
+        
+        try:
+            q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
+                            timeout=100)
+            if q:
                 qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue
+        except Exception as e:
+            logger.error("Cassandra Connection error: " + str(e))
+
         logger.info("Fetched {} prices".format(len(qs)))
         # logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation

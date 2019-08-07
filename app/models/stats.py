@@ -85,10 +85,6 @@ class Stats(object):
             prods += Item.get_by_product(_puuids, _cols)
         # Filter products from requested retailers
         prods = pd.DataFrame(prods)
-        # print("RETS")
-        # print(rets)
-        # print("PRODS")
-        # print(prods)
         if prods.empty:
             return []
         return prods[prods['source'].isin(rets)]\
@@ -157,13 +153,6 @@ class Stats(object):
         logger.info("Querying Stats by product..")
         logger.debug(puuids)
         logger.debug(_days)
-        cass_query = """SELECT product_uuid, avg_price,
-                min_price, max_price,
-                mode_price, date
-                FROM stats_by_product
-                WHERE product_uuid = %s
-                AND date = %s"""
-
 
         cass_query_text = """SELECT product_uuid, avg_price,
                 min_price, max_price,
@@ -176,12 +165,6 @@ class Stats(object):
         qs = []
 
         try:
-            #print('QUERYING CASSANDRA-------------------------------------------------------------------------------------')
-            #print(', '.join(puuids))
-            #print('-------------------------------------------------------------------------------------')
-            #print(str(_days))
-            #print('-------------------------------------------------------------------------------------')
-            #print(cass_query_text.format(', '.join(puuids), str(_days)))
             q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
                             timeout=100)
             if q:
@@ -189,21 +172,6 @@ class Stats(object):
         except Exception as e:
             logger.error("Cassandra Connection error: " + str(e))
 
-        # Iterate for each product-date combination
-        '''for _p, _d in itertools.product(puuids, _days):
-            try:
-                print('QUERYING CASSANDRA-------------------------------------------------------------------------------------')
-                print('-------------------------------------------------------------------------------------')
-                print(cass_query_text.format(UUID(_p), _d))
-                q = g._db.query(cass_query,
-                                (UUID(_p), _d),
-                                timeout=100)
-                if not q:
-                    continue
-                qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue'''
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation
@@ -244,12 +212,6 @@ class Stats(object):
         date_start = int(dates[0].date().__str__().replace('-', ''))
         if date_start not in _days:
             _days = _days + (date_start,)
-        cass_query = """SELECT product_uuid, avg_price,
-                min_price, max_price,
-                mode_price, date, source as retailer
-                FROM stats_by_product
-                WHERE product_uuid = %s
-                AND date = %s"""
 
         cass_query_text = """SELECT product_uuid, avg_price,
                 min_price, max_price,
@@ -261,12 +223,6 @@ class Stats(object):
         qs = []
 
         try:
-            #print('QUERYING CASSANDRA-------------------------------------------------------------------------------------')
-            #print(', '.join(puuids))
-            #print('-------------------------------------------------------------------------------------')
-            #print(str(_days))
-            #print('-------------------------------------------------------------------------------------')
-            #print(cass_query_text.format(', '.join(puuids), str(_days)))
             q = g._db.query(cass_query_text.format(', '.join(puuids), str(_days)),
                             timeout=100)
             if q:
@@ -274,18 +230,6 @@ class Stats(object):
         except Exception as e:
             logger.error("Cassandra Connection error: " + str(e))
 
-        # Iterate for each product-date combination
-        '''for _p, _d in itertools.product(puuids, _days):
-            try:
-                q = g._db.query(cass_query,
-                                (UUID(_p), _d),
-                                timeout=100)
-                if not q:
-                    continue
-                qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
-                continue'''
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
         # Empty validation

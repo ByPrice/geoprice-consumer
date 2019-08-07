@@ -113,12 +113,14 @@ class Item(object):
                 List requested of products
         """
 
-        chunk_items = Item.divide_chunks(items, 2)
+        chunk_size = 100
+
+        chunk_items = Item.divide_chunks(items, chunk_size)
 
         products = []
 
         for items in chunk_items:
-            print('chunk ')
+            logger.debug('chunk ')
             url = SRV_PROTOCOL + '://' + SRV_CATALOGUE + \
                 '/product/by/items_and_retailers?items={items}&retailers={retailers}'\
                 .format(items=','.join(items),
@@ -131,14 +133,14 @@ class Item(object):
                 if r.status_code != 200:
                     raise Exception('Issues requesting Catalogue')
                 products += r.json()['products']
-                print('prods')
-                print(products)
+                logger.debug('prods')
+                logger.debug(products)
             except Exception as e:
                 logger.error(e)
                 return []
         
-        print('finished')
-        print(products)
+        logger.debug('Finished get_by_items_and_retailers')
+        logger.debug(products)
         return products
 
     @staticmethod
