@@ -312,6 +312,8 @@ class Stats(object):
                                 'max_price': 'max', 'min_price': 'min',
                                 'mode_price': 'mode'}, inplace=True)
         task.progress = 35
+        logger.debug('got prices from today')
+        logger.debug(len(df_curr))
         df_prev = Stats\
             .get_cassandra_by_ret(filt_items,
                                   rets,
@@ -320,6 +322,8 @@ class Stats(object):
             .sort_values(by=['date'], ascending=False)\
             .drop_duplicates(subset=['product_uuid'], keep='first')  # yesterday
         task.progress = 50
+        logger.debug('got prices from yesterday')
+        logger.debug(len(df_prev))
         # If queried lists empty
         if df_curr.empty:
             # Return empty set
@@ -354,6 +358,8 @@ class Stats(object):
         df = pd.merge(df_curr, df_prev,
                       on='product_uuid', how='left')
         df.fillna('-', axis=0, inplace=True)
+        logger.debug('merged curr and prev')
+        logger.debug(len(df))
         # TODO:
         # Add rows with unmatched products!
         non_matched = df[df['item_uuid'].isnull() |
@@ -363,6 +369,8 @@ class Stats(object):
                 (df['item_uuid'] != '')]
         formatted = []
         task.progress = 65
+        logger.debug('deleted null')
+        logger.debug(len(df))
         for i, prdf in df.groupby(by=['item_uuid']):
             _first = prdf[:1].reset_index()
             tmp = {
