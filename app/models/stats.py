@@ -210,7 +210,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        chunk_size = (500 / len(dates))
+        chunk_size = int(500 / len(dates))
         logger.debug('chunk size')
         logger.debug(chunk_size)
 
