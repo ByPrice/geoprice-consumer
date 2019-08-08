@@ -906,6 +906,8 @@ class Stats(object):
             .get_cassandra_by_ret(filt_items,
                                   rets, _dates)
         task.progress = 50
+        logger.debug('got prices from cass')
+        logger.debug(len(df))
         if df.empty:
             # logger.warning('No prices found!')
             # raise errors.TaskError("No prices found!")
@@ -917,6 +919,8 @@ class Stats(object):
         df = pd.merge(df, info_df,
                       on='product_uuid', how='left')
         task.progress = 70
+        logger.debug('merged df with info_df')
+        logger.debug(len(df))
         # TODO:
         # Add rows with unmatched products!
         non_matched = df[df['item_uuid'].isnull() |
@@ -924,6 +928,8 @@ class Stats(object):
         # Format only products with matched results
         df = df[~(df['item_uuid'].isnull()) &
                 (df['item_uuid'] != '')]
+        logger.debug('cleaned with item_uuid')
+        logger.debug(len(df))
         task.progress = 75
         # Perform aggregates
         ccat, counter, digs = [], 1, 1
