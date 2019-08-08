@@ -105,28 +105,37 @@ class Alarm(object):
             df : pandas.DataFrame
                 Product prices
         """
-        # Fetch prod uuids
-        puuids = [p['product_uuid'] for p in prods]
+
         # Generate dates
         _days = tupleize_date(_date.date(), period)
 
-        cass_query_text = """SELECT product_uuid, price,
+        chunk_size = 500 / len(_days)
+        logger.debug('chunk size')
+        logger.debug(chunk_size)
+
+        # Fetch prod uuids
+        puuids = [p['product_uuid'] for p in prods]
+        chunk_puuids = Alarm.divide_chunks(puuids, chunk_size)
+
+        cass_query = """SELECT product_uuid, price,
                 store_uuid, time
                 FROM price_by_product_date
                 WHERE product_uuid in ({})
-                AND date in {}""".format(', '.join(puuids), str(_days))
-
-        logger.debug(cass_query_text)
+                AND date in {}"""
 
         qs = []
-        
-        try:
-            q = g._db.query(cass_query_text,
-                            timeout=2000)
-            if q:
-                qs += list(q)
-        except Exception as e:
-            logger.error("Cassandra Connection error: " + str(e))
+
+        for puuids in chunk_puuids:
+            cass_query_text = cass_query.format(', '.join(puuids), str(_days))
+            logger.debug(cass_query_text)
+
+            try:
+                q = g._db.query(cass_query_text,
+                                timeout=2000)
+                if q:
+                    qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
 
         logger.info("Fetched {} prices".format(len(qs)))
         # logger.debug(qs[:1] if len(qs) > 1 else [])
@@ -242,4 +251,9 @@ class Alarm(object):
         return resp
 
 
+    def divide_chunks(l, n): 
+      
+        # looping till length l 
+        for i in range(0, len(l), n):  
+            yield l[i:i + n] 
 

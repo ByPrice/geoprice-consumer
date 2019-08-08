@@ -141,8 +141,14 @@ class Stats(object):
             df : pandas.DataFrame
                 Product aggregated prices
         """
+
+        chunk_size = 500 / len(dates)
+        logger.debug('chunk size')
+        logger.debug(chunk_size)
+
         # Fetch prod uuids
         puuids = [p['product_uuid'] for p in prods]
+        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         # Generate dates
         dates = sorted(dates)
         if len(dates) == 1:
@@ -154,24 +160,26 @@ class Stats(object):
         logger.debug(puuids)
         logger.debug(_days)
 
-        cass_query_text = """SELECT product_uuid, avg_price,
+        cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
                 mode_price, date
                 FROM stats_by_product
                 WHERE product_uuid in ({})
-                AND date in {}""".format(', '.join(puuids), str(_days))
-
-        logger.debug(cass_query_text)
+                AND date in {}"""
 
         qs = []
 
-        try:
-            q = g._db.query(cass_query_text,
-                            timeout=2000)
-            if q:
-                qs += list(q)
-        except Exception as e:
-            logger.error("Cassandra Connection error: " + str(e))
+        for puuids in chunk_puuids:
+            cass_query_text = cass_query.format(', '.join(puuids), str(_days))
+            logger.debug(cass_query_text)
+
+            try:
+                q = g._db.query(cass_query_text,
+                                timeout=2000)
+                if q:
+                    qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
 
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
@@ -201,8 +209,14 @@ class Stats(object):
             df : pandas.DataFrame
                 Product aggregated prices
         """
+
+        chunk_size = 500 / len(dates)
+        logger.debug('chunk size')
+        logger.debug(chunk_size)
+
         # Fetch prod uuids
         puuids = [p['product_uuid'] for p in prods]
+        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         # Generate dates
         dates = sorted(dates)
         if len(dates) == 1:
@@ -214,24 +228,26 @@ class Stats(object):
         if date_start not in _days:
             _days = _days + (date_start,)
 
-        cass_query_text = """SELECT product_uuid, avg_price,
+        cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
                 mode_price, date
                 FROM stats_by_product
                 WHERE product_uuid in ({})
-                AND date in {}""".format(', '.join(puuids), str(_days))
-
-        logger.debug(cass_query_text)
-
+                AND date in {}"""
+    
         qs = []
 
-        try:
-            q = g._db.query(cass_query_text,
-                            timeout=2000)
-            if q:
-                qs += list(q)
-        except Exception as e:
-            logger.error("Cassandra Connection error: " + str(e))
+        for puuids in chunk_puuids:
+            cass_query_text = cass_query.format(', '.join(puuids), str(_days))
+            logger.debug(cass_query_text)
+
+            try:
+                q = g._db.query(cass_query_text,
+                                timeout=2000)
+                if q:
+                    qs += list(q)
+            except Exception as e:
+                logger.error("Cassandra Connection error: " + str(e))
 
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
@@ -1201,3 +1217,10 @@ class Stats(object):
         }
 
         return {"data": result, "msg": "Task completed"}
+
+
+    def divide_chunks(l, n): 
+      
+        # looping till length l 
+        for i in range(0, len(l), n):  
+            yield l[i:i + n] 
