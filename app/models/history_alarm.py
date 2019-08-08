@@ -109,7 +109,7 @@ class Alarm(object):
         # Generate dates
         _days = tupleize_date(_date.date(), period)
 
-        chunk_size = int(200 / len(_days))
+        chunk_size = int(50 / len(_days))
         logger.debug('chunk size')
         logger.debug(chunk_size)
 
