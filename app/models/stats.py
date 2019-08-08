@@ -314,6 +314,7 @@ class Stats(object):
         task.progress = 35
         logger.debug('got prices from today')
         logger.debug(len(df_curr))
+        logger.debug(df_curr)
         df_prev = Stats\
             .get_cassandra_by_ret(filt_items,
                                   rets,
@@ -324,6 +325,7 @@ class Stats(object):
         task.progress = 50
         logger.debug('got prices from yesterday')
         logger.debug(len(df_prev))
+        logger.debug(df_prev)
         # If queried lists empty
         if df_curr.empty:
             # Return empty set
@@ -360,6 +362,7 @@ class Stats(object):
         df.fillna('-', axis=0, inplace=True)
         logger.debug('merged curr and prev')
         logger.debug(len(df))
+        logger.debug(df)
         # TODO:
         # Add rows with unmatched products!
         non_matched = df[df['item_uuid'].isnull() |
