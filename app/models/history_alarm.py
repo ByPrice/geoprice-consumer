@@ -131,7 +131,7 @@ class Alarm(object):
 
             try:
                 q = g._db.query(cass_query_text,
-                                timeout=2000)
+                                timeout=4000)
                 if q:
                     qs += list(q)
             except Exception as e:
