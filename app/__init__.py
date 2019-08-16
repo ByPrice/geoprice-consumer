@@ -128,7 +128,16 @@ def before_request():
     """
     # Connect to database
     build_context(services=['geolocation', 'catalogue'])
-    
+
+@app.teardown_appcontext
+def close_db(error):
+    ''' 
+        Close connection at the end of every request
+    '''
+    logger.debug("Teardown Method")
+    gdb = getattr(g, '_db', None)
+    if gdb is not None:
+        gdb.close()  
 
 @app.cli.command('initdb')
 def initdb_cmd():

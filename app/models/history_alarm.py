@@ -109,7 +109,7 @@ class Alarm(object):
         # Generate dates
         _days = tupleize_date(_date.date(), period)
 
-        chunk_size = int(50 / len(_days))
+        chunk_size = int(20 / len(_days))
         logger.debug('chunk size')
         logger.debug(chunk_size)
 
@@ -131,7 +131,7 @@ class Alarm(object):
 
             try:
                 q = g._db.query(cass_query_text,
-                                timeout=2000)
+                                timeout=4000)
                 if q:
                     qs += list(q)
             except Exception as e:
