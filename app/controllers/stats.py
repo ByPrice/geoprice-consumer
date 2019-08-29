@@ -86,6 +86,33 @@ def get_current():
     })
 
 
+@mod.route('/monitoring/retailer/current/submit', methods=['POST'])
+@asynchronize(Stats.get_today_by_retailer_task)
+def get_current():
+    """
+        Controller to get item avg prices by filters
+        {
+            "filters": [
+                {"item":"98440d28-64be-4994-8244-2b2aa57b0c1a"},
+                {"item":"56e67b35-d27e-4cac-9e91-533e0578b59c"},
+                {"item":"3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
+                {"item":"decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                {"retailer":"san_pablo"},
+                {"retailer":"chedraui"},
+                {"retailer":"walmart"},
+                {"retailer":"superama"}
+            ],
+            "export":false
+        }
+    """
+    logger.info("Fetching counts by store")
+    return jsonify({
+        'status': 'ok',
+        'module': 'task',
+        'task_id': request.async_id
+    })
+
+
 @mod.route('/retailer/compare/submit', methods=['POST'])
 @asynchronize(Stats.get_comparison_task)
 def compare():

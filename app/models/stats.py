@@ -392,6 +392,113 @@ class Stats(object):
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
 
+
+    @staticmethod
+    def get_today_by_retailer_task(task_id, params):
+        """ Retrieve today prices given a set of filters
+            and sources to query from.
+
+            Params:
+            -----
+            params: dict
+                Params with filters including
+                (retailer, item, or category)
+
+            Returns:
+            -----
+            formatted : list
+                List of formatted values
+        """
+        logger.info("Retailer today ")
+        logger.debug(params)
+        if not params['filters']:
+            raise errors.TaskError("Not filters requested!")
+        params = params['filters']
+        logger.info('Entered Current by Retailer..')
+
+        task = Task(task_id)
+        task.task_id = task_id
+        task.progress = 1
+
+        # Retailers from service
+        rets = Stats.fetch_rets(params)
+        if not rets:
+            raise errors.TaskError("No retailers found.")
+        logger.debug("Fetching data for: {}".format(rets))
+        # Items from service
+        filt_items = Stats.fetch_from_catalogue(params, rets)
+        logger.debug("Prices of:  {}".format(filt_items))
+        task.progress = 10
+        if not filt_items:
+            logger.warning("No Products found!")
+            raise errors.TaskError("No products found")
+        logger.info("Got filtered items..")
+        _now = datetime.datetime.utcnow()
+        # Products query
+        df_curr = Stats\
+            .get_cassandra_by_ret(filt_items,
+                                  rets,
+                                  [_now,
+                                   _now - datetime.timedelta(days=1)])\
+            .sort_values(by=['date'], ascending=False)\
+            .drop_duplicates(subset=['product_uuid'], keep='first')  # today
+        df_curr.rename(columns={'avg_price': 'avg',
+                                'max_price': 'max', 'min_price': 'min',
+                                'mode_price': 'mode'}, inplace=True)
+        task.progress = 50
+        # If queried lists empty
+        if df_curr.empty:
+            # Return empty set
+            logger.warning('Empty set from query...')
+            raise errors.TaskError("Empty set from query...")
+        
+        task.progress = 60
+        # Add product attributes to Current prices DF
+        info_df = pd.DataFrame(filt_items,
+                               columns=['item_uuid', 'product_uuid',
+                                        'name', 'gtin', 'source'])
+        df = pd.merge(df_curr, info_df,
+                           on='product_uuid', how='left')
+        df.fillna('-', axis=0, inplace=True)
+        # TODO:
+        # Add rows with unmatched products!
+        non_matched = df[df['item_uuid'].isnull() |
+                         (df['item_uuid'] == '')].copy()
+        # Format only products with matched results
+        df = df[~(df['item_uuid'].isnull()) &
+                (df['item_uuid'] != '')]
+        formatted = []
+        task.progress = 65
+        for i, prdf in df.groupby(by=['item_uuid']):
+            _first = prdf[:1].reset_index()
+            tmp = {
+                'item_uuid': _first.loc[0, 'item_uuid'],
+                'name': _first.loc[0, 'name'],
+                'gtin': _first.loc[0, 'gtin'],
+                'prices': {}
+            }
+            for j, row in prdf.iterrows():
+                _r = row.to_dict()
+                del _r['source']
+                del _r['date_x']
+                del _r['date_y']
+                tmp['prices'].update({
+                    row['source']: _r
+                })
+            for r in (set(rets) - tmp['prices'].keys()):
+                tmp['prices'].update({
+                    r: {'avg': '-', 'min': '-',
+                        'max': '-', 'mode': '-',
+                        'prev_avg': '-', 'prev_min': '-',
+                        'prev_max': '-', 'prev_mode': '-'
+                        }
+                })
+            formatted.append(tmp)
+        logger.info('Got today!!')
+        task.progress = 100
+        return {"data": formatted, "msg": "Task completed"}
+
+
     @staticmethod
     def add_empty_interval(intd, date_groups, rets, params):
         """ Add empty intervals 
