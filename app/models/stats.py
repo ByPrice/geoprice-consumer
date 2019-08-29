@@ -440,8 +440,8 @@ class Stats(object):
         df_curr = Stats\
             .get_cassandra_by_ret(filt_items,
                                   rets,
-                                  [_now,
-                                   _now + datetime.timedelta(days=1)])\
+                                  [_now + datetime.timedelta(days=1),
+                                   _now])\
             .sort_values(by=['date'], ascending=False)\
             .drop_duplicates(subset=['product_uuid'], keep='first')  # today
         df_curr.rename(columns={'avg_price': 'avg',
