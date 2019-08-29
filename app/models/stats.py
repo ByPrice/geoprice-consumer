@@ -480,8 +480,6 @@ class Stats(object):
             for j, row in prdf.iterrows():
                 _r = row.to_dict()
                 del _r['source']
-                del _r['date_x']
-                del _r['date_y']
                 tmp['prices'].update({
                     row['source']: _r
                 })
