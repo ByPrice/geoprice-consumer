@@ -434,6 +434,8 @@ class Stats(object):
             raise errors.TaskError("No products found")
         logger.info("Got filtered items..")
         _now = datetime.datetime.utcnow()
+        print(_now)
+        print(_now + datetime.timedelta(days=1))
         # Products query
         df_curr = Stats\
             .get_cassandra_by_ret(filt_items,
