@@ -88,7 +88,7 @@ def get_current():
 
 @mod.route('/monitoring/retailer/current/submit', methods=['POST'])
 @asynchronize(Stats.get_today_by_retailer_task)
-def get_current():
+def get_today():
     """
         Controller to get item avg prices by filters
         {
