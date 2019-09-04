@@ -143,8 +143,12 @@ class Stats(object):
         """
 
         chunk_size = int(2500 / (len(dates) + len(prods)))
-        logger.debug('chunk size')
-        logger.debug(chunk_size)
+        logger.info('chunk size')
+        logger.info(chunk_size)
+        logger.info('len(prods)')
+        logger.info(len(prods))
+        logger.info('chunk size before')
+        logger.info(int(2500 / (len(dates)))
 
         # Fetch prod uuids
         puuids = [p['product_uuid'] for p in prods]
