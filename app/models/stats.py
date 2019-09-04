@@ -142,7 +142,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        chunk_size = int(2500 / (len(dates) + len(prods)/100))
+        chunk_size = int(2500 / (len(dates) + len(prods)/250))
         logger.info('chunk size')
         logger.info(chunk_size)
         logger.info('len(prods)')
@@ -214,7 +214,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        chunk_size = int(2500 / (len(dates) + len(prods)/100))
+        chunk_size = int(2500 / (len(dates) + len(prods)/250))
         logger.info('chunk size')
         logger.info(chunk_size)
         logger.info('len(prods)')
