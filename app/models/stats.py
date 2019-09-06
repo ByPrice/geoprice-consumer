@@ -172,13 +172,11 @@ class Stats(object):
                 WHERE product_uuid in ({})
                 AND date in {}"""
 
-        logger.info(cass_query)
-
         qs = []
 
         for puuids in chunk_puuids:
             cass_query_text = cass_query.format(', '.join(puuids), str(_days))
-            logger.debug(cass_query_text)
+            logger.info(cass_query_text)
 
             try:
                 q = g._db.query(cass_query_text,
@@ -246,14 +244,12 @@ class Stats(object):
                 FROM stats_by_product
                 WHERE product_uuid in ({})
                 AND date in {}"""
-
-        logger.info(cass_query)
     
         qs = []
 
         for puuids in chunk_puuids:
             cass_query_text = cass_query.format(', '.join(puuids), str(_days))
-            logger.debug(cass_query_text)
+            logger.info(cass_query_text)
 
             try:
                 q = g._db.query(cass_query_text,
