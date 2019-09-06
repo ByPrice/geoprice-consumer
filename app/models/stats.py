@@ -143,17 +143,7 @@ class Stats(object):
         """
 
         logger.info('get_cassandra_by_ret')
-        chunk_size = 500
-        logger.info('chunk size')
-        logger.info(chunk_size)
-        logger.info('len(prods)')
-        logger.info(len(prods))
-        logger.info('chunk size before')
-        logger.info(int(2500 / (len(dates))))
 
-        # Fetch prod uuids
-        puuids = [p['product_uuid'] for p in prods]
-        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         # Generate dates
         dates = sorted(dates)
         if len(dates) == 1:
@@ -161,6 +151,16 @@ class Stats(object):
         else:
             period = (dates[-1] - dates[0]).days + 1
         _days = tupleize_date(dates[0].date(), period)
+
+        # Fetch prod uuids
+        puuids = [p['product_uuid'] for p in prods]
+
+        # Generate chunks
+        chunk_size = int((len(puuids)*len(_days)) / 1000)
+        logger.info('chunk size')
+        logger.info(chunk_size)
+        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
+        
         logger.info("Querying Stats by product..")
         logger.debug(puuids)
         logger.debug(_days)
@@ -215,18 +215,11 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        logger.info('get_cassandra_by_retailers_and_period')
-        chunk_size = 500
-        logger.info('chunk size')
-        logger.info(chunk_size)
-        logger.info('len(prods)')
-        logger.info(len(prods))
-        logger.info('chunk size before')
-        logger.info(int(2500 / (len(dates))))
+        logger.info('get_cassandra_by_retailers_and_period')       
 
         # Fetch prod uuids
         puuids = [p['product_uuid'] for p in prods]
-        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
+        
         # Generate dates
         dates = sorted(dates)
         if len(dates) == 1:
@@ -237,6 +230,12 @@ class Stats(object):
         date_start = int(dates[0].date().__str__().replace('-', ''))
         if date_start not in _days:
             _days = _days + (date_start,)
+
+        # Generate chunks
+        chunk_size = int((len(puuids)*len(_days)) / 1000)
+        logger.info('chunk size')
+        logger.info(chunk_size)
+        chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
 
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
