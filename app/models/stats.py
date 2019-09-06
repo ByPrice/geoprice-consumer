@@ -142,7 +142,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        chunk_size = 1000
+        chunk_size = 750
         logger.info('chunk size')
         logger.info(chunk_size)
         logger.info('len(prods)')
@@ -214,7 +214,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
-        chunk_size = 1000
+        chunk_size = 750
         logger.info('chunk size')
         logger.info(chunk_size)
         logger.info('len(prods)')
