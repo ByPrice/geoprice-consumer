@@ -142,6 +142,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
+        logger.info('get_cassandra_by_ret')
         chunk_size = 500
         logger.info('chunk size')
         logger.info(chunk_size)
@@ -170,6 +171,8 @@ class Stats(object):
                 FROM stats_by_product
                 WHERE product_uuid in ({})
                 AND date in {}"""
+
+        logger.info(cass_query)
 
         qs = []
 
@@ -214,6 +217,7 @@ class Stats(object):
                 Product aggregated prices
         """
 
+        logger.info('get_cassandra_by_retailers_and_period')
         chunk_size = 500
         logger.info('chunk size')
         logger.info(chunk_size)
@@ -242,6 +246,8 @@ class Stats(object):
                 FROM stats_by_product
                 WHERE product_uuid in ({})
                 AND date in {}"""
+
+        logger.info(cass_query)
     
         qs = []
 
