@@ -544,6 +544,32 @@ class Price(object):
             logger.error(e)
             return False
 
+    @staticmethod
+    def delete_stats_by_product(elem):
+        """ Delete aggregated values by day
+
+            Params:
+            -----
+            elem : dict
+                Product aggregated values
+        """    
+        try:
+            g._db.execute(
+                """
+                DELETE FROM stats_by_product 
+                WHERE product_uuid = %(product_uuid)s
+                AND date = %(date)s
+                """,
+                elem
+            )
+            logger.debug("OK delete_stats_by_product")
+            return True
+        except Exception as e:
+            # logger.error("Could not save save_stats_by_product")
+            # logger.error(elem)
+            logger.error(e)
+            return False
+
     # Save price in every price table
     def save_all_batch(self):
         ''' Save price in all tables
