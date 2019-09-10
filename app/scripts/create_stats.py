@@ -166,7 +166,7 @@ def aggregate_daily(daily_files, _day):
     # Load each element into C*
     for elem in tqdm(all_aggr_stats.to_dict(orient='records'), desc="Writing.."):
         Price.delete_stats_by_product(elem)
-        Price.save_stats_by_product(elem)
+        #Price.save_stats_by_product(elem)
         
     # Disply metrics
     logger.info("Stored {} daily prices".format(len(all_aggr_stats)))
