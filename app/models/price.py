@@ -558,7 +558,6 @@ class Price(object):
                 """
                 DELETE FROM stats_by_product 
                 WHERE product_uuid = %(product_uuid)s
-                AND date > 20190701
                 """,
                 elem
             )
