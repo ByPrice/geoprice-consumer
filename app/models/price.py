@@ -547,6 +547,7 @@ class Price(object):
     @staticmethod
     def delete_stats_by_product(elem):
         """ Delete aggregated values by day
+            ONLY USE SOME TIMES MANUALLY IN CREATE STATS
 
             Params:
             -----
