@@ -117,7 +117,7 @@ def getdb():
         CONSISTENCY_LEVEL="ONE",
         USER=config.CASSANDRA_USER,
         PASSWORD=config.CASSANDRA_PASSWORD,
-        TIMEOUT=5000
+        TIMEOUT=8000
     ))
     logger.debug("Connected to  Cassandra")
     return cass
