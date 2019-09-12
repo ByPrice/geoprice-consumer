@@ -239,7 +239,6 @@ class Stats(object):
         chunk_dates = Stats.divide_chunks(_days, 30)
         logger.info(_days)
         logger.info('----------')
-        logger.info(chunk_dates)
 
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
@@ -251,16 +250,17 @@ class Stats(object):
         qs = []
 
         for puuids in chunk_puuids:
-            cass_query_text = cass_query.format(', '.join(puuids), str(days))
-            logger.info(cass_query_text)
+            for days in chunk_dates:
+                cass_query_text = cass_query.format(', '.join(puuids), str(days))
+                logger.info(cass_query_text)
 
-            try:
-                q = g._db.query(cass_query_text,
-                                timeout=2000)
-                if q:
-                    qs += list(q)
-            except Exception as e:
-                logger.error("Cassandra Connection error: " + str(e))
+                try:
+                    q = g._db.query(cass_query_text,
+                                    timeout=2000)
+                    if q:
+                        qs += list(q)
+                except Exception as e:
+                    logger.error("Cassandra Connection error: " + str(e))
 
         logger.info("Fetched {} prices".format(len(qs)))
         logger.debug(qs[:1] if len(qs) > 1 else [])
