@@ -236,6 +236,10 @@ class Stats(object):
         logger.info('chunk size')
         logger.info(chunk_size)
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
+        chunk_dates = Stats.divide_chunks(_days, 30)
+        logger.info(_days)
+        logger.info('----------')
+        logger.info(chunk_dates)
 
         cass_query = """SELECT product_uuid, avg_price,
                 min_price, max_price,
@@ -247,7 +251,7 @@ class Stats(object):
         qs = []
 
         for puuids in chunk_puuids:
-            cass_query_text = cass_query.format(', '.join(puuids), str(_days))
+            cass_query_text = cass_query.format(', '.join(puuids), str(days))
             logger.info(cass_query_text)
 
             try:
