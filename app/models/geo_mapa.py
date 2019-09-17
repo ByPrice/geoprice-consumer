@@ -153,8 +153,11 @@ class Map(object):
         # Stores by their uuid
         if f_stores:
             stores_by_uuid = { s['uuid'] : s for s in stores if s['uuid'] in f_stores }
+            print('stores info')
+            print(f_stores)
         else:
             stores_by_uuid = { s['uuid'] : s for s in stores }
+
         logger.info("Got stores from filters ")
         # Get details of all items requested
         items = g._catalogue.get_items_details(
