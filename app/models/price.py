@@ -655,10 +655,6 @@ class Price(object):
         #dates.sort()
         result = []
         chunk_size = 1000
-        print(len(products))
-        products = list(set(products))
-        print('number after set')
-        print(len(products))
         chunk_products = Price.divide_chunks(products, chunk_size)
         # Nested loops
         for d in dates:
@@ -673,7 +669,7 @@ class Price(object):
                         AND date={}
                     """
                     cass_query_text = cass_query.format(', '.join(prods), d)
-                    #logger.info(cass_query_text)
+                    logger.info(cass_query_text)
                     rows = g._db.query(cass_query_text)
                     if rows:
                         for _tr in rows: 
