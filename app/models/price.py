@@ -654,18 +654,23 @@ class Price(object):
         # Order dates
         #dates.sort()
         result = []
+        chunk_size = 1000
+        chunk_products = Price.divide_chunks(products, chunk_size)
         # Nested loops
         for d in dates:
-            for p in products:
+            for prods in chunk_products:
                 try:
-                    rows = g._db.query("""
+                    cass_query = """
                         SELECT source as retailer,
                         product_uuid, price_original,
                         store_uuid, price, time, date, promo
                         FROM price_by_product_date
-                        WHERE product_uuid=%s 
-                        AND date=%s
-                    """, (UUID(p), d) )
+                        WHERE product_uuid IN({}) 
+                        AND date={}
+                    """
+                    cass_query_text = cass_query.format(', '.join(prods), d)
+                    logger.info(cass_query_text)
+                    rows = g._db.query(cass_query_text)
                     if rows:
                         for _tr in rows: 
                             if str(_tr.store_uuid) in stores:
@@ -722,3 +727,9 @@ class Price(object):
         _df['product_uuid'] = _df.product_uuid.astype(str)
         _df['store_uuid'] = _df.store_uuid.astype(str)
         return _df.to_dict(orient='records')
+
+    def divide_chunks(l, n): 
+      
+        # looping till length l 
+        for i in range(0, len(l), n):  
+            yield l[i:i + n] 
