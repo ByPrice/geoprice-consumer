@@ -665,7 +665,7 @@ class Price(object):
                         product_uuid, price_original,
                         store_uuid, price, time, date, promo
                         FROM price_by_product_date
-                        WHERE product_uuid IN({}) 
+                        WHERE product_uuid IN ({}) 
                         AND date={}
                     """
                     cass_query_text = cass_query.format(', '.join(prods), d)
