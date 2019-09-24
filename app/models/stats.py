@@ -424,6 +424,7 @@ class Stats(object):
         """
         logger.info("Retailer today ")
         logger.debug(params)
+        _now = datetime.datetime.strptime(params['date_start'],'%Y-%m-%d')
         if not params['filters']:
             raise errors.TaskError("Not filters requested!")
         params = params['filters']
@@ -446,7 +447,8 @@ class Stats(object):
             logger.warning("No Products found!")
             raise errors.TaskError("No products found")
         logger.info("Got filtered items..")
-        _now = datetime.datetime.utcnow()
+        #_now = datetime.datetime.utcnow()
+        
         print(_now)
         print(_now + datetime.timedelta(days=1))
         # Products query
