@@ -424,7 +424,8 @@ class Stats(object):
         """
         logger.info("Retailer today ")
         logger.debug(params)
-        _now = datetime.datetime.strptime(params['date_start'],'%Y-%m-%d')
+        date_start = datetime.datetime.strptime(params['date_start'],'%Y-%m-%d')
+        date_end = datetime.datetime.strptime(params['date_end'],'%Y-%m-%d')
         if not params['filters']:
             raise errors.TaskError("Not filters requested!")
         params = params['filters']
@@ -453,7 +454,7 @@ class Stats(object):
         df_curr = Stats\
             .get_cassandra_by_ret(filt_items,
                                   rets,
-                                  [_now, _now])\
+                                  [date_start, date_end)\
             .sort_values(by=['date'], ascending=False)\
             .drop_duplicates(subset=['product_uuid'], keep='first')  # today
         df_curr.rename(columns={'avg_price': 'avg',
