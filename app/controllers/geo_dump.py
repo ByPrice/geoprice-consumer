@@ -127,24 +127,26 @@ def dump_catalogue():
             "Missing parameters in request")
 
     # Get all the items
-    logger.debug("Getting total items from {}".format(data_source))
+    logger.info("Getting total items from {}".format(data_source))
     items = g._catalogue.get_by_source(
         data_source=data_source, 
         cols=extras+['item_uuid'],
         qsize=2000
     )
+    logger.info("Got {} total items".format(len(items)))
     items_ret = g._catalogue.get_by_source(
         data_source=retailer, 
         cols=extras+['item_uuid', 'gtin'],
         qsize=2000
     )
+
     # Fetch UUIDS only with existing Item  UUID
     _uuids = set(i['item_uuid'] for i in items if i['item_uuid'])
     _uuids_ret = {i['product_uuid'] : i for i in items_ret}
 
     # Get all the prices of the retailer
-    logger.debug("Got {} total items".format(len(items)))
-    logger.debug("Getting prices from C* form the last {} hours".format(hours))
+    #logger.info("Got {} total items".format(len(items)))
+    logger.info("Getting prices from C* form the last {} hours".format(hours))
     catalogue = Price.get_by_store(
         store_uuid, 
         hours
@@ -152,8 +154,8 @@ def dump_catalogue():
 
     # Only the items that are permitted
     valid = []
-    logger.debug("Got {} prices".format(len(catalogue)))
-    logger.debug("Looping through catalogue")
+    logger.info("Got {} prices".format(len(catalogue)))
+    logger.info("Looping through catalogue")
     for c in catalogue:
         try:
             tmp = _uuids_ret[c['product_uuid']]
