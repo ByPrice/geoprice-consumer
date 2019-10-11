@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request, Response, g, stream_with_context
-from app import errors, logger
+from app import errors, applogger
 from app.models.response import download_dataframe
 from app.models.item import Item
 from app.models.price import Price
@@ -13,6 +13,8 @@ import datetime
 import json
 from collections import OrderedDict
 from app.models.geo_dump import Dump
+
+logger = applogger.get_logger()
 
 # Blueprint instance
 mod = Blueprint('geo_dump', __name__)
