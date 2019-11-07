@@ -307,6 +307,7 @@ class Stats(object):
         # Items from service
         filt_items = Stats.fetch_from_catalogue(params, rets)
         logger.debug("Prices of:  {}".format(filt_items))
+        logger.debug(filt_items)
         task.progress = 10
         if not filt_items:
             logger.warning("No Products found!")
@@ -374,14 +375,24 @@ class Stats(object):
         # Format only products with matched results
         df = df[~(df['item_uuid'].isnull()) &
                 (df['item_uuid'] != '')]
+        logger.debug('dataframeeeeeeee----------')
+        logger.debug(df.head(10))
         formatted = []
         task.progress = 65
         for i, prdf in df.groupby(by=['item_uuid']):
+            logger.debug('-----')
+            logger.debug(prdf)
             _first = prdf[:1].reset_index()
+            logger.debug('first')
+            logger.debug(_first)
+            item_info = g._catalogue.get_items_details(
+                values=[_first.loc[0, 'item_uuid']], 
+                cols=['item_uuid','gtin','name']
+            )
             tmp = {
-                'item_uuid': _first.loc[0, 'item_uuid'],
-                'name': _first.loc[0, 'name'],
-                'gtin': _first.loc[0, 'gtin'],
+                'item_uuid': item_info[0]['item_uuid'],
+                'name': item_info[0]['name'],
+                'gtin': item_info[0]['gtin'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
