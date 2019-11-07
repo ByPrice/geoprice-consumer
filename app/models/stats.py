@@ -156,7 +156,7 @@ class Stats(object):
         puuids = [p['product_uuid'] for p in prods]
 
         # Generate chunks
-        chunk_size = int(6000 / (len(_days)))
+        chunk_size = int(4000 / (len(_days)))
         logger.info('chunk size')
         logger.info(chunk_size)
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
@@ -180,7 +180,7 @@ class Stats(object):
 
             try:
                 q = g._db.query(cass_query_text,
-                                timeout=2000)
+                                timeout=15000)
                 if q:
                     qs += list(q)
             except Exception as e:
@@ -232,7 +232,7 @@ class Stats(object):
             _days = _days + (date_start,)
 
         # Generate chunks
-        chunk_size = int(6000 / (len(_days)))
+        chunk_size = int(4000 / (len(_days)))
         logger.info('chunk size')
         logger.info(chunk_size)
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
@@ -256,7 +256,7 @@ class Stats(object):
 
                 try:
                     q = g._db.query(cass_query_text,
-                                    timeout=2000)
+                                    timeout=15000)
                     if q:
                         qs += list(q)
                 except Exception as e:
