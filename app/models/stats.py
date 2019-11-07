@@ -389,6 +389,9 @@ class Stats(object):
                 values=[_first.loc[0, 'item_uuid']], 
                 cols=['item_uuid','gtin','name']
             )
+            logger.debug(item_info)
+            logger.debug(item_info['items'])
+            logger.debug(item_info['items'][0])
             tmp = {
                 'item_uuid': item_info['items'][0]['item_uuid'],
                 'name': item_info['items'][0]['name'],
