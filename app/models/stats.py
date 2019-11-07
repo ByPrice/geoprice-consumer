@@ -710,11 +710,17 @@ class Stats(object):
         block_progress = 0
         for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
-            tmp = {'item_uuid': i,
-                   'name': tdf['name'][0],
-                   'gtin': tdf['gtin'][0],
-                   'interval_name': params['interval'],
-                   'intervals': []}
+            item_info = g._catalogue.get_items_details(
+                values=[i], 
+                cols=['item_uuid','gtin','name']
+            )
+            tmp = {
+                'item_uuid': item_info[0]['item_uuid'],
+                'name': item_info[0]['name'],
+                'gtin': item_info[0]['gtin'],
+                'interval_name': params['interval'],
+                'intervals': []
+            }
             # Grouping by Time interval columns
             en = 0
             prev_rets = {z: 0 for z in rets}
