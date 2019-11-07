@@ -385,10 +385,14 @@ class Stats(object):
             _first = prdf[:1].reset_index()
             logger.debug('first')
             logger.debug(_first)
+            item_info = g._catalogue.get_items_details(
+                values=[_first.loc[0, 'item_uuid']], 
+                cols=['item_uuid','gtin','name']
+            )
             tmp = {
-                'item_uuid': _first.loc[0, 'item_uuid'],
-                'name': _first.loc[0, 'name'],
-                'gtin': _first.loc[0, 'gtin'],
+                'item_uuid': item_info['items'][0]['item_uuid'],
+                'name': item_info['items'][0]['name'],
+                'gtin': item_info['items'][0]['gtin'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
