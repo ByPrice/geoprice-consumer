@@ -1363,8 +1363,11 @@ class Stats(object):
         return {"data": result, "msg": "Task completed"}
 
 
-    def divide_chunks(l, n): 
-      
-        # looping till length l 
-        for i in range(0, len(l), n):  
-            yield l[i:i + n] 
+def divide_chunks(l, n): 
+    
+    # looping till length l 
+    for i in range(0, len(l), n):
+        if i != n:
+            yield l[i:i + n]
+        else:
+            yield (l[i-1:i+1])
