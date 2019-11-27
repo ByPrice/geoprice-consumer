@@ -255,7 +255,7 @@ class Alarm(object):
         
         # looping till length l 
         for i in range(0, len(l), n):
-            if i != n:
+            if len(l[i:i + n]) > 1:
                 yield l[i:i + n]
             else:
                 yield (l[i-1:i+1])
