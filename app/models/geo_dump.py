@@ -8,7 +8,7 @@ import datetime
 from app.models.price import Price
 
 # Aux Vars
-BUCKET = "geoprice"
+BUCKET = "geoprice-colombia"
 
 class Dump(object):
     """ Class to retrieve and put objects into S3
