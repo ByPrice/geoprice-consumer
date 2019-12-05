@@ -504,14 +504,16 @@ class Stats(object):
         task.progress = 65
         for i, prdf in df.groupby(by=['item_uuid']):
             _first = prdf[:1].reset_index()
-            
+            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            logger.debug(products_info)
+            ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             item_info = g._catalogue.get_items_details(
                 values=[_first.loc[0, 'item_uuid']], 
                 cols=['item_uuid','gtin','name']
             )
             tmp = {
                 'item_uuid': item_info[0]['item_uuid'],
-                'name': item_info[0]['name'],
+                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
                 'gtin': item_info[0]['gtin'],
                 'prices': {}
             }
@@ -715,13 +717,16 @@ class Stats(object):
         block_progress = 0
         for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
+            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            logger.debug(products_info)
+            ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             item_info = g._catalogue.get_items_details(
                 values=[i], 
                 cols=['item_uuid','gtin','name']
             )
             tmp = {
                 'item_uuid': item_info[0]['item_uuid'],
-                'name': item_info[0]['name'],
+                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
                 'gtin': item_info[0]['gtin'],
                 'interval_name': params['interval'],
                 'intervals': []
