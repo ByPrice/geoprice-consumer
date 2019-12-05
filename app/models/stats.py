@@ -717,7 +717,7 @@ class Stats(object):
         block_progress = 0
         for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
-            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            products_info = g._catalogue.get_product_details(values=[i])
             logger.debug(products_info)
             ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             item_info = g._catalogue.get_items_details(
