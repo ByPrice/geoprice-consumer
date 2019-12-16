@@ -26,7 +26,7 @@ spec:
             requests:
               cpu: 256m
               memory: 1024Mi
-          command: ['/bin/bash' , '-c', 'echo Starting container !! && export && source bin/run_consumer.sh']
+          command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_consumer.sh']
           env:
             - name: "STREAMER_PASS"
               valueFrom:
@@ -37,10 +37,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: data-service-secret-production-mex
-                  key: CASSANDRA_PASSWORD  
-
-
-
+                  key: CASSANDRA_PASSWORD
   selector:
     matchLabels:
       application: geoprice-data-service
