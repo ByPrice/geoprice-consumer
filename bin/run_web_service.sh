@@ -1,5 +1,5 @@
 #!/bin/bash
-export MODE="CONSUMER"
+export MODE="SERVICE"
 echo "[$(date)][GEOPRICE]: Activating virtual environment"
 
 # todo ?? Init the database
@@ -32,5 +32,8 @@ if [ $is_running_flask_run -gt 1 ]
 fi
 
 
-echo "[$(date)][$APP_NAME]: Starting with FLASK in $MODE mode..."
-pipenv run flask consumer
+echo "[$(date)][$APP_NAME]: Starting with CELERY in $MODE mode..."
+pipenv run celery worker -A app.celery_tasks -c 3 -n $APP_NAME"_"$RANDOM  &
+
+echo "[$(date)][$APP_NAME]: Starting with GUNICORN in $MODE mode..."
+pipenv run gunicorn --workers 3 --bind unix:geoprice.sock -m 000 -t 200 wsgi:app & nginx -g "daemon off;"

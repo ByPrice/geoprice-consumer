@@ -52,4 +52,11 @@ ENV CASSANDRA_PORT=9042
 ENV CASSANDRA_USER='byprice'
 #ENV CASSANDRA_PASSWORD from secret
 
-ENTRYPOINT /bin/bash /geoprice/bin/run_consumer.sh
+# Redis
+ENV TASK_BACKEND='redis'
+ENV REDIS_HOST='0.0.0.0'
+ENV REDIS_PORT=6379
+ENV REDIS_PASSWORD ='byprice'
+#ENV REDIS_PASSWORD from secret
+
+ENTRYPOINT /bin/bash /geoprice/bin/run_web_service.sh
