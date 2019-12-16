@@ -33,11 +33,6 @@ spec:
                 secretKeyRef:
                   name: data-service-secret-production-mex
                   key: STREAMER_PASS
-            - name: "REDIS_PASSWORD"
-              valueFrom:
-                secretKeyRef:
-                  name: data-service-secret-production-mex
-                  key: REDIS_PASSWORD
             - name: "CASSANDRA_PASSWORD"
               valueFrom:
                 secretKeyRef:

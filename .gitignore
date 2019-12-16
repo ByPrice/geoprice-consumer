@@ -12,3 +12,4 @@ data/
 Endpoints*
 app/scripts/migration_prices.py
 !data/downloads.json
+.python-version
