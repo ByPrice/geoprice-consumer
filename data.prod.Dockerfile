@@ -47,6 +47,7 @@ ENV QUEUE_GEOLOCATION='geolocation'
 # Celert
 ENV C_FORCE_ROOT='true'
 
+# Celery
 ENV CELERY_REDIS_DB='5'
 
 # Cassandra
