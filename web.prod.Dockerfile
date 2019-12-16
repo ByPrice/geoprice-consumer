@@ -21,6 +21,8 @@ ENV FLASK_APP=app/__init__.py
 ENV REGION='MEX'
 ENV LOG_LEVEL='ERROR'
 
+ENV APP_PORT=8000
+
 # Streamer
 ENV STREAMER='rabbitmq'
 ENV STREAMER_HOST='rmq-prod.byprice.com'
@@ -43,6 +45,17 @@ ENV QUEUE_GEOLOCATION='geolocation'
 
 # Celert
 ENV C_FORCE_ROOT='true'
+
+# Broker
+ENV CELERY_BROKER="redis"
+ENV CELERY_HOST="localhost"
+ENV CELERY_PORT=6379
+ENV CELERY_PASSWORD=""
+ENV CELERY_REDIS_DB=5
+
+# Services
+ENV SRV_CATALOGUE="gate.byprice.com/bpcatalogue"
+ENV SRV_GEOLOCATION="gate.byprice.com/bpgeolocation"
 
 # Cassandra
 ENV CASSANDRA_CONTACT_POINTS='35.233.244.27'

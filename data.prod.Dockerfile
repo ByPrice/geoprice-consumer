@@ -33,6 +33,9 @@ ENV STREAMER_VIRTUAL_HOST='mx'
 ENV STREAMER_USER='mx_pubsub'
 # ENV STREAMER_PASS from secret
 
+ENV SCRIPT='create_stats'
+ENV TASK_ARG_CREATE_DUMPS="kelloggs,ims,paris"
+
 # Queues
 ENV QUEUE_CACHE='cache'
 ENV QUEUE_ROUTING='routing'
@@ -44,7 +47,7 @@ ENV QUEUE_GEOLOCATION='geolocation'
 # Celert
 ENV C_FORCE_ROOT='true'
 
-ENV CELERY_REDIS_DB='2'
+ENV CELERY_REDIS_DB='5'
 
 # Cassandra
 ENV CASSANDRA_CONTACT_POINTS='35.233.244.27'

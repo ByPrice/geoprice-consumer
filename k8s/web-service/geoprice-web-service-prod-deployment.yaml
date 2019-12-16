@@ -42,7 +42,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: web-service-secret-production-mex
-                  key: CASSANDRA_PASSWORD  
+                  key: CASSANDRA_PASSWORD
+            - name: "AWS_ACCESS_KEY_ID"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AWS_ACCESS_KEY_ID
+            - name: "AWS_SECRET_ACCESS_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AWS_SECRET_ACCESS_KEY
 
   selector:
     matchLabels:

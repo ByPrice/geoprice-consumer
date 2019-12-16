@@ -1,5 +1,6 @@
 #!/bin/bash
-export MODE="CONSUMER"
+export APP_MODE="CONSUMER"
+export MODE=$APP_MODE
 echo "[$(date)][GEOPRICE]: Activating virtual environment"
 
 # todo ?? Init the database
