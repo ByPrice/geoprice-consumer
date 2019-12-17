@@ -12,7 +12,6 @@ from app.utils import db, errors
 from ByHelpers import applogger
 from app.models.price import Price
 import sys
-from time import time
 
 logger = applogger.get_logger()
 
@@ -45,7 +44,6 @@ def with_context(original_function):
 
 # Rabbit MQ callback function
 def callback(ch, method, properties, body):
-    t1 = time()
     global gcounter
     try:
         new_price = json.loads(body.decode('utf-8'))
@@ -79,8 +77,6 @@ def callback(ch, method, properties, body):
     except Exception as e:
         logger.error(e)
     ch.basic_ack(delivery_tag=method.delivery_tag)
-    t2 = time()
-    logger.info('total = {}'.format(str(t2-t1)))
 
 
 @with_context

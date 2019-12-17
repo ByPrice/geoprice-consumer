@@ -219,31 +219,12 @@ class Price(object):
             - execute()
             - execue_async() en caso de que se haga cuello de botella
         '''
-        #logger.info("[3] Saving price in all tables...")
-        # self.save_price()    # DEPRECATED
-        t1 = time()
         self.save_price_by_product_date()
-        t2 = time()
-        logger.info('save_price_by_product_date()={}'.format(str(t2-t1)))
-        # self.save_price_by_date()    # DEPRECATED
-        t1 = time()
         self.save_price_by_product_store()
-        t2 = time()
-        logger.info('save_price_by_product_store()={}'.format(str(t2 - t1)))
-        # self.save_price_by_geohash()  # DEPRECATED
-        # self.save_price_by_source()   #
-        t1 = time()
         self.save_price_by_store()
-        t2 = time()
-        logger.info('save_price_by_store()={}'.format(str(t2 - t1)))
-        t1 = time()
         self.save_promo()
-        t2 = time()
-        logger.info('save_promo_by_store()={}'.format(str(t2 - t1)))
-        t1 = time()
         self.save_promo_by_store()
-        t2 = time()
-        logger.info('save_promo_by_store()={}'.format(str(t2 - t1)))
+
         return True
 
     # Save as raw price in json format
