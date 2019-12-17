@@ -13,7 +13,8 @@ from ByHelpers import applogger
 from app.models.price import Price
 import sys
 
-logger = applogger.get_logger()
+import logging
+logger = logging.getLogger()
 
 q_geoprice = QUEUE_GEOPRICE
 q_cache = QUEUE_CACHE
