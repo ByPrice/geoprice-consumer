@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
+import logging
+from logging import config as log_config
+from app_logging import app_logging_config
+log_config.dictConfig(app_logging_config)
+
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 import click
@@ -15,11 +20,14 @@ if APP_MODE == 'CONSUMER':
     from ByHelpers.rabbit_engine import RabbitEngine
 from redis import Redis
 
+
+
 # Flask app declaration
 app = Flask(__name__)
 CORS(app)
 applogger.create_logger()
-logger = applogger.get_logger()
+
+logger = logging.getLogger()
 
 
 def build_context(

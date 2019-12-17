@@ -11,8 +11,9 @@ from uuid import UUID
 import pandas as pd
 from time import time
 
-# Database connection:  db.session
-logger = applogger.get_logger()
+import logging
+
+logger = logging.getLogger()
 
 class Price(object):
     ''' All attributes received from kafka that a price can have
