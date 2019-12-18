@@ -1,4 +1,4 @@
-FROM byprice/base-data-services:v2_3.6.8
+FROM byprice/base-web-services:v2_3.6
 
 # Copy service content
 COPY ./ /geoprice/
