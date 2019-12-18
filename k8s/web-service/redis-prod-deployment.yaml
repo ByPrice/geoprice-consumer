@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-production-mex-deployment
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: redis-production-mex-deployment-template
+      labels:
+        application: redis
+        environment: production
+        application-type: database
+        owner: oscar
+        version: v0.1
+        type: deployment
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: redis-production-mex-container
+          image: redis:5.0.7
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 6379
+          resources:
+            limits:
+              cpu: 512m
+            requests:
+              cpu: 256m
+              memory: 512Mi
+          command: ['redis-server']
+      volumes:
+        - name: redis-volume
+          hostPath:
+            path: /redis-data
+            type: Directory
+
+  selector:
+    matchLabels:
+      application: redis
+      environment: production
+      application-type: database
+      owner: oscar
+      version: v0.1
+      type: deployment

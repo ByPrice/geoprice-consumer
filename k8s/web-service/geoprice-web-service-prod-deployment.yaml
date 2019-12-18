@@ -19,40 +19,16 @@ spec:
       containers:
         - name: geoprice-web-service-production-mex-container
           image: gcr.io/byprice-backend/production/web-service/geoprice:master
+          ports:
+          - containerPort: 6379
           imagePullPolicy: Always
           resources:
             limits:
               cpu: 512m
             requests:
               cpu: 256m
-              memory: 1024Mi
+              memory: 512Mi
           command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_web_service.sh']
-          env:
-            - name: "STREAMER_PASS"
-              valueFrom:
-                secretKeyRef:
-                  name: web-service-secret-production-mex
-                  key: STREAMER_PASS
-            - name: "REDIS_PASSWORD"
-              valueFrom:
-                secretKeyRef:
-                  name: web-service-secret-production-mex
-                  key: REDIS_PASSWORD
-            - name: "CASSANDRA_PASSWORD"
-              valueFrom:
-                secretKeyRef:
-                  name: web-service-secret-production-mex
-                  key: CASSANDRA_PASSWORD
-            - name: "AWS_ACCESS_KEY_ID"
-              valueFrom:
-                secretKeyRef:
-                  name: web-service-secret-production-mex
-                  key: AWS_ACCESS_KEY_ID
-            - name: "AWS_SECRET_ACCESS_KEY"
-              valueFrom:
-                secretKeyRef:
-                  name: web-service-secret-production-mex
-                  key: AWS_SECRET_ACCESS_KEY
 
   selector:
     matchLabels:

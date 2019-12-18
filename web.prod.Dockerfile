@@ -21,41 +21,15 @@ ENV FLASK_APP=app/__init__.py
 ENV REGION='MEX'
 ENV LOG_LEVEL='ERROR'
 
-ENV APP_PORT=8000
-
-# Streamer
-ENV STREAMER='rabbitmq'
-ENV STREAMER_HOST='rmq-prod.byprice.com'
-ENV STREAMER_PORT=5222
-ENV STREAMER_QUEUE='geoprice'
-ENV STREAMER_ROUTING_KEY='geoprice'
-ENV STREAMER_EXCHANGE='data'
-ENV STREAMER_EXCHANGE_TYPE='direct'
-ENV STREAMER_VIRTUAL_HOST='mx'
-ENV STREAMER_USER='mx_pubsub'
-# ENV STREAMER_PASS from secret
-
-# Queues
-ENV QUEUE_CACHE='cache'
-ENV QUEUE_ROUTING='routing'
-ENV QUEUE_CATALOGUE='catalogue'
-ENV QUEUE_CATALOGUE_ITEM='catalogue_item'
-ENV QUEUE_GEOPRICE='geoprice'
-ENV QUEUE_GEOLOCATION='geolocation'
+ENV APP_PORT=8080
 
 # Celert
 ENV C_FORCE_ROOT='true'
 
-# Broker
-ENV CELERY_BROKER="redis"
-ENV CELERY_HOST="localhost"
-ENV CELERY_PORT=6379
-ENV CELERY_PASSWORD=""
-ENV CELERY_REDIS_DB=5
-
 # Services
-ENV SRV_CATALOGUE="gate.byprice.com/bpcatalogue"
-ENV SRV_GEOLOCATION="gate.byprice.com/bpgeolocation"
+ENV SRV_CATALOGUE='gate.byprice.com/bpcatalogue'
+ENV SRV_GEOLOCATION='gate.byprice.com/bpgeolocation'
+ENV SRV_PROTOCOL='http'
 
 # Cassandra
 ENV CASSANDRA_CONTACT_POINTS='35.233.244.27'
@@ -65,11 +39,17 @@ ENV CASSANDRA_PORT=9042
 ENV CASSANDRA_USER='byprice'
 #ENV CASSANDRA_PASSWORD from secret
 
-# Redis
-ENV TASK_BACKEND='redis'
-ENV REDIS_HOST='0.0.0.0'
-ENV REDIS_PORT=6379
-ENV REDIS_PASSWORD ='byprice'
-#ENV REDIS_PASSWORD from secret
+# Celery
+ENV CELERY_BROKER='redis'
+ENV CELERY_HOST='localhost'
+ENV CELERY_PORT='6379'
+ENV CELERY_PASSWORD=''
+ENV CELERY_REDIS_DB='2'
 
-ENTRYPOINT /bin/bash /geoprice/bin/run_web_service.sh
+# Celery - Backend
+ENV TASK_BACKEND='redis'
+ENV REDIS_HOST='localhost'
+ENV REDIS_PORT='6379'
+ENV REDIS_PASSWORD=''
+ENV REDIS_DB='2'
+#ENV REDIS_PASSWORD from secret
