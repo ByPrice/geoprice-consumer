@@ -29,6 +29,23 @@ spec:
               cpu: 256m
               memory: 512Mi
           command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_web_service.sh']
+          env:
+            - name: "CASSANDRA_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: CASSANDRA_PASSWORD
+            - name: "AMAZON_ACCESS_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AMAZON_ACCESS_KEY
+            - name: "AMAZON_SECRET_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AMAZON_SECRET_KEY
+
 
   selector:
     matchLabels:
