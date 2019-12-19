@@ -425,7 +425,7 @@ class Stats(object):
 
         item_uuids_list = df['item_uuid'].tolist()
 
-        items_details = catalogue.get_intel_items_details(values=item_uuids)['items']
+        items_details = g._catalogue.get_intel_items_details(values=item_uuids)['items']
 
         logger.debug(items_details)
 
