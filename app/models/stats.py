@@ -423,7 +423,7 @@ class Stats(object):
         formatted_df = pd.DataFrame(formatted)
         logger.debug(formatted_df.head())
 
-        item_uuids_list = df['item_uuid'].tolist()
+        item_uuids = df['item_uuid'].tolist()
 
         items_details = g._catalogue.get_intel_items_details(values=item_uuids)['items']
 
