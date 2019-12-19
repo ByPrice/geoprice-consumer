@@ -63,7 +63,9 @@ class Catalogue(object):
         return result
 
     def get_intel_items_details(self, 
-                        values=None):
+                        values=None,
+                        loop_size=100, 
+                        fmt='list'):
         """ Get item details by a given field 
             that equals a given value.
         """
@@ -71,27 +73,32 @@ class Catalogue(object):
             logger.error("Set the values to obtain")
             return False
 
-        try:
-            # Url
-            url = '{}/item/intel/by/iuuid?iuuids={}'.format(
-                'http://34.83.231.69/bpcatalogue',#self.base_url,
-                ','.join(values)
-            )
-            # Request
-            logger.debug ("Requesting details to: {}".format(url))
-            details = requests.get(
-                url,
-                headers = {'Content-Type':'application/json'}
-            )
-            logger.debug("Received chunk")
-        except Exception as e:
-            logger.error(e)
-            continue
-        
-        items_chunk = details.json()['items']
-        if isinstance(items_chunk, dict) or isinstance(items_chunk, list):
-            logger.debug("Chunk with {} items".format(len(items_chunk)))
-            all_details = all_details + items_chunk
+        # Get chunks of n size for the values
+        chunks = [values[i:i + loop_size] for i in range(0, len(values), loop_size)]
+        # Iterate chunks
+        all_details = []
+        for chunk in chunks:
+            try:
+                # Url
+                url = '{}/item/intel/by/iuuid?iuuids={}'.format(
+                    'http://34.83.231.69/bpcatalogue',#self.base_url,
+                    ','.join(values)
+                )
+                # Request
+                logger.debug ("Requesting details to: {}".format(url))
+                details = requests.get(
+                    url,
+                    headers = {'Content-Type':'application/json'}
+                )
+                logger.debug("Received chunk")
+            except Exception as e:
+                logger.error(e)
+                continue
+            
+            items_chunk = details.json()['items']
+            if isinstance(items_chunk, dict) or isinstance(items_chunk, list):
+                logger.debug("Chunk with {} items".format(len(items_chunk)))
+                all_details = all_details + items_chunk
         
         # Response format
         if fmt == 'dict':

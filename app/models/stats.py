@@ -424,11 +424,8 @@ class Stats(object):
         logger.debug(formatted_df.head())
 
         item_uuids_list = df['item_uuid'].tolist()
-        item_uuids_chunks = Stats.divide_chunks(item_uuids_list, 100)
 
-        items_details = []
-        for item_uuids in item_uuids_chunks:
-            items_details += catalogue.get_intel_items_details(item_uuids)['items']
+        items_details = catalogue.get_intel_items_details(values=item_uuids)['items']
 
         logger.debug(items_details)
 
