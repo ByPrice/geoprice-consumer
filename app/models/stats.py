@@ -426,10 +426,10 @@ class Stats(object):
         item_uuids = df['item_uuid'].tolist()
 
         items_details = g._catalogue.get_intel_items_details(values=item_uuids)
+        items_df = pd.DataFrame(items_details)
 
-        logger.debug(items_details)
-        logger.debug(items_details[0])
-        logger.debug(items_details[0]['items'])
+        tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
+        formatted = tmp_df.tolist()
 
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
