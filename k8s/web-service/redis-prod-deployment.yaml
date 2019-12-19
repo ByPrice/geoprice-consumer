@@ -29,11 +29,13 @@ spec:
               cpu: 256m
               memory: 512Mi
           command: ['redis-server']
+          volumeMounts:
+            - name: redis-volume
+              mountPath: "/redis-data"
       volumes:
-        - name: redis-volume
-          hostPath:
-            path: /redis-data
-            type: Directory
+      - name: redis-volume
+        persistentVolumeClaim:
+          claimName: redis-volume-claim
 
   selector:
     matchLabels:
