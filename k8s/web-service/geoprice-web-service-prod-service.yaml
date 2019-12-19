@@ -4,15 +4,19 @@ metadata:
   name: geoprice-web-service-production-mex-deployment-service
 spec:
   selector:
-    application: "geoprice-web-service"
-    environment: "production"
-    application-type: "web-service"
-    owner: "oscar"
-    version: "v0.1"
-    type: "deployment"
+    application: geoprice-web-service
+    environment: production
+    application-type: web-service
+    owner: oscar
+    version: v0.1
+    type: deployment
   ports:
     - name: geoprice-web-service-port
       protocol: TCP
       port: 80
       targetPort: 80
-  type: "LoadBalancer"
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - ip: 34.82.110.171

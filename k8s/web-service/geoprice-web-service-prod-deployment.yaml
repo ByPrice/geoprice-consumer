@@ -10,7 +10,7 @@ spec:
       labels:
         application: geoprice-web-service
         environment: production
-        application-type: web-services
+        application-type: web-service
         owner: oscar
         version: v0.1
         type: deployment
@@ -19,8 +19,6 @@ spec:
       containers:
         - name: geoprice-web-service-production-mex-container
           image: gcr.io/byprice-backend/production/web-service/geoprice:master
-          ports:
-          - containerPort: 6379
           imagePullPolicy: Always
           resources:
             limits:
@@ -45,13 +43,17 @@ spec:
                 secretKeyRef:
                   name: web-service-secret-production-mex
                   key: AMAZON_SECRET_KEY
-
+            - name: "CELERY_HOST"
+              valueFrom:
+                configMapKeyRef:
+                  name: geoprice-web-service-config
+                  key: redishost
 
   selector:
     matchLabels:
       application: geoprice-web-service
       environment: production
-      application-type: web-services
+      application-type: web-service
       owner: oscar
       version: v0.1
       type: deployment

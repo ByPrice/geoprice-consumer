@@ -53,3 +53,6 @@ ENV REDIS_PORT='6379'
 ENV REDIS_PASSWORD=''
 ENV REDIS_DB='2'
 #ENV REDIS_PASSWORD from secret
+
+ADD cfn/nginx/conf.d/ /etc/nginx/conf.d
+RUN rm -rf /etc/nginx/sites-available/default && rm -rf /etc/nginx/sites-enabled/default

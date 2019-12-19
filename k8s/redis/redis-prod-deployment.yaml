@@ -11,6 +11,7 @@ spec:
         application: redis
         environment: production
         application-type: database
+        broker: redis
         owner: oscar
         version: v0.1
         type: deployment
@@ -45,3 +46,4 @@ spec:
       owner: oscar
       version: v0.1
       type: deployment
+      broker: redis

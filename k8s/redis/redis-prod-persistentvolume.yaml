@@ -17,5 +17,3 @@ spec:
   gcePersistentDisk:
     pdName: redis-disk
     fsType: ext4
-    # hostPath:
-    #   path: "/redis-data"
