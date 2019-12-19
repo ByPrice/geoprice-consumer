@@ -81,8 +81,8 @@ class Catalogue(object):
             try:
                 # Url
                 url = '{}/item/intel/by/iuuid?iuuids={}'.format(
-                    'http://34.83.231.69/bpcatalogue',#self.base_url,
-                    ','.join(values)
+                    self.base_url,
+                    ','.join(chunk)
                 )
                 # Request
                 logger.debug ("Requesting details to: {}".format(url))
