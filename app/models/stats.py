@@ -429,7 +429,7 @@ class Stats(object):
         items_df = pd.DataFrame(items_details)
 
         tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
-        formatted = tmp_df.tolist()
+        formatted = tmp_df.to_dict(orient='records')
 
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
