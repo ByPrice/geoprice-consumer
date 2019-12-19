@@ -385,7 +385,7 @@ class Stats(object):
             _first = prdf[:1].reset_index()
             logger.debug('first')
             logger.debug(_first)
-            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            '''products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
             logger.debug(products_info)
             ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             logger.debug('ims product')
@@ -393,11 +393,9 @@ class Stats(object):
             item_info = g._catalogue.get_items_details(
                 values=[_first.loc[0, 'item_uuid']], 
                 cols=['item_uuid','gtin','name']
-            )
+            )'''
             tmp = {
-                'item_uuid': item_info[0]['item_uuid'],
-                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
-                'gtin': item_info[0]['gtin'],
+                'item_uuid': _first.loc[0, 'item_uuid'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
@@ -420,6 +418,19 @@ class Stats(object):
                 })
             formatted.append(tmp)
         logger.info('Got actual!!')
+
+        # add item info
+        formatted_df = pd.DataFrame(formatted)
+        logger.debug(formatted_df.head())
+
+        item_uuids = df['item_uuid'].tolist()
+
+        items_details = g._catalogue.get_intel_items_details(values=item_uuids)
+        items_df = pd.DataFrame(items_details)
+
+        tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
+        formatted = tmp_df.to_dict(orient='records')
+
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
 
@@ -504,17 +515,15 @@ class Stats(object):
         task.progress = 65
         for i, prdf in df.groupby(by=['item_uuid']):
             _first = prdf[:1].reset_index()
-            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            '''products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
             logger.debug(products_info)
             ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             item_info = g._catalogue.get_items_details(
                 values=[_first.loc[0, 'item_uuid']], 
                 cols=['item_uuid','gtin','name']
-            )
+            )'''
             tmp = {
-                'item_uuid': item_info[0]['item_uuid'],
-                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
-                'gtin': item_info[0]['gtin'],
+                'item_uuid': _first.loc[0, 'item_uuid'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
@@ -533,6 +542,19 @@ class Stats(object):
                 })
             formatted.append(tmp)
         logger.info('Got today!!')
+
+        # add item info
+        formatted_df = pd.DataFrame(formatted)
+        logger.debug(formatted_df.head())
+
+        item_uuids = df['item_uuid'].tolist()
+
+        items_details = g._catalogue.get_intel_items_details(values=item_uuids)
+        items_df = pd.DataFrame(items_details)
+
+        tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
+        formatted = tmp_df.to_dict(orient='records')
+
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
 
@@ -717,17 +739,15 @@ class Stats(object):
         block_progress = 0
         for i, tdf in item_uuid_groupby:
             tdf.reset_index(inplace=True)
-            products_info = g._catalogue.get_product_details(values=[i])
+            '''products_info = g._catalogue.get_product_details(values=[i])
             logger.debug(products_info)
             ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             item_info = g._catalogue.get_items_details(
                 values=[i], 
                 cols=['item_uuid','gtin','name']
-            )
+            )'''
             tmp = {
-                'item_uuid': item_info[0]['item_uuid'],
-                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
-                'gtin': item_info[0]['gtin'],
+                'item_uuid': i,
                 'interval_name': params['interval'],
                 'intervals': []
             }
@@ -820,7 +840,20 @@ class Stats(object):
             #task.progress = 85 + int(block_progress)
         task.progress = 100
         interv_list = jsonify(interv_list)
-        return {"data": interv_list, "msg": "Task completed"}
+
+        # add item info
+        formatted_df = pd.DataFrame(interv_list)
+        logger.debug(formatted_df.head())
+
+        item_uuids = df['item_uuid'].tolist()
+
+        items_details = g._catalogue.get_intel_items_details(values=item_uuids)
+        items_df = pd.DataFrame(items_details)
+
+        tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
+        formatted = tmp_df.to_dict(orient='records')
+
+        return {"data": formatted, "msg": "Task completed"}
 
     @staticmethod
     def convert_csv_actual(prod):

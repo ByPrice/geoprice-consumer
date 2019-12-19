@@ -53,6 +53,8 @@ if not TESTING:
 else:
     CASSANDRA_KEYSPACE=CASSANDRA_KEYSPACE+"_test"
 
+KEYSPACE = CASSANDRA_KEYSPACE
+
 # Logging and remote logging
 LOG_LEVEL = os.getenv('LOG_LEVEL', 
     ('DEBUG' if ENV in ['DEV','LOCAL'] else 'DEBUG'))
