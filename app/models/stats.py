@@ -425,9 +425,11 @@ class Stats(object):
 
         item_uuids = df['item_uuid'].tolist()
 
-        items_details = g._catalogue.get_intel_items_details(values=item_uuids)['items']
+        items_details = g._catalogue.get_intel_items_details(values=item_uuids)
 
         logger.debug(items_details)
+        logger.debug(items_details[0])
+        logger.debug(items_details[0]['items'])
 
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
