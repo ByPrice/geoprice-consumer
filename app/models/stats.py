@@ -385,7 +385,7 @@ class Stats(object):
             _first = prdf[:1].reset_index()
             logger.debug('first')
             logger.debug(_first)
-            products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
+            '''products_info = g._catalogue.get_product_details(values=[_first.loc[0, 'item_uuid']])
             logger.debug(products_info)
             ims_product = list(filter(lambda product: product['source'] == 'ims', products_info))
             logger.debug('ims product')
@@ -393,11 +393,9 @@ class Stats(object):
             item_info = g._catalogue.get_items_details(
                 values=[_first.loc[0, 'item_uuid']], 
                 cols=['item_uuid','gtin','name']
-            )
+            )'''
             tmp = {
-                'item_uuid': item_info[0]['item_uuid'],
-                'name': ims_product[0]['name'] if (ims_product and ims_product[0]['name'] != '') else item_info[0]['name'],
-                'gtin': item_info[0]['gtin'],
+                'item_uuid': _first.loc[0, 'item_uuid'],
                 'prices': {}
             }
             for j, row in prdf.iterrows():
@@ -420,6 +418,11 @@ class Stats(object):
                 })
             formatted.append(tmp)
         logger.info('Got actual!!')
+
+        # add item info
+        formatted_df = pd.DataFrame(formatted)
+        logger.debug(formatted.head())
+
         task.progress = 100
         return {"data": formatted, "msg": "Task completed"}
 
