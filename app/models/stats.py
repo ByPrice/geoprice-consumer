@@ -180,7 +180,7 @@ class Stats(object):
 
             try:
                 q = g._db.query(cass_query_text,
-                                timeout=15000)
+                                timeout=1500000000000)
                 if q:
                     qs += list(q)
             except Exception as e:
@@ -256,7 +256,7 @@ class Stats(object):
 
                 try:
                     q = g._db.query(cass_query_text,
-                                    timeout=15000)
+                                    timeout=1500000000000)
                     if q:
                         qs += list(q)
                 except Exception as e:
