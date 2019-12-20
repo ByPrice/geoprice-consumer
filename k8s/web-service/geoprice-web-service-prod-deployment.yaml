@@ -48,6 +48,16 @@ spec:
                 configMapKeyRef:
                   name: geoprice-web-service-config
                   key: redishost
+            - name: "SRV_CATALOGUE"
+              valueFrom:
+                configMapKeyRef:
+                  name: web-service-config-production-mex
+                  key: catalogue.service.host
+            - name: "SRV_GEOLOCATION"
+              valueFrom:
+                configMapKeyRef:
+                  name: web-service-config-production-mex
+                  key: geolocation.service.host
 
   selector:
     matchLabels:
