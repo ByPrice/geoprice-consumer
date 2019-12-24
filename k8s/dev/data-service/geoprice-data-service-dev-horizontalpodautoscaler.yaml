@@ -1,0 +1,18 @@
+# todo use rabbitmq - deploy rabbit in kubernetes and expose monitoring ingress for auto
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: geoprice-data-service-development-mex-autoscale
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: geoprice-data-service-development-mex-deployment
+  minReplicas: 6
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: 50

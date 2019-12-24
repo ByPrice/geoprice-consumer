@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-development-mex-service
+spec:
+  clusterIP: 10.0.40.135
+  ports:
+  - port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    application: redis
+    application-type: database
+    broker: redis
+    environment: development
+    owner: oscar
+    type: deployment
+    version: v0.1
+  type: ClusterIP

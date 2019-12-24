@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geoprice-web-service-development-mex-deployment
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: geoprice-web-service-development-mex-deployment-template
+      labels:
+        application: geoprice-web-service
+        environment: development
+        application-type: web-service
+        owner: oscar
+        version: v0.1
+        type: deployment
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: geoprice-web-service-development-mex-container
+          image: gcr.io/byprice-backend/development/web-service/geoprice:master
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 512m
+            requests:
+              cpu: 256m
+              memory: 512Mi
+          command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_web_service.sh']
+          env:
+            - name: "CASSANDRA_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-development-mex
+                  key: CASSANDRA_PASSWORD
+            - name: "AMAZON_ACCESS_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-development-mex
+                  key: AMAZON_ACCESS_KEY
+            - name: "AMAZON_SECRET_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-development-mex
+                  key: AMAZON_SECRET_KEY
+            - name: "CELERY_HOST"
+              valueFrom:
+                configMapKeyRef:
+                  name: geoprice-web-service-config
+                  key: redishost
+            - name: "SRV_CATALOGUE"
+              valueFrom:
+                configMapKeyRef:
+                  name: web-service-config-development-mex
+                  key: catalogue.service.host
+            - name: "SRV_GEOLOCATION"
+              valueFrom:
+                configMapKeyRef:
+                  name: web-service-config-development-mex
+                  key: geolocation.service.host
+
+  selector:
+    matchLabels:
+      application: geoprice-web-service
+      environment: development
+      application-type: web-service
+      owner: oscar
+      version: v0.1
+      type: deployment
