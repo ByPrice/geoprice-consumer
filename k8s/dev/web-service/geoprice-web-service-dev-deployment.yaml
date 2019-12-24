@@ -18,14 +18,14 @@ spec:
       restartPolicy: Always
       containers:
         - name: geoprice-web-service-development-mex-container
-          image: gcr.io/byprice-backend/development/web-service/geoprice:master
+          image: gcr.io/byprice-backend/development/web-service/geoprice:dev
           imagePullPolicy: Always
           resources:
             limits:
-              cpu: 512m
-            requests:
               cpu: 256m
-              memory: 512Mi
+            requests:
+              cpu: 128m
+              memory: 256Mi
           command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_web_service.sh']
           env:
             - name: "CASSANDRA_PASSWORD"
