@@ -202,7 +202,7 @@ def main():
     """ Service information endpoint
     """
     return jsonify({
-        'service' : 'ByPrice Price Geoprice v{}'.format(config.__version__),
+        'service' : 'ByPrice Price Geoprice {} - v{}'.format(ENV, config.__version__),
         'author' : 'ByPrice Dev Team',
         'date' : datetime.datetime.utcnow()
     })
