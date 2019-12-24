@@ -16,7 +16,7 @@ VOLUME /var/log/geoprice
 ENV APP_NAME='geoprice-data-service-development'
 ENV APP_DIR='/'
 # Bug with rabbit_engine file , not adding _dev for LOCAL
-ENV ENV='PROD'
+ENV ENV='DEV'
 ENV FLASK_APP=app/__init__.py
 ENV REGION='MEX'
 ENV LOG_LEVEL='ERROR'
