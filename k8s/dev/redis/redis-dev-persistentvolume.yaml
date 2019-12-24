@@ -8,12 +8,12 @@ metadata:
     application-type: database
     owner: oscar
     version: v0.1
-    type: persistentvolume
+    type: local
 spec:
   capacity:
     storage: 10Gi
   accessModes:
   - ReadWriteOnce
   gcePersistentDisk:
-    pdName: redis-disk
+    pdName: redis-dev-disk
     fsType: ext4
