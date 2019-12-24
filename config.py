@@ -33,7 +33,7 @@ REDIS_HOST = os.getenv('REDIS_HOST', None)
 REDIS_PORT = os.getenv('REDIS_PORT', None)
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 REDIS_DB = int(os.getenv('REDIS_DB', 2)) \
-    if ENV != 'DEV' else int(os.getenv('REDIS_DB', None))
+    if ENV == 'PROD' else int(os.getenv('REDIS_DB', 3))
 
 # Database
 CASSANDRA_CONTACT_POINTS =  os.getenv('CASSANDRA_CONTACT_POINTS','0.0.0.0')
