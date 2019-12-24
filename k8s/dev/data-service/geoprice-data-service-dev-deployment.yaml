@@ -18,7 +18,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: geoprice-data-service-development-mex-container
-          image: gcr.io/byprice-backend/development/data-service/geoprice:master
+          image: gcr.io/byprice-backend/development/data-service/geoprice:dev
           imagePullPolicy: Always
           resources:
             limits:
