@@ -843,6 +843,7 @@ class Stats(object):
 
         # add item info
         formatted_df = pd.DataFrame(interv_list)
+        formatted_df.drop_duplicates(subset='item_uuid', inplace=True)
         logger.debug(formatted_df.head())
 
         item_uuids = df['item_uuid'].tolist()
