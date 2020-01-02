@@ -853,6 +853,8 @@ class Stats(object):
 
         tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
         formatted = tmp_df.to_dict(orient='records')
+        logger.debug('FINAL RESPONSE')
+        logger.debug(formatted)                                        
 
         return {"data": formatted, "msg": "Task completed"}
 
