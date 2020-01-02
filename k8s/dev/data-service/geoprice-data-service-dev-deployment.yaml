@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geoprice-data-service-development-mex-deployment
+  namespace: default
+spec:
+  template:
+    metadata:
+      name: geoprice-data-service-development-mex-deployment-template
+      labels:
+        application: geoprice-data-service
+        environment: development
+        application-type: data-services
+        owner: oscar
+        version: v0.1
+        type: deployment
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: geoprice-data-service-development-mex-container
+          image: gcr.io/byprice-backend/development/data-service/geoprice:dev
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 256m
+            requests:
+              cpu: 128m
+              memory: 256Mi
+          command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_consumer.sh']
+          env:
+            - name: "STREAMER_PASS"
+              valueFrom:
+                secretKeyRef:
+                  name: data-service-secret-development-mex
+                  key: STREAMER_PASS
+            - name: "CASSANDRA_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: data-service-secret-development-mex
+                  key: CASSANDRA_PASSWORD
+  selector:
+    matchLabels:
+      application: geoprice-data-service
+      environment: development
+      application-type: data-services
+      owner: oscar
+      version: v0.1
+      type: deployment

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: geoprice-web-service-config
+  namespace: default
+data:
+  redishost: 10.0.40.135

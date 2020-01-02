@@ -9,6 +9,7 @@ from ByHelpers import applogger
 import warnings
 from uuid import UUID
 import pandas as pd
+from time import time
 
 # Database connection:  db.session
 logger = applogger.get_logger()
@@ -218,16 +219,12 @@ class Price(object):
             - execute()
             - execue_async() en caso de que se haga cuello de botella
         '''
-        #logger.info("[3] Saving price in all tables...")
-        # self.save_price()    # DEPRECATED
         self.save_price_by_product_date()
-        # self.save_price_by_date()    # DEPRECATED
         self.save_price_by_product_store()
-        # self.save_price_by_geohash()  # DEPRECATED
-        # self.save_price_by_source()   # DEPRECATED
         self.save_price_by_store()
         self.save_promo()
         self.save_promo_by_store()
+
         return True
 
     # Save as raw price in json format
