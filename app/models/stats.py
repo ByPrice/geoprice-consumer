@@ -843,7 +843,6 @@ class Stats(object):
 
         # add item info
         formatted_df = pd.DataFrame(interv_list)
-        formatted_df.drop_duplicates(subset='item_uuid', inplace=True)
         logger.debug(formatted_df.head())
 
         item_uuids = df['item_uuid'].tolist()
@@ -852,9 +851,8 @@ class Stats(object):
         items_df = pd.DataFrame(items_details)
 
         tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
-        formatted = tmp_df.to_dict(orient='records')
-        logger.debug('FINAL RESPONSE')
-        logger.debug(formatted)                                        
+        tmp_df.drop_duplicates(subset='item_uuid', inplace=True)
+        formatted = tmp_df.to_dict(orient='records')                           
 
         return {"data": formatted, "msg": "Task completed"}
 
