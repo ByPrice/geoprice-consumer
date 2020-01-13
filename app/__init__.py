@@ -30,6 +30,7 @@ def build_context(
     """ App method to setup global
         variables for app context
     """
+    logger.debug('Building context')
     get_db()
     get_redis()
     get_sdks(services)
@@ -52,18 +53,18 @@ def get_db():
 def get_redis():
     """ Method to connect to redis
     """
+    logger.debug('Task Backend: {}'.format(config.TASK_BACKEND))
     try:
         if not hasattr(g, '_redis') and config.TASK_BACKEND=='redis':
             g._redis = Redis(
                 db=config.REDIS_DB,
                 host=config.REDIS_HOST,
                 port=config.REDIS_PORT,
-                password=config.REDIS_PASSWORD or None
+                password=config.REDIS_PASSWORD
             )
     except Exception as e:
         logger.error("Could not connect to redis server!!")
         logger.error(e)
-
 
 def get_sdks(modules):
     """ Method build service SDKs
