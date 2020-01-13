@@ -193,6 +193,7 @@ class Stats(object):
             return pd.DataFrame({'date': [], 'product_uuid': []})
         # Load Response into a DF
         df = pd.DataFrame(qs)
+        logger.debug(df)
         df['product_uuid'] = df.product_uuid.astype(str)
         return df
 
@@ -236,7 +237,7 @@ class Stats(object):
         logger.info('chunk size')
         logger.info(chunk_size)
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
-        chunk_dates = Stats.divide_chunks(_days, 30)
+        chunk_dates = Stats.divide_chunks(_days, 7)
         logger.info(_days)
         logger.info('----------')
 
@@ -852,7 +853,7 @@ class Stats(object):
         items_df = pd.DataFrame(items_details)
 
         tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
-        tmp_df.drop_duplicates(subset='item_uuid', inplace=True)
+        formatted_df.drop_duplicates(subset='item_uuid', inplace=True)
         formatted = tmp_df.to_dict(orient='records')
 
         return {"data": formatted, "msg": "Task completed"}
