@@ -853,8 +853,8 @@ class Stats(object):
         items_df = pd.DataFrame(items_details)
 
         tmp_df = pd.merge(formatted_df, items_df, on="item_uuid")
-        formatted_df.drop_duplicates(subset='item_uuid', inplace=True)
-        formatted = tmp_df.to_dict(orient='records')
+        tmp_df.drop_duplicates(subset='item_uuid', inplace=True)
+        formatted = tmp_df.to_dict(orient='records')                           
 
         return {"data": formatted, "msg": "Task completed"}
 
