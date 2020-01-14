@@ -31,7 +31,7 @@ class Product(object):
             Static Method to verify correct connection with Prices Cassandra Keyspace
         """
         try:
-            q = g._db.query("SELECT product_uuid FROM price LIMIT 1")
+            q = g._db.query("SELECT product_uuid FROM price_by_product_date LIMIT 1")
         except:
             logger.error("Cassandra Connection error")
             return False
