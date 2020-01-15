@@ -3,7 +3,6 @@ from io import StringIO
 import json
 import datetime
 import itertools
-import time
 from collections import defaultdict
 from flask import g
 from app import errors
@@ -162,7 +161,6 @@ class Stats(object):
         logger.info(chunk_size)
         logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
-        time.sleep(0.3)
         
         logger.info("Querying Stats by product..")
         logger.debug(puuids)
@@ -240,9 +238,7 @@ class Stats(object):
         logger.info(chunk_size)
         logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
-        time.sleep(0.3)
         chunk_dates = Stats.divide_chunks(_days, 7)
-        time.sleep(0.3)
         logger.info(_days)
         logger.info('----------')
 
@@ -1415,10 +1411,12 @@ class Stats(object):
 
 
     def divide_chunks(l, n): 
-        
+        res = []
         # looping till length l 
         for i in range(0, len(l), n):
             if len(l[i:i + n]) > 1:
-                yield l[i:i + n]
+                res.append(l[i:i + n])
             else:
-                yield (l[i-1:i+1])
+                res.append(l[i-1:i+1])
+
+        return res

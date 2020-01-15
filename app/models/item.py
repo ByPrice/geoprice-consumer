@@ -1,7 +1,6 @@
 import json
 from flask import g
 import requests
-import time
 from app import logger
 from config import SRV_CATALOGUE, SRV_PROTOCOL
 
@@ -117,7 +116,6 @@ class Item(object):
         chunk_size = 100
 
         chunk_items = Item.divide_chunks(items, chunk_size)
-        time.sleep(0.3)
 
         products = []
 
@@ -210,10 +208,12 @@ class Item(object):
         return items
 
     def divide_chunks(l, n): 
-    
+        res = []
         # looping till length l 
         for i in range(0, len(l), n):
             if len(l[i:i + n]) > 1:
-                yield l[i:i + n]
+                res.append(l[i:i + n])
             else:
-                yield (l[i-1:i+1])
+                res.append(l[i-1:i+1])
+
+        return res

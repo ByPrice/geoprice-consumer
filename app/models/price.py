@@ -9,7 +9,7 @@ from ByHelpers import applogger
 import warnings
 from uuid import UUID
 import pandas as pd
-from time import time, sleep
+from time import time
 
 # Database connection:  db.session
 logger = applogger.get_logger()
@@ -653,7 +653,6 @@ class Price(object):
         result = []
         chunk_size = 1000
         chunk_products = Price.divide_chunks(products, chunk_size)
-        sleep(0.3)
         # Nested loops
         for d in dates:
             for prods in chunk_products:
@@ -727,10 +726,12 @@ class Price(object):
         return _df.to_dict(orient='records')
 
     def divide_chunks(l, n): 
-        
+        res = []
         # looping till length l 
         for i in range(0, len(l), n):
             if len(l[i:i + n]) > 1:
-                yield l[i:i + n]
+                res.append(l[i:i + n])
             else:
-                yield (l[i-1:i+1])
+                res.append(l[i-1:i+1])
+
+        return res
