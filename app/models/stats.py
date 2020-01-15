@@ -159,6 +159,7 @@ class Stats(object):
         chunk_size = 50
         logger.info('chunk size')
         logger.info(chunk_size)
+        logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         
         logger.info("Querying Stats by product..")
@@ -235,6 +236,7 @@ class Stats(object):
         chunk_size = 50
         logger.info('chunk size')
         logger.info(chunk_size)
+        logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         chunk_dates = Stats.divide_chunks(_days, 7)
         logger.info(_days)
