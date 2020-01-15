@@ -61,12 +61,9 @@ class Price(object):
             if key in self.__dict__.keys():
                 setattr(self, key, kwargs[key])
         # Date conversion
-        try:
-            self.time = datetime.datetime.strptime(self.date, '%Y-%m-%d %H:%M:%S.%f')
-        except:
-            self.time = datetime.datetime.strptime(self.date, '%Y-%m-%d %H:%M:%S')
+        self.time = datetime.datetime.utcnow()
         #self.date = self.time.strftime('%Y-%m-%d')     # <- Date as string
-        self.date =  int(str(self.time.year)+str(self.time.month).zfill(2)+str(str(self.time.day).zfill(2)))
+        self.date = int(str(self.time.year)+str(self.time.month).zfill(2)+str(str(self.time.day).zfill(2)))
         # Gtin
         try:
             self.gtin = int(self.gtin)
