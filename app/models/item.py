@@ -1,6 +1,7 @@
 import json
 from flask import g
 import requests
+import time
 from app import logger
 from config import SRV_CATALOGUE, SRV_PROTOCOL
 
@@ -116,6 +117,7 @@ class Item(object):
         chunk_size = 100
 
         chunk_items = Item.divide_chunks(items, chunk_size)
+        time.sleep(0.3)
 
         products = []
 

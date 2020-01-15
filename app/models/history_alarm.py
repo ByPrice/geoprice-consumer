@@ -4,6 +4,7 @@ from io import StringIO
 import math
 import json
 import itertools
+import time
 from collections import OrderedDict
 from flask import g
 import pandas as pd
@@ -116,6 +117,7 @@ class Alarm(object):
         # Fetch prod uuids
         puuids = [p['product_uuid'] for p in prods]
         chunk_puuids = Alarm.divide_chunks(puuids, chunk_size)
+        time.sleep(0.3)
 
         cass_query = """SELECT product_uuid, price,
                 store_uuid, time
