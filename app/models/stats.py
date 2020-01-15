@@ -156,9 +156,10 @@ class Stats(object):
         puuids = [p['product_uuid'] for p in prods]
 
         # Generate chunks
-        chunk_size = int(2000 / (len(_days)))
+        chunk_size = 50
         logger.info('chunk size')
         logger.info(chunk_size)
+        logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         
         logger.info("Querying Stats by product..")
@@ -232,9 +233,10 @@ class Stats(object):
             _days = _days + (date_start,)
 
         # Generate chunks
-        chunk_size = int(2000 / (len(_days))) if int(2000 / (len(_days))) > 100 else 100
+        chunk_size = 50
         logger.info('chunk size')
         logger.info(chunk_size)
+        logger.info(len(puuids))
         chunk_puuids = Stats.divide_chunks(puuids, chunk_size)
         chunk_dates = Stats.divide_chunks(_days, 7)
         logger.info(_days)
@@ -1409,10 +1411,12 @@ class Stats(object):
 
 
     def divide_chunks(l, n): 
-        
+        res = []
         # looping till length l 
         for i in range(0, len(l), n):
             if len(l[i:i + n]) > 1:
-                yield l[i:i + n]
+                res.append(l[i:i + n])
             else:
-                yield (l[i-1:i+1])
+                res.append(l[i-1:i+1])
+
+        return res
