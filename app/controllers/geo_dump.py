@@ -46,11 +46,11 @@ def dump_download():
     fname = data_source + "_stats_aggregate.csv"
 
     # Count the times downloaded
-    with open(DATA_DIR+'/downloads.json','r') as file:
+    '''with open(DATA_DIR+'/downloads.json','r') as file:
         count_file = json.load(file)
     count_file['count'] += 1
     with open(DATA_DIR+'/downloads.json','w') as file:
-        file.write(json.dumps(count_file))
+        file.write(json.dumps(count_file))'''
     # Get all retailers from geo
     logger.info("Requesting all retailers")
     total_rets = g._geolocation.get_retailers()
