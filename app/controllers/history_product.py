@@ -53,7 +53,8 @@ def get_today_prices_bystore():
     prod = Product.get_by_store(item_uuid,
         product_uuid, lat, lng, radius)
     if not prod:
-        logger.warning("No prices in queried product!")
+        logger.warning("No prices in queried {} {}!".format('item' if item_uuid else 'product',\
+            item_uuid if item_uuid else product_uuid))
         return jsonify([])
     logger.info('Found {} prices'.format(len(prod)))
     logger.debug("Response prices:")
@@ -81,7 +82,8 @@ def get_history_prices_bystore():
     # Call to fetch prices
     prod = Product.get_history_by_store(item_uuid, product_uuid, period)
     if not prod:
-        logger.warning("No prices in queried product!")
+        logger.warning("No prices in queried {} {}!".format('item' if item_uuid else 'product',\
+            item_uuid if item_uuid else product_uuid))
         return jsonify({})
     logger.info('Found {} metrics'.format(len(prod['history'])))
     return jsonify(prod)
