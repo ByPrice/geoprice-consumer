@@ -44,7 +44,7 @@ class Dump(object):
             fbuff = remote_r['Body']
             df = pd.read_csv(fbuff).drop('Unnamed: 0', axis=1, errors='ignore')
         except Exception:
-            logger.warning("Not found file! " + BUCKET + ', ' + key)
+            logger.warning("Not found file! " + BUCKET + ', ' + _key)
             raise errors.AppError("no_file_found", "Not found dump file in S3")
         return df
 
