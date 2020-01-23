@@ -43,6 +43,16 @@ spec:
                 secretKeyRef:
                   name: web-service-secret-production-mex
                   key: AMAZON_SECRET_KEY
+            - name: "AWS_ACCESS_KEY_ID"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AWS_ACCESS_KEY_ID
+            - name: "AWS_SECRET_ACCESS_KEY"
+              valueFrom:
+                secretKeyRef:
+                  name: web-service-secret-production-mex
+                  key: AWS_SECRET_ACCESS_KEY
             - name: "CELERY_HOST"
               valueFrom:
                 configMapKeyRef:
