@@ -265,10 +265,14 @@ class Map(object):
         df.sort_values(by=['retailer'], ascending=True, inplace=True)
         # Order by retailer
         grouped_by_retailer = df.groupby(['retailer'])
-        print('only_promotions')
-        print(only_promotions)
-        print('df-------')
-        print(grouped_by_retailer.head())
+        logger.warning('only_promotions')
+        logger.warning(only_promotions)
+        logger.warning('df-------')
+        logger.warning(grouped_by_retailer.head())
+
+        if only_promotions:
+            grouped_by_retailer.dropna(subset=['promo'], inplace=True)
+            
         for retailer, df_retailer in grouped_by_retailer:
             # New list value
             result['table'][retailer] = []
