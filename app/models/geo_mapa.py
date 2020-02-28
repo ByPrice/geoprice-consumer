@@ -82,12 +82,13 @@ class Map(object):
             params['retailers'],
             params['date_start'],
             params['date_end'],
-            params['interval']
+            params['interval'],
+            params['only_promotions']
         )
         return response
 
     @staticmethod
-    def build_response(task_id, filters, rets, date_start, date_end, interval):
+    def build_response(task_id, filters, rets, date_start, date_end, interval, only_promotions=False):
         """ Static method to retrieve passed prices by all 
             available stores given UUIDS, retailer keys
             and date range . 
@@ -107,7 +108,9 @@ class Map(object):
                 - date_end: (str) 
                     ISO format End Date 
                 - interval: (str) 
-                    Time interval  
+                    Time interval 
+                - only_promotions: (bool)
+                    Flag for showing only promotions
 
             Returns:
             -----
@@ -262,6 +265,10 @@ class Map(object):
         df.sort_values(by=['retailer'], ascending=True, inplace=True)
         # Order by retailer
         grouped_by_retailer = df.groupby(['retailer'])
+        print('only_promotions')
+        print(only_promotions)
+        print('df-------')
+        print(grouped_by_retailer.head())
         for retailer, df_retailer in grouped_by_retailer:
             # New list value
             result['table'][retailer] = []
