@@ -5,6 +5,7 @@ import config
 import requests
 import json
 import pandas as pd
+import numpy as np
 from app.models.task import Task
 from app.models.price import Price
 from app import errors
@@ -265,7 +266,9 @@ class Map(object):
         df.sort_values(by=['retailer'], ascending=True, inplace=True)
         # Order by retailer
         if only_promotions:
-            df['promo'] = df.loc[(df.price < df.price_original), 'promo'] = 'Antes $' + str(round(df.loc[(df.price < df.price_original), 'promo']['price_original'],2))
+            #df['promo'] = df.loc[(df.price < df.price_original), 'promo'] = 'Antes $' + str(round(df.loc[(df.price < df.price_original), 'promo']['price_original'],2))
+            #df['promo'] = 'Antes $' + df.price_original.astype(str) + df.type + ' ' + df.animal
+            df.promo = "Antes $" + df.price_original.astype(str) + np.where((df.price < df.price_original, 's', '')
             df = df[df['promo'].astype(bool)]
         grouped_by_retailer = df.groupby(['retailer'])        
 
