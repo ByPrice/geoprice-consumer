@@ -266,13 +266,10 @@ class Map(object):
         df.sort_values(by=['retailer'], ascending=True, inplace=True)
         # Order by retailer
         if only_promotions:
-            #df['promo'] = df.loc[(df.price < df.price_original), 'promo'] = 'Antes $' + str(round(df.loc[(df.price < df.price_original), 'promo']['price_original'],2))
-            #df['promo'] = 'Antes $' + df.price_original.astype(str) + df.type + ' ' + df.animal
             df_discount_prices = df.loc[(df.price < df.price_original)]
-            df_discount_prices['promo'] = df_discount_prices['price_original'].apply(lambda x: 'Antes $' + str(round(int(x), 2)))
-            #df.promo = "Antes $" + str(round(df.price_original,2)) + np.where(round(df.price,2) < round(df.price_original,2), 's', '')
+            df_discount_prices['promo'] = df_discount_prices['price_original'].apply(lambda x: 'Antes $' + str(round(float(x), 2)))
             df = df[df['promo'].astype(bool)]
-            df = pd.concat(df, df_discount_prices)
+            df = pd.concat([df, df_discount_prices])
         grouped_by_retailer = df.groupby(['retailer'])        
 
         for retailer, df_retailer in grouped_by_retailer:
