@@ -268,7 +268,7 @@ class Map(object):
         if only_promotions:
             #df['promo'] = df.loc[(df.price < df.price_original), 'promo'] = 'Antes $' + str(round(df.loc[(df.price < df.price_original), 'promo']['price_original'],2))
             #df['promo'] = 'Antes $' + df.price_original.astype(str) + df.type + ' ' + df.animal
-            df.promo = "Antes $" + df.price_original.astype(str) + np.where(df.price < df.price_original, 's', '')
+            df.promo = "Antes $" + str(round(df.price_original,2)) + np.where(round(df.price,2) < round(df.price_original,2), 's', '')
             df = df[df['promo'].astype(bool)]
         grouped_by_retailer = df.groupby(['retailer'])        
 
