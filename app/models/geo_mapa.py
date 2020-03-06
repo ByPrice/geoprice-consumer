@@ -269,7 +269,7 @@ class Map(object):
             df_discount_prices = df.loc[(df.price < df.price_original)]
             df_discount_prices['promo'] = df_discount_prices['price_original'].apply(lambda x: 'Antes $' + str(round(float(x), 2)))
             df = df[df['promo'].astype(bool)]
-            df = pd.concat([df, df_discount_prices])
+            df = pd.concat([df_discount_prices, df])
         grouped_by_retailer = df.groupby(['retailer'])        
 
         for retailer, df_retailer in grouped_by_retailer:
