@@ -39,11 +39,11 @@ def dump_download():
     """
     logger.info("Starting to download dumps.. ")
     # Data source
-    data_source = request.args.get("data_source","ims")
+    data_sources = request.args.get("data_source","ims").split(',')
+    
     # Define Dump format
     fmt = request.args.get("format", "csv")
     rets = request.args.get("retailers", None)
-    fname = data_source + "_stats_aggregate.csv"
 
     # Count the times downloaded
     '''with open(DATA_DIR+'/downloads.json','r') as file:
@@ -61,17 +61,20 @@ def dump_download():
     else:
         retailers = retailer_names.keys()
 
-    # Adjust dataframe
-    logger.info("Reading csv file from S3")
-    _df = Dump.get_recent_from_s3(fname)
-    if _df.empty:
-        raise errors.AppError("no_file", "No available dump file found!")
-    cols = ['gtin','name', 'item_uuid']
-    for ret in retailers:
-        cols.append(ret+"_max")
-        cols.append(ret+"_min")
-        cols.append(ret+"_avg")
-    df = _df[cols].copy()
+    df = pd.DataFrame()
+    for data_source in data_sources:
+        # Adjust dataframe
+        fname = data_source + "_stats_aggregate.csv"
+        logger.info("Reading csv file from S3")
+        _df = Dump.get_recent_from_s3(fname)
+        if _df.empty:
+            raise errors.AppError("no_file", "No available dump file found!")
+        cols = ['gtin','name', 'item_uuid']
+        for ret in retailers:
+            cols.append(ret+"_max")
+            cols.append(ret+"_min")
+            cols.append(ret+"_avg")
+        df = df.append(_df[cols].copy())
 
     # Rename the columns
     logger.info("Renaming columns")
@@ -110,7 +113,6 @@ def dump_catalogue():
     store_uuid = request.args.get("store_uuid",None)
     store_name = request.args.get("store_name", "Default")
     fmt = request.args.get("fmt","csv")
-    data_source = request.args.get("data_source",None)
     
     try:
         hours = int(request.args.get("hours",32))
@@ -126,19 +128,24 @@ def dump_catalogue():
         raise errors.AppError("dump_error",
             "Missing parameters in request")
 
-    # Get all the items
-    logger.info("Getting total items from {}".format(data_source))
-    items = g._catalogue.get_by_source(
-        data_source=data_source, 
-        cols=extras+['item_uuid'],
-        qsize=2000
-    )
-    logger.info("Got {} total items".format(len(items)))
-    items_ret = g._catalogue.get_by_source(
-        data_source=retailer, 
-        cols=extras+['item_uuid', 'gtin'],
-        qsize=2000
-    )
+    items = []
+    items_ret = []
+    data_sources = request.args.get("data_source",None).split(',')
+    for data_source in data_sources:
+
+        # Get all the items
+        logger.info("Getting total items from {}".format(data_source))
+        items = items + g._catalogue.get_by_source(
+            data_source=data_source, 
+            cols=extras+['item_uuid'],
+            qsize=2000
+        )
+        logger.info("Got {} total items".format(len(items)))
+        items_ret = items_ret + g._catalogue.get_by_source(
+            data_source=retailer, 
+            cols=extras+['item_uuid', 'gtin'],
+            qsize=2000
+        )
 
     # Fetch UUIDS only with existing Item  UUID
     _uuids = set(i['item_uuid'] for i in items if i['item_uuid'])
