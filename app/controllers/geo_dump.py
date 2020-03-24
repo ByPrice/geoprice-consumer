@@ -100,6 +100,7 @@ def dump_download():
         return jsonify({"columns":table_head,"records":table_body})
     # If direct download reomve Item uuid
     result_df.drop('item_uuid', axis=1, inplace=True)
+    result_df.drop_duplicates(inplace=True)
     return download_dataframe(result_df, fmt=fmt, name="prices_retailers_"+datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
 
