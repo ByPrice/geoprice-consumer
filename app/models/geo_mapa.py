@@ -247,6 +247,7 @@ class Map(object):
             for store, df_store in df_interval.groupby(['store']):
                 
                 result['map'][interval_date].append({
+                    "item_uuid" : df_store['item_uuid'],
                     "gtin" : df_store['gtin'].tolist()[0],
                     "lat" : df_store['lat'].tolist()[0],
                     "lng" : df_store['lng'].tolist()[0],
@@ -278,6 +279,7 @@ class Map(object):
             # Interval
             for t_intv, df_interval in df_retailer.groupby(grouping_cols[interval] + ['item_uuid','store_uuid']): 
                 result['table'][retailer].append({
+                    "item_uuid" : df_store['item_uuid'],
                     "gtin" : df_interval['gtin'].tolist()[0],
                     "name" : df_interval['name'].tolist()[0],
                     "promo" : df_interval['promo'].tolist()[0],
