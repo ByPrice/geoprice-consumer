@@ -279,7 +279,7 @@ class Map(object):
             # Interval
             for t_intv, df_interval in df_retailer.groupby(grouping_cols[interval] + ['item_uuid','store_uuid']): 
                 result['table'][retailer].append({
-                    "item_uuid" : df_store['item_uuid'],
+                    "item_uuid" : df_interval['item_uuid'],
                     "gtin" : df_interval['gtin'].tolist()[0],
                     "name" : df_interval['name'].tolist()[0],
                     "promo" : df_interval['promo'].tolist()[0],
