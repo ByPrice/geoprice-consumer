@@ -48,6 +48,7 @@ def get_daily_data(_day, rets=[]):
         stores = get_all_stores(rets)
     else:
         stores = get_all_stores()
+    logger.debug('Got {} stores'.format(len(stores)))
     cass_qry = """SELECT product_uuid, price, date, source
         FROM price_by_store WHERE date = %s AND store_uuid = %s
     """

@@ -60,12 +60,13 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
             "filters":
                 [
                     {"item_uuid": "98440d28-64be-4994-8244-2b2aa57b0c1a"},
-                    {"item": "3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
-                    {"item": "decd74df-6a9d-4614-a0e3-e02fe13d1542"},
-                    {"retailer": "san_pablo"},
-                    {"retailer": "chedraui"},
-                    {"retailer": "walmart"},
-                    {"retailer": "superama"}
+                    # {"item": "3a8b8a6f-82df-4bbd-84bf-3d291f0a3b29"},
+                    # {"item": "decd74df-6a9d-4614-a0e3-e02fe13d1542"},
+                    {"retailer": "f_ahorro"},
+                    # {"retailer": "san_pablo"},
+                    # {"retailer": "chedraui"},
+                    # {"retailer": "walmart"},
+                    # {"retailer": "superama"}
                 ],
             "export": False
         }
@@ -87,7 +88,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', task.result['data'])
         self.assertIsInstance(task.result['data'], list)
 
-    #@unittest.skip('TODO')
+    @unittest.skip('TODO')
     def test_03_stats_history(self):
         """ Test /stats/history endpoint
         """
@@ -127,7 +128,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertEqual(progress, 100)
         self.assertIn('metrics', task.result['data'])
 
-    #@unittest.skip('TODO')
+    @unittest.skip('TODO')
     def test_04_stats_category(self):
         """ Test /stats/category endpoint
         """
@@ -163,7 +164,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertEqual(progress, 100)
         self.assertIn('name', task.result['data'][0])
 
-    #@unittest.skip('TODO')
+    @unittest.skip('TODO')
     def test_05_stats_direct_compare(self):
         """ Test /stats/direct_compare endpoint
         """
@@ -210,7 +211,7 @@ class GeopriceStatsTasksTestCase(unittest.TestCase):
         self.assertNotIn('error', task.result)
         self.assertIn('items', task.result['data'])
 
-    #@unittest.skip('TODO')
+    @unittest.skip('TODO')
     def test_06_stats_compare(self):
         """ Test /stats/compare endpoint
         """
