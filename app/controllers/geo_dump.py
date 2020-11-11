@@ -142,11 +142,12 @@ def dump_catalogue():
             qsize=2000
         )
         logger.info("Got {} total items".format(len(items)))
-        items_ret = items_ret + g._catalogue.get_by_source(
-            data_source=retailer, 
-            cols=extras+['item_uuid', 'gtin'],
-            qsize=2000
-        )
+        if len(items_ret) == 0:
+            items_ret = items_ret + g._catalogue.get_by_source(
+                data_source=retailer, 
+                cols=extras+['item_uuid', 'gtin'],
+                qsize=2000
+            )
 
     # Fetch UUIDS only with existing Item  UUID
     _uuids = set(i['item_uuid'] for i in items if i['item_uuid'])
