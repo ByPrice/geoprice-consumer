@@ -18,7 +18,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: geoprice-data-service-production-mex-container
-          image: gcr.io/byprice-backend/production/data-service/geoprice:master
+          image: us.icr.io/data_services/geoprice:master
           imagePullPolicy: Always
           resources:
             limits:
@@ -26,7 +26,12 @@ spec:
             requests:
               cpu: 256m
               memory: 900Mi
-          command: ['/bin/bash' , '-c', 'echo Starting container !! && source bin/run_consumer.sh']
+          command:
+            [
+              "/bin/bash",
+              "-c",
+              "echo Starting container !! && source bin/run_consumer.sh",
+            ]
           env:
             - name: "STREAMER_PASS"
               valueFrom:
